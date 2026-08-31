@@ -5,10 +5,12 @@ import CalendarViewToggle from "../student-view-v4/CalendarViewToggle.vue";
 import BookingConfirmationPage from "../student-view-v4/BookingConfirmationPage.vue";
 import DateTimeFilterPopover from "../student-view-v4/DateTimeFilterPopover.vue";
 import TeacherDataModal from "../../components/TeacherDataModal.vue";
+import SubjectFilterBar from "../student-view-v4/SubjectFilterBar.vue";
 import {
   INSTRUCTORS,
   SUBJECT_LABELS,
   SUBJECT_FILTER_OPTIONS,
+  isSubjectMatchingFilter,
   BOOKING_DAYS,
   BOOKING_TIME_SLOTS,
   formatSlotTo12Hour,
@@ -108,7 +110,7 @@ const filteredInstructors = computed(() => {
   }
 
   if (subjectFilter.value !== "ALL") {
-    list = list.filter((teacher) => teacher.specialty.includes(subjectFilter.value));
+    list = list.filter((teacher) => isSubjectMatchingFilter(teacher.specialty, subjectFilter.value));
   }
 
   if (selectedDayKey.value || selectedTime.value) {
@@ -424,36 +426,13 @@ const draftSubjectOptions = computed(() => {
           </div>
         </div>
 
-        <!-- Subject Filter Pills & Favorites (Horizontal touch scrollable) -->
-        <div class="mt-3.5 flex items-center justify-between gap-2 pt-3 border-t border-zinc-100">
-          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-[calc(100%-110px)] sm:max-w-none custom-scrollbar">
-            <button
-              v-for="opt in SUBJECT_FILTER_OPTIONS"
-              :key="opt.value"
-              type="button"
-              @click="subjectFilter = opt.value"
-              :class="`whitespace-nowrap rounded-lg px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium transition active:scale-95 ${
-                subjectFilter === opt.value
-                  ? 'bg-zinc-900 text-white'
-                  : 'border border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
-              }`"
-            >
-              {{ opt.label }}
-            </button>
-          </div>
-
-          <button
-            type="button"
-            @click="favoritesOnly = !favoritesOnly"
-            :class="`inline-flex items-center gap-1.5 rounded-lg border px-2.5 sm:px-3 py-1.5 text-[11px] sm:text-xs font-medium transition shrink-0 active:scale-95 ${
-              favoritesOnly
-                ? 'border-amber-300 bg-amber-50 text-amber-900'
-                : 'border-zinc-200 bg-white text-zinc-600 hover:bg-zinc-50'
-            }`"
-          >
-            <span :class="favoritesOnly ? 'text-amber-500' : 'text-zinc-400'">★</span>
-            <span class="hidden sm:inline">Favorites</span> ({{ favorites.length }})
-          </button>
+        <!-- Subject & Category Filter + Favorites -->
+        <div class="mt-3.5 pt-3 border-t border-zinc-100">
+          <SubjectFilterBar
+            v-model="subjectFilter"
+            v-model:favorites-only="favoritesOnly"
+            :favorites-count="favorites.length"
+          />
         </div>
       </header>
 

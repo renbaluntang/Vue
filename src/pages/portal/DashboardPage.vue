@@ -322,13 +322,13 @@
           <div class="mt-4 flex gap-2">
             <button
               @click="openTeacherDetails(instructor)"
-              class="flex-1 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs hover:bg-slate-100 transition text-center shadow-2xs"
+              class="flex-1 inline-flex items-center justify-center px-2 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs whitespace-nowrap hover:bg-slate-100 transition shadow-2xs"
             >
               View Info
             </button>
             <RouterLink
               to="/booking"
-              class="flex-1 py-2 rounded-xl bg-[#FFCD00] text-black font-bold text-xs hover:bg-[#FFD933] transition text-center shadow-2xs"
+              class="flex-1 inline-flex items-center justify-center px-2 py-2 rounded-xl bg-[#FFCD00] border border-transparent text-black font-bold text-xs whitespace-nowrap hover:bg-[#FFD933] transition shadow-2xs"
             >
               Book →
             </RouterLink>

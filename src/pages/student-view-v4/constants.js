@@ -63,6 +63,64 @@ export const SUBJECT_FILTER_OPTIONS = [
   ].map(toSubjectOption),
 ];
 
+export const SUBJECT_CATEGORIES = [
+  {
+    id: "conversation",
+    name: "Conversation & Fluency",
+    shortName: "Conversation",
+    icon: "💬",
+    codes: ["[SF]", "[LS1]", "[DC]", "[RW]", "[SC]"],
+    subjects: [
+      { code: "[SF]", badge: "SF", name: "Speech Fluency", short: "Speech Fluency" },
+      { code: "[DC]", badge: "DC", name: "Daily Conversation", short: "Daily Conversation" },
+      { code: "[LS1]", badge: "LS1", name: "Listening & Speaking", short: "Listening & Speaking" },
+      { code: "[SC]", badge: "SC", name: "Social Conversation", short: "Social Conversation" },
+      { code: "[RW]", badge: "RW", name: "Reading & Writing", short: "Reading & Writing" },
+    ],
+  },
+  {
+    id: "pronunciation",
+    name: "Pronunciation Series",
+    shortName: "Pronunciation",
+    icon: "🗣️",
+    codes: ["[PP101]", "[PP102]", "[PP201]", "[PP202]"],
+    subjects: [
+      { code: "[PP101]", badge: "PP101", name: "Pronunciation — Vowels", short: "PP101 Vowels" },
+      { code: "[PP102]", badge: "PP102", name: "Pronunciation — R-controlled Vowels", short: "PP102 R-Vowels" },
+      { code: "[PP201]", badge: "PP201", name: "Pronunciation — Consonants", short: "PP201 Consonants" },
+      { code: "[PP202]", badge: "PP202", name: "Pronunciation — American T", short: "PP202 American T" },
+    ],
+  },
+  {
+    id: "specialized",
+    name: "Specialized & Assessment",
+    shortName: "Specialized",
+    icon: "🎯",
+    codes: ["[EP]", "[TA]", "[CS]"],
+    subjects: [
+      { code: "[EP]", badge: "EP", name: "Exam Prep", short: "Exam Prep" },
+      { code: "[TA]", badge: "TA", name: "Trial Lesson & Assessment", short: "Trial & Assessment" },
+      { code: "[CS]", badge: "CS", name: "Counseling Session", short: "Counseling" },
+    ],
+  },
+];
+
+export const isSubjectMatchingFilter = (teacherSpecialty, filterValue) => {
+  if (!filterValue || filterValue === "ALL") return true;
+  if (filterValue.startsWith("CAT_")) {
+    const catId = filterValue.replace("CAT_", "");
+    const cat = SUBJECT_CATEGORIES.find((c) => c.id === catId);
+    if (cat) {
+      return cat.codes.some((code) => (teacherSpecialty ?? "").includes(code));
+    }
+  }
+  return (teacherSpecialty ?? "").includes(filterValue);
+};
+
+export const getSubjectInstructorCount = (codeOrCat) => {
+  return INSTRUCTORS.filter((teacher) => isSubjectMatchingFilter(teacher.specialty, codeOrCat)).length;
+};
+
 /** Every subject at least one instructor teaches, in the order first seen. */
 export const ALL_TAUGHT_SUBJECT_OPTIONS = [
   ALL_SUBJECTS_OPTION,

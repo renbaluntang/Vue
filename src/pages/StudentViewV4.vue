@@ -4,10 +4,12 @@ import DurationToggle from "./student-view-v4/DurationToggle.vue";
 import CalendarViewToggle from "./student-view-v4/CalendarViewToggle.vue";
 import BookingConfirmationPage from "./student-view-v4/BookingConfirmationPage.vue";
 import DateTimeFilterPopover from "./student-view-v4/DateTimeFilterPopover.vue";
+import SubjectFilterBar from "./student-view-v4/SubjectFilterBar.vue";
 import {
   INSTRUCTORS,
   SUBJECT_LABELS,
   SUBJECT_FILTER_OPTIONS,
+  isSubjectMatchingFilter,
   BOOKING_DAYS,
   BOOKING_TIME_SLOTS,
   formatSlotTo12Hour,
@@ -148,7 +150,7 @@ const filteredInstructors = computed(() => {
   }
 
   if (subjectFilter.value !== "ALL") {
-    list = list.filter((teacher) => teacher.specialty.includes(subjectFilter.value));
+    list = list.filter((teacher) => isSubjectMatchingFilter(teacher.specialty, subjectFilter.value));
   }
 
   if (selectedDayKey.value || selectedTime.value) {
@@ -544,48 +546,13 @@ const GRID_LAYOUT_OPTIONS = [
           </div>
         </div>
 
-        <!-- Row 2: Subject chips + Saved. Below sm the chips are a full-bleed
-             scroll strip — a single subject label is wider than a 360px screen,
-             so wrapping them just clips at the card padding. -->
-        <div class="mt-4 flex flex-col gap-2.5 border-t border-slate-100 px-5 py-3 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between sm:gap-3 sm:px-6 sm:py-3.5">
-          <div class="chip-strip -mx-5 flex items-center gap-1.5 overflow-x-auto px-5 pb-0.5 sm:mx-0 sm:flex-wrap sm:px-0 sm:pb-0">
-            <button
-              v-for="opt in SUBJECT_FILTER_OPTIONS"
-              :key="opt.value"
-              type="button"
-              @click="subjectFilter = opt.value"
-              :class="`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-all duration-150 ${
-                subjectFilter === opt.value
-                  ? 'bg-[#1A1A1A] text-white shadow-sm'
-                  : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-              }`"
-            >
-              {{ opt.label }}
-            </button>
-          </div>
-
-          <!-- Saved toggle -->
-          <button
-            type="button"
-            @click="favoritesOnly = !favoritesOnly"
-            :aria-pressed="favoritesOnly"
-            :class="`inline-flex h-9 w-fit flex-shrink-0 items-center gap-1.5 self-start rounded-full border px-3.5 text-[11px] font-semibold transition-all sm:self-auto ${
-              favoritesOnly
-                ? 'border-amber-300 bg-amber-50 text-amber-700 shadow-sm'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-            }`"
-          >
-            <span :class="favoritesOnly ? 'text-amber-400' : 'text-slate-300'">★</span>
-            Favorites
-            <span
-              v-if="favorites.length > 0"
-              :class="`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                favoritesOnly ? 'bg-amber-200 text-amber-900' : 'bg-slate-100 text-slate-500'
-              }`"
-            >
-              {{ favorites.length }}
-            </span>
-          </button>
+        <!-- Row 2: Subject & Category Filter + Favorites -->
+        <div class="mt-3 border-t border-slate-100 px-5 py-3 sm:px-6">
+          <SubjectFilterBar
+            v-model="subjectFilter"
+            v-model:favorites-only="favoritesOnly"
+            :favorites-count="favorites.length"
+          />
         </div>
 
         <!-- Bottom: count + reset -->

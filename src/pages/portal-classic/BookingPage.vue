@@ -5,10 +5,12 @@ import CalendarViewToggle from "../student-view-v4/CalendarViewToggle.vue";
 import BookingConfirmationPage from "../student-view-v4/BookingConfirmationPage.vue";
 import FreeConversationModal from "../../components/classic/FreeConversationModal.vue";
 import DateTimeFilterPopover from "../student-view-v4/DateTimeFilterPopover.vue";
+import SubjectFilterBar from "../student-view-v4/SubjectFilterBar.vue";
 import {
   INSTRUCTORS,
   SUBJECT_LABELS,
   SUBJECT_FILTER_OPTIONS,
+  isSubjectMatchingFilter,
   BOOKING_DAYS,
   BOOKING_TIME_SLOTS,
   formatSlotTo12Hour,
@@ -149,7 +151,7 @@ const filteredInstructors = computed(() => {
   }
 
   if (subjectFilter.value !== "ALL") {
-    list = list.filter((teacher) => teacher.specialty.includes(subjectFilter.value));
+    list = list.filter((teacher) => isSubjectMatchingFilter(teacher.specialty, subjectFilter.value));
   }
 
   if (selectedDayKey.value || selectedTime.value) {
@@ -554,46 +556,13 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-[4/3] sm:aspect-square";
           </div>
         </div>
 
-        <!-- Row 2: Subject chips + Saved (Scrollable on mobile) -->
-        <div class="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-slate-100 px-5 py-3.5 sm:px-6">
-          <div class="flex items-center gap-1.5 overflow-x-auto pb-1 max-w-full custom-scrollbar">
-            <button
-              v-for="opt in SUBJECT_FILTER_OPTIONS"
-              :key="opt.value"
-              type="button"
-              @click="subjectFilter = opt.value"
-              :class="`whitespace-nowrap rounded-full px-3.5 py-1.5 text-[11px] font-semibold transition-all duration-150 ${
-                subjectFilter === opt.value
-                  ? 'bg-[#1A1A1A] text-white shadow-sm'
-                  : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-              }`"
-            >
-              {{ opt.label }}
-            </button>
-          </div>
-
-          <!-- Saved toggle -->
-          <button
-            type="button"
-            @click="favoritesOnly = !favoritesOnly"
-            :aria-pressed="favoritesOnly"
-            :class="`inline-flex h-9 flex-shrink-0 items-center gap-1.5 rounded-full border px-3.5 text-[11px] font-semibold transition-all ${
-              favoritesOnly
-                ? 'border-amber-300 bg-amber-50 text-amber-700 shadow-sm'
-                : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
-            }`"
-          >
-            <span :class="favoritesOnly ? 'text-amber-400' : 'text-slate-300'">★</span>
-            Favorites
-            <span
-              v-if="favorites.length > 0"
-              :class="`rounded-full px-1.5 py-0.5 text-[10px] font-bold ${
-                favoritesOnly ? 'bg-amber-200 text-amber-900' : 'bg-slate-100 text-slate-500'
-              }`"
-            >
-              {{ favorites.length }}
-            </span>
-          </button>
+        <!-- Row 2: Subject & Category Filter + Favorites -->
+        <div class="mt-3 border-t border-slate-100 px-5 py-3 sm:px-6">
+          <SubjectFilterBar
+            v-model="subjectFilter"
+            v-model:favorites-only="favoritesOnly"
+            :favorites-count="favorites.length"
+          />
         </div>
 
         <!-- Bottom: count + reset -->

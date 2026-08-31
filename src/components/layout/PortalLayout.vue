@@ -26,18 +26,6 @@
 
         <h2 class="text-lg font-black text-slate-900 tracking-tight">{{ user.fullName }}</h2>
 
-        <!-- PLAIN POINTS BALANCE (NO BACKGROUND) -->
-        <div class="mt-3.5 w-full text-center space-y-0.5">
-          <div class="flex items-baseline justify-center gap-1.5 text-slate-900">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Points:</span>
-            <span class="text-2xl font-black text-slate-900 tracking-tight">{{ user.profile.pointsBalance }}</span>
-            <span class="text-xs font-black text-brighture-bronze tracking-wider">PTS</span>
-          </div>
-          <p class="text-[11px] text-slate-400 font-medium">
-            Expires: {{ user.profile.pointsExpiry }}
-          </p>
-        </div>
-
         <!-- Level & Streak Badges -->
         <div class="mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
           <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-brighture-cream text-brighture-bronze text-xs font-extrabold rounded-xl border border-brighture-gold/20 shadow-2xs">
