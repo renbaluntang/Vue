@@ -5,7 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#FDF9EF" />
     <title>Instructor Panel</title>
-    <link rel="preload" as="image" href="/icon-black.svg" />
+    <link rel="preload" as="image" href="/icon-tower.svg" />
+    <link rel="preload" as="image" href="/icon-rays.svg" />
     <style>
       /* Boot splash. Inlined on purpose: this has to paint before the bundle
          and the stylesheet arrive, which is the whole window it covers. */
@@ -62,10 +63,22 @@
         animation: splash-sweep 1.15s linear infinite;
       }
 
-      .splash-icon {
-        width: 54px;
-        height: 54px;
+      /* The mark is split in two: the lighthouse holds still while only its
+         beams turn, so the icon reads as a beacon rather than a spinning logo. */
+      .splash-mark {
+        position: relative;
+        width: 58px;
+        height: 58px;
+        transform-style: preserve-3d;
+      }
+      .splash-mark img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
         display: block;
+      }
+      .splash-rays {
         animation: splash-flip 1.9s cubic-bezier(.62, .02, .34, 1) infinite;
       }
 
@@ -97,7 +110,7 @@
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .splash-icon { animation: none; }
+        .splash-rays { animation: none; }
         .splash-ring { animation: none; opacity: .8; }
         #app-splash { transition: none; }
       }
@@ -113,7 +126,10 @@
     <div id="app-splash" role="status" aria-live="polite">
       <div class="splash-loader" aria-hidden="true">
         <div class="splash-ring"></div>
-        <img class="splash-icon" src="/icon-black.svg" alt="" />
+        <div class="splash-mark">
+          <img class="splash-tower" src="/icon-tower.svg" alt="" />
+          <img class="splash-rays" src="/icon-rays.svg" alt="" />
+        </div>
       </div>
       <span class="splash-sr">Loading</span>
     </div>
