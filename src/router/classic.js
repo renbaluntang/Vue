@@ -66,7 +66,7 @@ let router;
 export const getClassicRouter = () => {
   if (!router) {
     router = createRouter({
-      history: createWebHistory('/student-portal-classic'),
+      history: createWebHistory(`${import.meta.env.BASE_URL}student-portal-classic`),
       routes,
     });
   }

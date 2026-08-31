@@ -69,7 +69,7 @@ let router;
 export const getRouter = () => {
   if (!router) {
     router = createRouter({
-      history: createWebHistory('/student-portal'),
+      history: createWebHistory(`${import.meta.env.BASE_URL}student-portal`),
       routes,
     });
   }

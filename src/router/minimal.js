@@ -62,7 +62,7 @@ let router;
 export const getMinimalRouter = () => {
   if (!router) {
     router = createRouter({
-      history: createWebHistory('/student-portal-v2'),
+      history: createWebHistory(`${import.meta.env.BASE_URL}student-portal-v2`),
       routes,
     });
   }

@@ -11,67 +11,67 @@
 
       <div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <a
-          href="/teacher"
+          :href="withBase('/teacher')"
           class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-4 text-center text-sm font-semibold text-white transition hover:bg-primary-dark"
         >
           Teacher Panel
         </a>
         <a
-          href="/student"
+          :href="withBase('/student')"
           class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-4 text-center text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
         >
           Student Panel
         </a>
         <a
-          href="/student-2"
+          :href="withBase('/student-2')"
           class="inline-flex items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-center text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
         >
           Student Panel 2
         </a>
         <a
-          href="/student-3"
+          :href="withBase('/student-3')"
           class="inline-flex items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-center text-sm font-semibold text-teal-900 transition hover:bg-teal-100"
         >
           Student Panel 3
         </a>
         <a
-          href="/student-4"
+          :href="withBase('/student-4')"
           class="inline-flex items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4 text-center text-sm font-semibold text-primary-dark transition hover:bg-primary/20"
         >
           Student Panel 4
         </a>
         <a
-          href="/social-conversation"
+          :href="withBase('/social-conversation')"
           class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-4 text-center text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
         >
           Social Conversation
         </a>
         <a
-          href="/login-1"
+          :href="withBase('/login-1')"
           class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-4 text-center text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
         >
           Login / Register V1
         </a>
         <a
-          href="/login"
+          :href="withBase('/login')"
           class="inline-flex items-center justify-center rounded-2xl border border-amber-300 bg-amber-50 px-5 py-4 text-center text-sm font-semibold text-amber-950 transition hover:bg-amber-100"
         >
           Login / Register V2 (New)
         </a>
         <a
-          href="/student-portal"
+          :href="withBase('/student-portal')"
           class="inline-flex items-center justify-center rounded-2xl border border-indigo-300 bg-indigo-50 px-5 py-4 text-center text-sm font-semibold text-indigo-950 transition hover:bg-indigo-100"
         >
           ✨ New Student Portal ✨
         </a>
         <a
-          href="/student-portal-v2"
+          :href="withBase('/student-portal-v2')"
           class="inline-flex items-center justify-center rounded-2xl border border-zinc-900 bg-zinc-900 px-5 py-4 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
         >
           ✨ Minimalist Student Portal (V2) ✨
         </a>
         <a
-          href="/points-purchase"
+          :href="withBase('/points-purchase')"
           class="inline-flex items-center justify-center rounded-2xl border border-sky-300 bg-sky-50 px-5 py-4 text-center text-sm font-semibold text-sky-950 transition hover:bg-sky-100"
         >
           Points Purchase
@@ -80,3 +80,9 @@
     </div>
   </div>
 </template>
+
+<script setup>
+// Links are written from the app root; withBase() re-points them at whatever
+// path the build is deployed under (/ locally, /Vue/ on GitHub Pages).
+const withBase = (path) => `${import.meta.env.BASE_URL}${path.replace(/^\//, "")}`;
+</script>

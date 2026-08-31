@@ -1,0 +1,64 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  # Lets you re-run a deploy from the Actions tab without pushing a commit.
+  workflow_dispatch:
+
+# Pages needs these; the default GITHUB_TOKEN has neither.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Never let two deploys race. In-progress runs finish so a half-uploaded
+# artifact is not published.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Build
+        # Pages serves the site from /<repo>/, so the build has to know its base.
+        env:
+          BASE_PATH: /${{ github.event.repository.name }}/
+        run: npm run build
+
+      - name: Add SPA fallback
+        # Pages has no rewrite rules: a deep link like /Vue/student-portal/booking
+        # is a 404 until the same shell answers it. main.js reads the real
+        # pathname, so serving index.html as 404.html routes it correctly.
+        run: cp dist/index.html dist/404.html
+
+      - name: Disable Jekyll
+        # Without this, Pages strips files and folders beginning with an underscore.
+        run: touch dist/.nojekyll
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

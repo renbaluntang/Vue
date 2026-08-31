@@ -18,7 +18,12 @@ import PortalApp from "./pages/PortalApp.vue";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./styles.css";
 
-const normalizedPath = window.location.pathname.replace(/\/+$/, "") || "/";
+// Under GitHub Pages the app is mounted at /Vue/, so strip that prefix before
+// matching — every route check below is written against the app root.
+const BASE_PREFIX = import.meta.env.BASE_URL.replace(/\/+$/, "");
+const rawPath = window.location.pathname.replace(/\/+$/, "") || "/";
+const normalizedPath =
+  (BASE_PREFIX && rawPath.startsWith(BASE_PREFIX) ? rawPath.slice(BASE_PREFIX.length) : rawPath) || "/";
 const isTeacherView = normalizedPath === "/teacher";
 const isStudentView = normalizedPath === "/student";
 const isStudentViewV2 = normalizedPath === "/student-2";

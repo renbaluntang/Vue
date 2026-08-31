@@ -2,7 +2,13 @@ import { defineConfig } from "vite";
 import vue from "@vitejs/plugin-vue";
 import path from "path";
 
-export default defineConfig({
+// GitHub Pages serves this project from https://<user>.github.io/Vue/, so the
+// production build needs every asset URL and router base prefixed with /Vue/.
+// Dev and preview stay at the root unless BASE_PATH says otherwise.
+const BASE = process.env.BASE_PATH ?? "/";
+
+export default defineConfig(({ command }) => ({
+  base: command === "build" ? BASE : "/",
   plugins: [vue()],
   server: {
     // Bind 0.0.0.0 instead of the default localhost-only ([::1]). Port forwarding
@@ -18,4 +24,4 @@ export default defineConfig({
       "@": path.resolve(__dirname, "./src"),
     },
   },
-});
+}));
