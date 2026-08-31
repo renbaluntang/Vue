@@ -6,7 +6,8 @@
     <meta name="theme-color" content="#FDF9EF" />
     <title>Instructor Panel</title>
     <link rel="preload" as="image" href="/icon-tower.svg" />
-    <link rel="preload" as="image" href="/icon-rays.svg" />
+    <link rel="preload" as="image" href="/icon-ray-left.svg" />
+    <link rel="preload" as="image" href="/icon-ray-right.svg" />
     <style>
       /* Boot splash. Inlined on purpose: this has to paint before the bundle
          and the stylesheet arrive, which is the whole window it covers. */
@@ -78,12 +79,32 @@
         height: 100%;
         display: block;
       }
-      .splash-rays {
-        /* The beams meet the lamp at x=74 and x=110 of the 192 viewBox, so their
-           mirror axis is x=92 — the tower's centre, not the box's. Flipping about
-           the default 50% detaches each beam from the lamp by ~8px. */
-        transform-origin: 47.92% 50%;
-        animation: splash-flip 1.9s cubic-bezier(.62, .02, .34, 1) infinite;
+      /* Each beam is hinged at the lamp and turns in place, so neither ever
+         sweeps across the tower. They alternate: one is edge-on while the other
+         is full, which is how a beacon actually reads. */
+      .splash-ray-left,
+      .splash-ray-right {
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+      }
+      .splash-ray-left {
+        transform-origin: 38.54% 50%;   /* x=74 of the 192 viewBox */
+        animation: splash-beam-left 2.2s cubic-bezier(.5, .04, .5, .96) infinite;
+      }
+      .splash-ray-right {
+        transform-origin: 57.29% 50%;   /* x=110 */
+        animation: splash-beam-right 2.2s cubic-bezier(.5, .04, .5, .96) infinite;
+      }
+
+      @keyframes splash-beam-left {
+        0%   { transform: rotateY(0deg); }
+        50%  { transform: rotateY(-90deg); }
+        100% { transform: rotateY(0deg); }
+      }
+      @keyframes splash-beam-right {
+        0%   { transform: rotateY(90deg); }
+        50%  { transform: rotateY(0deg); }
+        100% { transform: rotateY(90deg); }
       }
 
       @keyframes splash-sweep {
@@ -114,7 +135,7 @@
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .splash-rays { animation: none; }
+        .splash-ray-left, .splash-ray-right { animation: none; }
         .splash-ring { animation: none; opacity: .8; }
         #app-splash { transition: none; }
       }
@@ -131,8 +152,9 @@
       <div class="splash-loader" aria-hidden="true">
         <div class="splash-ring"></div>
         <div class="splash-mark">
+          <img class="splash-ray-left" src="/icon-ray-left.svg" alt="" />
+          <img class="splash-ray-right" src="/icon-ray-right.svg" alt="" />
           <img class="splash-tower" src="/icon-tower.svg" alt="" />
-          <img class="splash-rays" src="/icon-rays.svg" alt="" />
         </div>
       </div>
       <span class="splash-sr">Loading</span>
