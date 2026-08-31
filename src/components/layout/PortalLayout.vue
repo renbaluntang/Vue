@@ -3,31 +3,39 @@
     <RouteProgress />
 
     <!-- Desktop Sidebar (Hidden on mobile & small tablet, visible on lg+) -->
-    <aside class="hidden lg:flex w-60 xl:w-72 flex-shrink-0 bg-white border-r border-slate-200/80 flex-col shadow-sm z-20">
+    <aside
+      class="hidden lg:flex flex-shrink-0 bg-white border-r border-slate-200/80 flex-col shadow-sm z-20 transition-[width] duration-200 ease-out"
+      :class="isSidebarCollapsed ? 'w-[76px]' : 'w-60 xl:w-72'"
+    >
       <!-- User Profile Snapshot with BIG Profile Image + PLAIN Points Balance (No Background) -->
-      <div class="p-6 border-b border-slate-100 flex flex-col items-center text-center bg-gradient-to-b from-slate-50/60 to-white">
-        <RouterLink to="/profile" class="relative mb-3 group block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold focus-visible:ring-offset-2" title="View your profile">
+      <div
+        class="border-b border-slate-100 flex flex-col items-center text-center bg-gradient-to-b from-slate-50/60 to-white"
+        :class="isSidebarCollapsed ? 'px-2 py-4' : 'p-6'"
+      >
+        <RouterLink to="/profile" class="relative group block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold focus-visible:ring-offset-2" :class="isSidebarCollapsed ? '' : 'mb-3'" :title="isSidebarCollapsed ? user.fullName : 'View your profile'">
           <!-- Bigger Profile Image (w-28 h-28) -->
           <img
             :src="user.profile.photo"
             alt="Student Avatar"
-            class="w-24 h-24 xl:w-28 xl:h-28 rounded-full shadow-md border-4 border-white ring-4 ring-brighture-gold/20 object-cover transition-transform duration-300 group-hover:scale-105"
+            class="rounded-full shadow-md border-4 border-white ring-4 ring-brighture-gold/20 object-cover transition-all duration-300 group-hover:scale-105"
+            :class="isSidebarCollapsed ? 'w-11 h-11 border-2 ring-2' : 'w-24 h-24 xl:w-28 xl:h-28'"
           />
           <span
+            v-if="!isSidebarCollapsed"
             class="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-200 flex items-center justify-center text-[10px] text-white font-bold"
             title="Online & Ready"
           >
             ✓
           </span>
-          <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 via-brighture-gold to-amber-500 text-white text-[10px] font-black px-3 py-0.5 rounded-full shadow-sm uppercase tracking-wider whitespace-nowrap">
+          <div v-if="!isSidebarCollapsed" class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 via-brighture-gold to-amber-500 text-white text-[10px] font-black px-3 py-0.5 rounded-full shadow-sm uppercase tracking-wider whitespace-nowrap">
             {{ user.stats.rank }}
           </div>
         </RouterLink>
 
-        <h2 class="text-lg font-black text-slate-900 tracking-tight">{{ user.fullName }}</h2>
+        <h2 v-if="!isSidebarCollapsed" class="text-lg font-black text-slate-900 tracking-tight">{{ user.fullName }}</h2>
 
         <!-- Level & Streak Badges -->
-        <div class="mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
+        <div v-if="!isSidebarCollapsed" class="mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
           <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-brighture-cream text-brighture-bronze text-xs font-extrabold rounded-xl border border-brighture-gold/20 shadow-2xs">
             🎯 {{ user.profile.level.split(' ')[0] }}
           </span>
@@ -38,23 +46,106 @@
       </div>
 
       <!-- Navigation Links -->
-      <nav class="flex-1 overflow-y-auto p-4 space-y-1.5 custom-scrollbar">
+      <!-- Collapsed, overflow must be visible or the hover labels and the flyout
+           get clipped: CSS forces overflow-x to auto whenever overflow-y is. Rows
+           are tighter in the rail so the list still fits without scrolling. -->
+      <nav
+        class="flex-1 py-4 space-y-1.5"
+        :class="isSidebarCollapsed ? 'overflow-visible px-2.5' : 'overflow-y-auto px-4 custom-scrollbar'"
+      >
         <template v-for="item in navItems" :key="item.path">
           <button
             v-if="item.action"
             @click="item.action"
-            class="flex items-center justify-between w-full px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink"
+            class="relative flex items-center w-full px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink"
+            :class="isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'justify-between'"
           >
             <div class="flex items-center gap-3">
               <i :class="[item.icon]" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
-              <span>{{ t(item.label) }}</span>
+              <span :class="isSidebarCollapsed ? 'sr-only' : ''">{{ t(item.label) }}</span>
             </div>
+            <span
+              v-if="isSidebarCollapsed"
+              aria-hidden="true"
+              class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+            >
+              {{ t(item.label) }}
+            </span>
+
           </button>
+          <!-- Expandable group -->
+          <div v-else-if="item.children" class="relative group/flyout">
+            <button
+              type="button"
+              @click="onGroupClick(item)"
+              :aria-expanded="isSidebarCollapsed ? null : (isGroupOpen(item) ? 'true' : 'false')"
+              :aria-haspopup="isSidebarCollapsed ? 'true' : null"
+              :class="[
+                'relative flex items-center w-full px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group',
+                isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'justify-between',
+                groupHasActiveChild(item) ? 'text-brighture-ink bg-brighture-cream' : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
+              ]"
+            >
+              <span class="flex items-center gap-3">
+                <i :class="[item.icon]" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
+                <span :class="isSidebarCollapsed ? 'sr-only' : ''">{{ t(item.label) }}</span>
+              </span>
+              <i
+                v-if="!isSidebarCollapsed"
+                class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"
+                :class="isGroupOpen(item) ? 'rotate-180' : ''"
+              ></i>
+            </button>
+
+            <!-- Collapsed: the children can't nest in a 76px rail, so they come
+                 out as a flyout on hover or keyboard focus. -->
+            <div
+              v-if="isSidebarCollapsed"
+              class="invisible absolute left-full top-0 z-50 ml-2 w-52 rounded-2xl border border-slate-200 bg-white p-1.5 opacity-0 shadow-xl transition-all duration-150 group-hover/flyout:visible group-hover/flyout:opacity-100 group-focus-within/flyout:visible group-focus-within/flyout:opacity-100"
+            >
+              <p class="px-2.5 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                {{ t(item.label) }}
+              </p>
+              <RouterLink
+                v-for="child in item.children"
+                :key="child.path"
+                :to="child.path"
+                class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-bold transition"
+                :class="[
+                  isCurrentRoute(child.path)
+                    ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink'
+                    : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
+                ]"
+              >
+                <i :class="[child.icon, isCurrentRoute(child.path) ? '!text-brighture-ink' : '']" class="w-4 text-center text-sm"></i>
+                <span>{{ t(child.label) }}</span>
+              </RouterLink>
+            </div>
+
+            <div v-show="isGroupOpen(item) && !isSidebarCollapsed" class="mt-1 ml-5 space-y-1 border-l border-slate-200 pl-3">
+              <RouterLink
+                v-for="child in item.children"
+                :key="child.path"
+                :to="child.path"
+                class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150"
+                :class="[
+                  isCurrentRoute(child.path)
+                    ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40'
+                    : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
+                ]"
+              >
+                <i :class="[child.icon, isCurrentRoute(child.path) ? '!text-brighture-ink' : '']" class="w-4 text-center text-sm"></i>
+                <span>{{ t(child.label) }}</span>
+              </RouterLink>
+            </div>
+          </div>
+
           <RouterLink
             v-else
             :to="item.path"
-            class="flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group"
+            class="relative flex items-center px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group"
             :class="[
+              isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'justify-between',
               isCurrentRoute(item.path)
                 ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-md shadow-brighture-amber/40'
                 : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
@@ -62,22 +153,37 @@
           >
             <div class="flex items-center gap-3">
               <i :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : '']" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
-              <span>{{ t(item.label) }}</span>
+              <span :class="isSidebarCollapsed ? 'sr-only' : ''">{{ t(item.label) }}</span>
             </div>
+            <span
+              v-if="isSidebarCollapsed"
+              aria-hidden="true"
+              class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+            >
+              {{ t(item.label) }}
+            </span>
           </RouterLink>
         </template>
       </nav>
 
       <!-- Bottom Profile & Logout -->
-      <div class="p-4 border-t border-slate-100 bg-slate-50/50 space-y-1.5">
+      <div class="p-4 border-t border-slate-100 bg-slate-50/50 space-y-1.5" :class="isSidebarCollapsed ? 'px-2' : ''">
         <RouterLink
           to="/profile"
-          class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
+          :title="isSidebarCollapsed ? t('nav.profile') : null"
+          class="flex items-center gap-3 w-full py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
+          :class="isSidebarCollapsed ? 'justify-center px-0' : 'px-4'"
         >
-          <i class="fa-solid fa-user w-4 text-center text-slate-500"></i> {{ t('nav.profile') }}
+          <i class="fa-solid fa-user w-4 text-center text-slate-500"></i>
+          <span v-if="!isSidebarCollapsed">{{ t('nav.profile') }}</span>
         </RouterLink>
-        <button class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition">
-          <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-slate-400"></i> {{ t('nav.logout') }}
+        <button
+          :title="isSidebarCollapsed ? t('nav.logout') : null"
+          class="flex items-center gap-3 w-full py-2.5 text-xs font-bold text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
+          :class="isSidebarCollapsed ? 'justify-center px-0' : 'px-4'"
+        >
+          <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-slate-400"></i>
+          <span v-if="!isSidebarCollapsed">{{ t('nav.logout') }}</span>
         </button>
       </div>
     </aside>
@@ -115,7 +221,7 @@
         <!-- PLAIN Points Display in Mobile Drawer (No Background) -->
         <div class="mt-3.5 w-full text-center space-y-0.5">
           <div class="flex items-baseline justify-center gap-1.5 text-slate-900">
-            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Points:</span>
+            <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Points :</span>
             <span class="text-xl font-black text-slate-900">{{ user.profile.pointsBalance }}</span>
             <span class="text-xs font-black text-brighture-bronze">PTS</span>
           </div>
@@ -127,9 +233,49 @@
 
       <!-- Mobile Nav List -->
       <nav class="flex-1 overflow-y-auto p-4 space-y-1.5">
+        <template v-for="item in navItems.filter(i => !i.action)" :key="item.key || item.path">
+        <!-- Expandable group -->
+        <div v-if="item.children">
+          <button
+            type="button"
+            @click="toggleGroup(item)"
+            :aria-expanded="isGroupOpen(item) ? 'true' : 'false'"
+            :class="[
+              'flex items-center justify-between w-full px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group',
+              groupHasActiveChild(item) ? 'text-brighture-ink bg-brighture-cream' : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
+            ]"
+          >
+            <span class="flex items-center gap-3">
+              <i :class="[item.icon]" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
+              <span>{{ t(item.label) }}</span>
+            </span>
+            <i
+              class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"
+              :class="isGroupOpen(item) ? 'rotate-180' : ''"
+            ></i>
+          </button>
+
+          <div v-show="isGroupOpen(item)" class="mt-1 ml-5 space-y-1 border-l border-slate-200 pl-3">
+            <RouterLink
+              v-for="child in item.children"
+              :key="child.path"
+              :to="child.path"
+              @click="isMobileMenuOpen = false"
+              class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150"
+              :class="[
+                isCurrentRoute(child.path)
+                ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40'
+                : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
+              ]"
+            >
+              <i :class="[child.icon, isCurrentRoute(child.path) ? '!text-brighture-ink' : '']" class="w-4 text-center text-sm"></i>
+              <span>{{ t(child.label) }}</span>
+            </RouterLink>
+          </div>
+        </div>
+
         <RouterLink
-          v-for="item in navItems.filter(i => !i.action)"
-          :key="item.path"
+          v-else
           :to="item.path"
           @click="isMobileMenuOpen = false"
           class="flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition"
@@ -147,6 +293,7 @@
             <span>{{ t(item.label) }}</span>
           </div>
         </RouterLink>
+        </template>
       </nav>
 
       <!-- shrink-0 so a long nav list can never squeeze these two off the panel,
@@ -212,6 +359,21 @@
             </svg>
           </button>
 
+          <!-- Desktop Sidebar Collapse/Expand Toggle -->
+          <button
+            type="button"
+            @click="toggleSidebar"
+            class="hidden lg:inline-flex shrink-0 items-center justify-center -ml-1 h-9 w-9 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 active:scale-95 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+            :title="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+            :aria-expanded="!isSidebarCollapsed"
+            aria-label="Toggle sidebar"
+          >
+            <i
+              class="fa-solid fa-bars-staggered text-sm transition-transform duration-200"
+              :class="isSidebarCollapsed ? 'rotate-180 text-brighture-bronze' : 'text-slate-600'"
+            ></i>
+          </button>
+
           <!-- Current Page Title -->
           <h1 class="min-w-0 text-base sm:text-lg font-black text-slate-900 tracking-tight flex items-center gap-2">
             <span class="truncate">{{ currentPageTitle }}</span>
@@ -275,17 +437,42 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { useI18n } from 'vue-i18n';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
 import RouteProgress from '../../components/RouteProgress.vue';
 
 const { t } = useI18n();
 const route = useRoute();
+const router = useRouter();
 const user = useUserStore();
 
 const isMobileMenuOpen = ref(false);
+// Sidebar width preference. Persisted so it survives a reload; a blocked or
+// empty localStorage just falls back to expanded.
+const SIDEBAR_KEY = 'brighture:sidebar-collapsed';
+const readCollapsed = () => {
+  try { return localStorage.getItem(SIDEBAR_KEY) === '1'; } catch { return false; }
+};
+const isSidebarCollapsed = ref(readCollapsed());
+const toggleSidebar = () => {
+  isSidebarCollapsed.value = !isSidebarCollapsed.value;
+  try { localStorage.setItem(SIDEBAR_KEY, isSidebarCollapsed.value ? '1' : '0'); } catch { /* ignore */ }
+};
+
+// Collapsed, the row is a link to the group's first page — the children are
+// reachable from the flyout. Expanding the whole sidebar on click made the
+// layout jump for what looked like a normal nav tap.
+const onGroupClick = (item) => {
+  if (isSidebarCollapsed.value) {
+    const first = item.children?.[0];
+    if (first && !isCurrentRoute(first.path)) router.push(first.path);
+    return;
+  }
+  toggleGroup(item);
+};
+
 
 const navItems = [
   { path: '/', label: 'nav.dashboard', icon: 'fa-solid fa-chart-pie text-sky-500' },
@@ -293,8 +480,17 @@ const navItems = [
   { path: '/history', label: 'nav.history', icon: 'fa-solid fa-clock-rotate-left text-violet-500' },
   { path: '/writing', label: 'nav.writing', icon: 'fa-solid fa-pen-nib text-rose-500' },
   { path: '/analytics', label: 'nav.analytics', icon: 'fa-solid fa-chart-line text-emerald-500' },
-  { path: '/points', label: 'nav.points', icon: 'fa-solid fa-coins text-amber-500' },
-  { path: '/purchase', label: 'nav.purchase', icon: 'fa-solid fa-cart-shopping text-teal-500' },
+  // The ledger and the top-up are two views of the same balance, so they sit
+  // together behind one expandable row rather than as two peers.
+  {
+    key: 'points',
+    label: 'nav.pointsGroup',
+    icon: 'fa-solid fa-coins text-amber-500',
+    children: [
+      { path: '/points', label: 'nav.points', icon: 'fa-solid fa-clock-rotate-left text-amber-500' },
+      { path: '/purchase', label: 'nav.purchase', icon: 'fa-solid fa-cart-shopping text-teal-500' },
+    ],
+  },
   { path: '/refer', label: 'nav.refer', icon: 'fa-solid fa-user-plus text-violet-500' },
   // No '/profile' here on purpose — it lives above Logout at the bottom.
 ];
@@ -307,6 +503,14 @@ const mobileBottomNavItems = [
   { path: '/profile', shortLabel: 'Profile', icon: 'fa-solid fa-user text-slate-500' },
 ];
 
+// A group opens itself when one of its pages is active; clicking the row then
+// overrides that until the route changes again.
+const openGroups = ref({});
+const groupHasActiveChild = (item) => item.children?.some((child) => isCurrentRoute(child.path)) ?? false;
+const isGroupOpen = (item) => openGroups.value[item.key] ?? groupHasActiveChild(item);
+const toggleGroup = (item) => { openGroups.value[item.key] = !isGroupOpen(item); };
+
+
 const isCurrentRoute = (path) => {
   if (path === '/') {
     return route.path === '/' || route.path === '';
@@ -314,12 +518,23 @@ const isCurrentRoute = (path) => {
   return route.path.startsWith(path);
 };
 
+watch(
+  () => route.path,
+  () => {
+    navItems.forEach((item) => {
+      if (item.children && groupHasActiveChild(item)) openGroups.value[item.key] = true;
+    });
+  },
+  { immediate: true }
+);
+
 const isDashboardRoute = computed(() => {
   return route.path === '/' || route.path === '' || route.path === '/student-portal' || route.path === '/student-portal/';
 });
 
 const currentPageTitle = computed(() => {
-  const currentNav = navItems.find(item => isCurrentRoute(item.path));
+  const flat = navItems.flatMap((item) => item.children ?? [item]);
+  const currentNav = flat.find((item) => item.path && isCurrentRoute(item.path));
   return currentNav ? t(currentNav.label) : 'Student Portal';
 });
 
