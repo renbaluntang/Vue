@@ -79,6 +79,10 @@
         display: block;
       }
       .splash-rays {
+        /* The beams meet the lamp at x=74 and x=110 of the 192 viewBox, so their
+           mirror axis is x=92 — the tower's centre, not the box's. Flipping about
+           the default 50% detaches each beam from the lamp by ~8px. */
+        transform-origin: 47.92% 50%;
         animation: splash-flip 1.9s cubic-bezier(.62, .02, .34, 1) infinite;
       }
 
