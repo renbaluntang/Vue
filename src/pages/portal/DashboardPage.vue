@@ -64,7 +64,7 @@
         <!-- 1. FEATURED NEXT IMMEDIATE CLASS (SPOTLIGHT) -->
         <div
           v-if="user.nextUpcomingClass"
-          class="relative overflow-hidden text-white p-6 sm:p-8 border-b border-slate-900/50 bg-[radial-gradient(70%_90%_at_88%_6%,rgba(255,205,0,0.13),transparent_60%),radial-gradient(55%_80%_at_4%_100%,rgba(255,189,0,0.07),transparent_65%),linear-gradient(135deg,#0F1319_0%,#161C26_52%,#0A0D12_100%)]"
+          class="relative overflow-hidden text-white p-6 sm:p-8 border-b border-slate-900/50 bg-[radial-gradient(115%_135%_at_90%_-12%,rgba(255,205,0,0.17)_0%,rgba(255,205,0,0.07)_26%,rgba(255,205,0,0.02)_44%,transparent_64%),radial-gradient(85%_115%_at_2%_108%,rgba(255,189,0,0.10)_0%,rgba(255,189,0,0.035)_32%,transparent_66%),linear-gradient(140deg,#0F1319_0%,#131925_24%,#161C26_48%,#111722_72%,#0A0D12_100%)]"
         >
           <!-- lit top edge, so the card reads as raised rather than cut out -->
           <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>

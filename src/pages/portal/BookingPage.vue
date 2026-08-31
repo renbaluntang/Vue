@@ -457,15 +457,15 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-[4/3] sm:aspect-square";
   <div v-else class="min-h-screen bg-[#f1f5f9] px-3 py-6 pb-10 text-slate-800 sm:px-6">
     <div :class="`mx-auto space-y-6 transition-all duration-300 ${containerMaxWidthClass}`">
       <!-- Instant option — the alternative to picking a slot below -->
-      <section class="relative overflow-hidden rounded-2xl border border-slate-900/50 p-5 text-white sm:p-6 bg-[radial-gradient(70%_90%_at_88%_6%,rgba(255,205,0,0.13),transparent_60%),linear-gradient(135deg,#0F1319_0%,#161C26_52%,#0A0D12_100%)]">
-        <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
+      <section class="relative overflow-hidden rounded-2xl border border-white/10 p-5 text-white sm:p-6 shadow-xl shadow-black/20 bg-[radial-gradient(120%_140%_at_90%_10%,rgba(255,205,0,0.18)_0%,rgba(255,205,0,0.04)_40%,transparent_70%),radial-gradient(70%_90%_at_0%_100%,rgba(51,65,85,0.25)_0%,transparent_60%),linear-gradient(135deg,#131722_0%,#1a202c_48%,#0b0e14_100%)]">
+        <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
         <div class="relative z-10 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-start gap-3.5">
-            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-xl">⚡</span>
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/[0.08] border border-white/[0.08] text-xl shadow-inner">⚡</span>
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
                 <h2 class="text-base font-extrabold tracking-tight sm:text-lg">Free Conversation</h2>
-                <span class="rounded-full bg-brighture-gold px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brighture-ink">
+                <span class="rounded-full bg-brighture-gold px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brighture-ink shadow-sm">
                   Instant
                 </span>
               </div>
