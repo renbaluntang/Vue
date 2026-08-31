@@ -24,17 +24,63 @@
       }
       #app-splash[hidden-fading] { opacity: 0; visibility: hidden; }
 
-      /* The brand icon itself, rotating. Loaded from /public so the splash
-         markup stays tiny; preloaded in <head> so it starts with the document. */
-      .splash-icon {
-        width: 66px;
-        height: 66px;
-        display: block;
-        animation: splash-spin 1.35s cubic-bezier(.58, .12, .42, .88) infinite;
+      /* Ring + icon. The ring is a conic sweep masked to a hairline; the icon
+         flips left-to-right on its Y axis inside it. Both pure CSS/asset so the
+         splash paints before the bundle arrives. */
+      .splash-loader {
+        position: relative;
+        display: grid;
+        place-items: center;
+        width: 108px;
+        height: 108px;
+        perspective: 760px;
       }
 
-      @keyframes splash-spin {
+      /* Static track, so the sweep reads as travelling along a circle rather
+         than floating in space. */
+      .splash-loader::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        border: 3px solid rgba(26, 26, 26, .07);
+      }
+
+      .splash-ring {
+        position: absolute;
+        inset: 0;
+        border-radius: 999px;
+        background: conic-gradient(
+          from 0deg,
+          rgba(255, 205, 0, 0) 0deg,
+          rgba(255, 205, 0, .12) 120deg,
+          #FFCD00 300deg,
+          #E0A800 360deg
+        );
+        -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+        mask: radial-gradient(farthest-side, transparent calc(100% - 3px), #000 calc(100% - 3px));
+        animation: splash-sweep 1.15s linear infinite;
+      }
+
+      .splash-icon {
+        width: 54px;
+        height: 54px;
+        display: block;
+        animation: splash-flip 1.9s cubic-bezier(.62, .02, .34, 1) infinite;
+      }
+
+      @keyframes splash-sweep {
         to { transform: rotate(360deg); }
+      }
+
+      /* Left-to-right flip, with a beat on each face so it reads as a deliberate
+         turn rather than a constant spin. */
+      @keyframes splash-flip {
+        0%   { transform: rotateY(0deg); }
+        40%  { transform: rotateY(180deg); }
+        55%  { transform: rotateY(180deg); }
+        95%  { transform: rotateY(360deg); }
+        100% { transform: rotateY(360deg); }
       }
 
       /* Visually hidden, still announced — the splash carries no visible text. */
@@ -51,7 +97,8 @@
       }
 
       @media (prefers-reduced-motion: reduce) {
-        .splash-icon { animation: none; opacity: .75; }
+        .splash-icon { animation: none; }
+        .splash-ring { animation: none; opacity: .8; }
         #app-splash { transition: none; }
       }
 
@@ -64,7 +111,10 @@
   </head>
   <body>
     <div id="app-splash" role="status" aria-live="polite">
-      <img class="splash-icon" src="/icon-black.svg" alt="" aria-hidden="true" />
+      <div class="splash-loader" aria-hidden="true">
+        <div class="splash-ring"></div>
+        <img class="splash-icon" src="/icon-black.svg" alt="" />
+      </div>
       <span class="splash-sr">Loading</span>
     </div>
     <div id="root"></div>
