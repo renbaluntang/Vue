@@ -1,5 +1,7 @@
 <template>
   <div class="flex h-screen supports-[height:100dvh]:h-[100dvh] w-full bg-[#f8fafc] font-sans text-slate-800 antialiased overflow-hidden">
+    <RouteProgress />
+
     <!-- Desktop Sidebar (Hidden on mobile & small tablet, visible on lg+) -->
     <aside class="hidden lg:flex w-72 flex-shrink-0 bg-white border-r border-slate-200/80 flex-col shadow-sm z-20">
       <!-- User Profile Snapshot with BIG Profile Image + PLAIN Points Balance (No Background) -->
@@ -289,6 +291,7 @@ import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
+import RouteProgress from '../../components/RouteProgress.vue';
 
 const { t } = useI18n();
 const route = useRoute();

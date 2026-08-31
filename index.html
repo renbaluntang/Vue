@@ -3,9 +3,86 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="theme-color" content="#FDF9EF" />
     <title>Instructor Panel</title>
+    <style>
+      /* Boot splash. Inlined on purpose: this has to paint before the bundle
+         and the stylesheet arrive, which is the whole window it covers. */
+      #app-splash {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 22px;
+        background: #FDF9EF;
+        font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+        transition: opacity .35s ease, visibility .35s ease;
+      }
+      #app-splash[hidden-fading] { opacity: 0; visibility: hidden; }
+
+      .splash-mark {
+        font-size: 21px;
+        font-weight: 800;
+        letter-spacing: .18em;
+        text-transform: uppercase;
+        color: #1A1A1A;
+      }
+      .splash-mark span { color: #E0A800; }
+
+      .splash-track {
+        position: relative;
+        width: 148px;
+        height: 3px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(26, 26, 26, .08);
+      }
+      .splash-track::after {
+        content: "";
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 42%;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, #FFCD00, #E0A800);
+        animation: splash-sweep 1.15s cubic-bezier(.65, .05, .36, 1) infinite;
+      }
+
+      @keyframes splash-sweep {
+        0%   { transform: translateX(-110%); }
+        100% { transform: translateX(345%); }
+      }
+
+      .splash-note {
+        font-size: 11.5px;
+        font-weight: 600;
+        letter-spacing: .09em;
+        text-transform: uppercase;
+        color: #8A8172;
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .splash-track::after { animation: none; width: 100%; opacity: .55; }
+        #app-splash { transition: none; }
+      }
+
+      @media (prefers-color-scheme: dark) {
+        /* The app itself is light, so keep the splash light too — flashing dark
+           and then white is worse than one consistent ground. */
+        #app-splash { background: #FDF9EF; }
+      }
+    </style>
   </head>
   <body>
+    <div id="app-splash">
+      <div class="splash-mark">brigh<span>ture</span></div>
+      <div class="splash-track"></div>
+      <div class="splash-note">Preparing your portal</div>
+    </div>
     <div id="root"></div>
     <script type="module" src="/src/main.js"></script>
   </body>

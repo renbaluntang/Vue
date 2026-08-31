@@ -33,10 +33,11 @@
       <div class="flex-1 overflow-y-auto space-y-4 p-4 sm:space-y-5 sm:p-6">
         <!-- Teacher -->
         <div class="flex items-center gap-3.5 rounded-2xl border border-slate-200/80 bg-slate-50/60 p-3.5">
-          <img
+          <AppImage
             :src="lesson.teacherPhoto"
             :alt="lesson.teacherName"
-            class="h-12 w-12 rounded-full object-cover ring-2 ring-white"
+            eager
+            class="h-12 w-12 rounded-full ring-2 ring-white"
           />
           <div class="min-w-0">
             <p class="truncate text-sm font-bold text-slate-900">{{ lesson.teacherName }}</p>
@@ -107,6 +108,7 @@
 </template>
 
 <script setup>
+import AppImage from './AppImage.vue';
 defineProps({
   /** null closes the modal — same pattern as TeacherDataModal. */
   lesson: Object,

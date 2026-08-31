@@ -96,3 +96,15 @@ if (page === PortalApp) {
 }
 
 app.mount("#root");
+
+// Retire the boot splash once the first view is actually on screen. The extra
+// frame avoids a flash of empty layout between removing the splash and paint.
+requestAnimationFrame(() => {
+  const splash = document.getElementById("app-splash");
+  if (!splash) return;
+  splash.setAttribute("hidden-fading", "");
+  splash.addEventListener("transitionend", () => splash.remove(), { once: true });
+  // Belt and braces: if the transition never fires (reduced motion, tab in the
+  // background), drop it anyway so it can't sit over the app.
+  setTimeout(() => splash.remove(), 800);
+});

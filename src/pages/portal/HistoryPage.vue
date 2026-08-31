@@ -61,10 +61,10 @@
         class="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition hover:bg-slate-50/70"
       >
         <div class="flex items-start gap-3.5 min-w-0">
-          <img
+          <AppImage
             :src="lesson.teacherPhoto"
             :alt="lesson.teacherName"
-            class="w-11 h-11 rounded-xl object-cover border border-slate-200 shrink-0"
+            class="w-11 h-11 rounded-xl border border-slate-200 shrink-0"
           />
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
@@ -158,10 +158,11 @@
 
         <div class="space-y-4 p-5 sm:p-6">
           <div class="flex items-center gap-3">
-            <img
+            <AppImage
               :src="openLesson.teacherPhoto"
               :alt="openLesson.teacherName"
-              class="h-10 w-10 rounded-xl object-cover ring-1 ring-slate-200"
+              eager
+              class="h-10 w-10 rounded-xl ring-1 ring-slate-200"
             />
             <div class="min-w-0">
               <p class="truncate text-sm font-bold text-slate-900">{{ openLesson.teacherName }}</p>
@@ -205,10 +206,11 @@
         class="w-full max-w-sm overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95"
       >
         <div class="p-6 text-center">
-          <img
+          <AppImage
             :src="ratingTarget.teacherPhoto"
             :alt="ratingTarget.teacherName"
-            class="mx-auto h-16 w-16 rounded-full object-cover ring-2 ring-white outline outline-1 outline-slate-200"
+            eager
+            class="mx-auto h-16 w-16 rounded-full ring-2 ring-white outline outline-1 outline-slate-200"
           />
           <h2 id="rate-teacher-title" class="mt-3 text-lg font-extrabold text-slate-900">
             Rate {{ ratingTarget.teacherName }}
@@ -269,6 +271,7 @@
 </template>
 
 <script setup>
+import AppImage from '../../components/AppImage.vue';
 import { computed, ref } from 'vue';
 import { useUserStore } from '../../stores/useUserStore';
 

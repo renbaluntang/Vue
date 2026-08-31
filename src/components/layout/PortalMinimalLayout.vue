@@ -1,5 +1,7 @@
 <template>
   <div class="flex h-screen supports-[height:100dvh]:h-[100dvh] w-full bg-[#fafafa] font-sans text-zinc-800 antialiased overflow-hidden">
+    <RouteProgress />
+
     <!-- Desktop Sidebar -->
     <aside class="hidden lg:flex w-64 xl:w-68 flex-shrink-0 bg-white border-r border-zinc-200/80 flex-col shadow-[1px_0_10px_rgba(0,0,0,0.02)] z-20">
       <!-- Brand & Profile Header -->
@@ -283,6 +285,7 @@ import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
+import RouteProgress from '../../components/RouteProgress.vue';
 
 const { t } = useI18n();
 const route = useRoute();

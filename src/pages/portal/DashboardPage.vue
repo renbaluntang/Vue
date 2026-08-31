@@ -89,10 +89,11 @@
                   class="group w-20 sm:w-24 shrink-0 text-center"
                   title="View teacher profile"
                 >
-                  <img
+                  <AppImage
                     :src="user.nextUpcomingClass.teacherPhoto"
                     :alt="user.nextUpcomingClass.teacherName"
-                    class="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full object-cover border-2 border-brighture-amber/70 transition group-hover:border-brighture-gold/50 group-hover:scale-105"
+                    eager
+                    class="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full border-2 border-brighture-amber/70 transition group-hover:border-brighture-gold/50 group-hover:scale-105"
                   />
                   <span class="mt-2 block truncate text-xs font-bold text-white transition group-hover:text-brighture-gold">
                     {{ user.nextUpcomingClass.teacherName }}
@@ -179,10 +180,10 @@
                       class="flex items-center gap-3 text-left group/teacher"
                       title="View teacher profile"
                     >
-                      <img
+                      <AppImage
                         :src="lesson.teacherPhoto"
                         :alt="lesson.teacherName"
-                        class="w-10 h-10 rounded-full object-cover ring-2 ring-white outline outline-1 outline-slate-200 shadow-2xs transition group-hover/teacher:outline-brighture-gold/50"
+                        class="w-10 h-10 rounded-full ring-2 ring-white outline outline-1 outline-slate-200 shadow-2xs transition group-hover/teacher:outline-brighture-gold/50"
                       />
                       <span class="min-w-0">
                         <span class="block truncate font-bold text-slate-800 transition group-hover/teacher:text-brighture-bronze">
@@ -290,10 +291,10 @@
               class="relative cursor-pointer flex-shrink-0"
               title="Click to view instructor profile"
             >
-              <img
+              <AppImage
                 :src="instructor.photo"
                 :alt="instructor.name"
-                class="w-12 h-12 rounded-xl object-cover border border-slate-200 shadow-2xs group-hover:scale-105 transition"
+                class="w-12 h-12 rounded-xl border border-slate-200 shadow-2xs group-hover:scale-105 transition"
               />
               <span class="absolute -bottom-1 -right-1 bg-brighture-gold text-brighture-ink rounded-full p-0.5 text-[8px]">
                 🔍
@@ -469,6 +470,7 @@
 </template>
 
 <script setup>
+import AppImage from '../../components/AppImage.vue';
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import brightureLogo from '@/assets/logo-black.svg';

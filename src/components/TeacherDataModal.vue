@@ -20,10 +20,11 @@
         <!-- Top Teacher Card -->
         <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5 pb-6 border-b border-slate-100">
           <div class="relative group flex-shrink-0">
-            <img
+            <AppImage
               :src="teacher.photo || getTeacherModalImage(teacher)"
               :alt="teacher.name"
-              class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl object-cover object-top shadow-md border-2 border-white ring-2 ring-slate-100"
+              eager
+              class="w-24 h-24 sm:w-28 sm:h-28 rounded-2xl shadow-md border-2 border-white ring-2 ring-slate-100"
             />
           </div>
 
@@ -123,6 +124,7 @@
 </template>
 
 <script setup>
+import AppImage from './AppImage.vue';
 import { ref } from 'vue';
 
 defineProps({
