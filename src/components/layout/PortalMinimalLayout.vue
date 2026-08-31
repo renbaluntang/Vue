@@ -3,7 +3,7 @@
     <RouteProgress />
 
     <!-- Desktop Sidebar -->
-    <aside class="hidden lg:flex w-64 xl:w-68 flex-shrink-0 bg-white border-r border-zinc-200/80 flex-col shadow-[1px_0_10px_rgba(0,0,0,0.02)] z-20">
+    <aside class="hidden lg:flex w-56 xl:w-64 flex-shrink-0 bg-white border-r border-zinc-200/80 flex-col shadow-[1px_0_10px_rgba(0,0,0,0.02)] z-20">
       <!-- Brand & Profile Header -->
       <div class="p-6 border-b border-zinc-100 flex flex-col items-center text-center bg-gradient-to-b from-zinc-50/50 to-white">
         <!-- Student Avatar -->

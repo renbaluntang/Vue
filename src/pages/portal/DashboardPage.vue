@@ -120,18 +120,18 @@
               </div>
 
               <!-- Actions -->
-              <div class="flex flex-col sm:flex-row gap-2 sm:gap-3 w-full lg:w-auto shrink-0">
+              <div class="flex flex-col justify-center gap-2 sm:gap-3 w-full lg:w-auto lg:self-center shrink-0">
                 <a
                   :href="user.nextUpcomingClass.meetLink"
                   target="_blank"
-                  class="inline-flex items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm sm:text-base shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all text-center whitespace-nowrap"
+                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm sm:text-base shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all text-center whitespace-nowrap"
                 >
                   <span>📹</span> Enter Google Meet
                 </a>
                 <button
                   type="button"
                   @click="detailsLesson = user.nextUpcomingClass"
-                  class="inline-flex items-center justify-center px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white font-bold text-[13px] sm:text-sm transition border border-white/15 text-center whitespace-nowrap"
+                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-sm sm:text-base transition border border-white/15 text-center whitespace-nowrap"
                 >
                   Class Details
                 </button>

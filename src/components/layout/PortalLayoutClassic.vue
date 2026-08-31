@@ -3,7 +3,7 @@
     <RouteProgress />
 
     <!-- Desktop Sidebar (Hidden on mobile & small tablet, visible on lg+) -->
-    <aside class="hidden lg:flex w-72 flex-shrink-0 bg-white border-r border-slate-200/80 flex-col shadow-sm z-20">
+    <aside class="hidden lg:flex w-60 xl:w-72 flex-shrink-0 bg-white border-r border-slate-200/80 flex-col shadow-sm z-20">
       <!-- User Profile Snapshot with BIG Profile Image + PLAIN Points Balance (No Background) -->
       <div class="p-6 border-b border-slate-100 flex flex-col items-center text-center bg-gradient-to-b from-slate-50/60 to-white">
         <RouterLink to="/profile" class="relative mb-3 group block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold focus-visible:ring-offset-2" title="View your profile">
