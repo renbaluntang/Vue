@@ -3,7 +3,10 @@
     <!-- Header with Status Indicator -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
-        <div class="flex items-center gap-2">
+        <!-- Nothing has been saved on a fresh load, so there is no status to
+             report yet. The pill only appears once the form is dirty or a save
+             has actually happened. -->
+        <div v-if="hasUnsavedChanges || hasSavedOnce" class="flex items-center gap-2">
           <span
             class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold transition"
             :class="hasUnsavedChanges ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-100 text-emerald-900 border border-emerald-300'"
@@ -20,8 +23,10 @@
         <p class="text-sm text-slate-500 font-medium mt-0.5">Manage your student credentials, online class preferences, and account security.</p>
       </div>
 
-      <!-- Header Action Buttons -->
-      <div class="flex items-center gap-2">
+      <!-- Header Action Buttons — only there when there is something to save.
+           They linger through the save and the "Changes Saved!" beat so the
+           button does not vanish out from under the cursor on click. -->
+      <div v-if="showSaveActions" class="flex items-center gap-2">
         <button
           v-if="hasUnsavedChanges"
           @click="discardChanges"
@@ -772,6 +777,8 @@ const age = computed(() => {
 
 const savedSnapshot = ref(JSON.stringify(form));
 const lastSavedTime = ref('');
+// Gates the saved-status pill: false until the student saves at least once.
+const hasSavedOnce = ref(false);
 
 const isSavingProfile = ref(false);
 const isProfileSaved = ref(false);
@@ -821,6 +828,12 @@ const isLearningDirty = computed(() => {
 const hasUnsavedChanges = computed(() => {
   return JSON.stringify(form) !== savedSnapshot.value;
 });
+
+// Saving clears the dirty flag, so the header actions have to outlive it or the
+// button disappears mid-click and the confirmation never shows.
+const showSaveActions = computed(
+  () => hasUnsavedChanges.value || isSavingProfile.value || isProfileSaved.value
+);
 
 // Password change state
 const currentPassword = ref('');
@@ -1015,6 +1028,7 @@ const saveProfile = () => {
     savedSnapshot.value = JSON.stringify(form);
     isSavingProfile.value = false;
     isProfileSaved.value = true;
+    hasSavedOnce.value = true;
 
     const now = new Date();
     lastSavedTime.value = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });

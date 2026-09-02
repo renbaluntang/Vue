@@ -296,9 +296,6 @@
                 :alt="instructor.name"
                 class="w-12 h-12 rounded-xl border border-slate-200 shadow-2xs group-hover:scale-105 transition"
               />
-              <span class="absolute -bottom-1 -right-1 bg-brighture-gold text-brighture-ink rounded-full p-0.5 text-[8px]">
-                🔍
-              </span>
             </div>
 
             <div class="min-w-0 flex-1">
@@ -376,10 +373,12 @@
     </section>
 
     <!-- ===== Refer a Friend Banner ===== -->
-    <div
-      class="relative overflow-hidden rounded-2xl cursor-pointer select-none"
+    <!-- A link, not a modal: the programme rules are long enough that they were
+         overflowing short screens, and /refer already holds the full details. -->
+    <RouterLink
+      to="/refer"
+      class="group relative block overflow-hidden rounded-2xl select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brighture-cream"
       style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 40%, #0ea5e9 100%);"
-      @click="showReferModal = true"
     >
       <div class="pointer-events-none absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
       <div class="pointer-events-none absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-fuchsia-400/20 blur-2xl"></div>
@@ -395,16 +394,16 @@
             </p>
           </div>
         </div>
-        <button
-          type="button"
-          class="shrink-0 flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-extrabold text-violet-700 shadow-lg shadow-violet-900/30 transition hover:bg-violet-50 hover:scale-105 active:scale-95"
-          @click.stop="showReferModal = true"
+        <!-- A span, not a button: the whole banner is already the link, and a
+             button inside an anchor is invalid markup. -->
+        <span
+          class="shrink-0 flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-extrabold text-violet-700 shadow-lg shadow-violet-900/30 transition group-hover:bg-violet-50 group-hover:scale-105 group-active:scale-95"
         >
           <i class="fa-solid fa-share-nodes text-sm"></i>
-          Share & Earn
-        </button>
+          Share &amp; Earn
+        </span>
       </div>
-    </div>
+    </RouterLink>
     <!-- ===== /Refer a Friend Banner ===== -->
 
     <!-- Free Conversation Modal -->
@@ -442,40 +441,16 @@
       @book="handleBookFromTeacherModal"
     />
 
-    <!-- ===== Refer a Friend Modal ===== -->
-    <Transition name="refer-fade">
-      <div
-        v-if="showReferModal"
-        class="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-slate-900/60 p-0 sm:p-4 backdrop-blur-sm"
-        @click.self="showReferModal = false"
-      >
-        <div class="relative w-full max-w-md shadow-2xl rounded-t-[28px] sm:rounded-3xl overflow-hidden" @click.stop>
-          <ReferAFriendPanel>
-            <template #corner>
-              <button
-                type="button"
-                class="absolute right-4 top-4 flex h-8 w-8 items-center justify-center rounded-full bg-white/20 text-white hover:bg-white/30 transition cursor-pointer"
-                @click="showReferModal = false"
-                aria-label="Close"
-              >
-                <i class="fa-solid fa-xmark"></i>
-              </button>
-            </template>
-          </ReferAFriendPanel>
-        </div>
-      </div>
-    </Transition>
-    <!-- ===== /Refer a Friend Modal ===== -->
   </div>
 </template>
 
 <script setup>
+import { imageForKey } from '@/lib/teacherImages';
 import AppImage from '../../components/AppImage.vue';
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import brightureLogo from '@/assets/logo-black.svg';
 import { useUserStore } from '../../stores/useUserStore';
-import ReferAFriendPanel from '../../components/ReferAFriendPanel.vue';
 import FreeConversationModal from '../../components/FreeConversationModal.vue';
 import ClassDetailsModal from '../../components/ClassDetailsModal.vue';
 import CancelClassModal from '../../components/CancelClassModal.vue';
@@ -488,8 +463,6 @@ const user = useUserStore();
 const showFreeConversationModal = ref(false);
 const selectedTeacherForModal = ref(null);
 
-// ----- Refer a Friend -----
-const showReferModal = ref(false);
 // The spotlight already shows the next class, so the table lists the ones after it.
 const scheduledLessons = computed(() =>
   upcomingLessons.value.filter((lesson) => lesson.id !== user.nextUpcomingClass?.id)
@@ -543,7 +516,7 @@ const quickInstructors = ref([
   {
     id: 1,
     name: 'Jirvy Dela Torre',
-    photo: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184',
+    photo: imageForKey(184),
     specialty: '[SF] Speech Fluency, [LS1], [DC]',
     rating: '4.98',
     nextAvailable: 'Today 20:00',
@@ -554,7 +527,7 @@ const quickInstructors = ref([
   {
     id: 2,
     name: 'Jane Pasanting',
-    photo: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=178',
+    photo: imageForKey(178),
     specialty: '[DC] Daily Conversation, [PP101], [PP102]',
     rating: '4.95',
     nextAvailable: 'Today 21:00',
@@ -565,7 +538,7 @@ const quickInstructors = ref([
   {
     id: 3,
     name: 'Analyn Yosores',
-    photo: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=176',
+    photo: imageForKey(176),
     specialty: '[RW] Reading & Writing, [SC], [EP]',
     rating: '4.92',
     nextAvailable: 'Tomorrow 10:00',
@@ -576,7 +549,7 @@ const quickInstructors = ref([
   {
     id: 4,
     name: 'Sandra Auman',
-    photo: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=175',
+    photo: imageForKey(175),
     specialty: '[SF] Speech Fluency, [PP201], [SC]',
     rating: '4.89',
     nextAvailable: 'Tomorrow 11:30',
@@ -592,7 +565,7 @@ const upcomingLessons = ref([
     date: 'Today, Aug 21',
     time: '7:00 PM - 7:30 PM JST',
     teacherName: 'Jirvy Dela Torre',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184',
+    teacherPhoto: imageForKey(184),
     isSubstitute: false,
     isNext: true,
     subject: '[SF] Speech Fluency & Discussion',
@@ -604,7 +577,7 @@ const upcomingLessons = ref([
     date: 'Tomorrow, Aug 22',
     time: '8:00 PM - 8:50 PM JST',
     teacherName: 'Sandra Auman',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=175',
+    teacherPhoto: imageForKey(175),
     isSubstitute: true,
     isNext: false,
     subject: '[DC] Daily Conversation',
@@ -621,7 +594,7 @@ const writingTasks = ref([
     statusColor: 'bg-emerald-100 text-emerald-700',
     title: '[RW] Self Introduction Draft for Marketing',
     teacherName: 'Analyn Yosores',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=176',
+    teacherPhoto: imageForKey(176),
   },
   {
     id: 2,
@@ -630,7 +603,7 @@ const writingTasks = ref([
     statusColor: 'bg-slate-100 text-slate-700',
     title: '[RW] Weekly Journal - Business Trip Reflection',
     teacherName: 'Jirvy Dela Torre',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184',
+    teacherPhoto: imageForKey(184),
   },
 ]);
 </script>

@@ -124,6 +124,7 @@
 </template>
 
 <script setup>
+import { imageForKey } from '@/lib/teacherImages';
 import AppImage from './AppImage.vue';
 import { ref } from 'vue';
 
@@ -137,6 +138,6 @@ const isPlayingVoice = ref(false);
 
 const getTeacherModalImage = (teacher) => {
   if (teacher?.photo) return teacher.photo;
-  return 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184';
+  return imageForKey(184);
 };
 </script>

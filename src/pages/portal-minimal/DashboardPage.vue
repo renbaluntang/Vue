@@ -388,6 +388,7 @@
 </template>
 
 <script setup>
+import { imageForKey } from '@/lib/teacherImages';
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
@@ -453,7 +454,7 @@ const quickInstructors = ref([
   {
     id: 1,
     name: 'Sarah Jenkins',
-    photo: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184',
+    photo: imageForKey(184),
     specialty: '[SF] Speech Fluency, [LS1], [DC]',
     rating: '4.98',
     nextAvailable: 'Today 20:00',
@@ -464,7 +465,7 @@ const quickInstructors = ref([
   {
     id: 2,
     name: 'James Anderson',
-    photo: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=178',
+    photo: imageForKey(178),
     specialty: '[DC] Daily Conversation, [PP101], [PP102]',
     rating: '4.95',
     nextAvailable: 'Today 21:00',
@@ -475,7 +476,7 @@ const quickInstructors = ref([
   {
     id: 3,
     name: 'Emily Rivera',
-    photo: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=176',
+    photo: imageForKey(176),
     specialty: '[RW] Reading & Writing, [SC], [EP]',
     rating: '4.92',
     nextAvailable: 'Tomorrow 10:00',
@@ -486,7 +487,7 @@ const quickInstructors = ref([
   {
     id: 4,
     name: 'Mark Davis',
-    photo: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=175',
+    photo: imageForKey(175),
     specialty: '[SF] Speech Fluency, [PP201], [SC]',
     rating: '4.89',
     nextAvailable: 'Tomorrow 11:30',
@@ -502,7 +503,7 @@ const upcomingLessons = ref([
     date: 'Today, Aug 21',
     time: '7:00 PM - 7:30 PM JST',
     teacherName: 'Sarah Jenkins',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184',
+    teacherPhoto: imageForKey(184),
     isSubstitute: false,
     isNext: true,
     subject: '[SF] Speech Fluency & Discussion',
@@ -514,7 +515,7 @@ const upcomingLessons = ref([
     date: 'Tomorrow, Aug 22',
     time: '8:00 PM - 8:50 PM JST',
     teacherName: 'Mark Davis',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=175',
+    teacherPhoto: imageForKey(175),
     isSubstitute: true,
     isNext: false,
     subject: '[DC] Daily Conversation',
@@ -531,7 +532,7 @@ const writingTasks = ref([
     statusColor: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60',
     title: '[RW] Self Introduction Draft for Marketing',
     teacherName: 'Emily Rivera',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=176',
+    teacherPhoto: imageForKey(176),
   },
   {
     id: 2,
@@ -540,7 +541,7 @@ const writingTasks = ref([
     statusColor: 'bg-zinc-100 text-zinc-700',
     title: '[RW] Weekly Journal - Business Trip Reflection',
     teacherName: 'Sarah Jenkins',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184',
+    teacherPhoto: imageForKey(184),
   },
 ]);
 </script>

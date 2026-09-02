@@ -7,35 +7,56 @@
       class="hidden lg:flex flex-shrink-0 bg-white border-r border-slate-200/80 flex-col shadow-sm z-20 transition-[width] duration-200 ease-out"
       :class="isSidebarCollapsed ? 'w-[76px]' : 'w-60 xl:w-72'"
     >
-      <!-- User Profile Snapshot with BIG Profile Image + PLAIN Points Balance (No Background) -->
+      <!-- Collapsed Header: Student Avatar with Single Clean Tooltip -->
       <div
-        class="border-b border-slate-100 flex flex-col items-center text-center bg-gradient-to-b from-slate-50/60 to-white"
-        :class="isSidebarCollapsed ? 'px-2 py-4' : 'p-6'"
+        v-if="isSidebarCollapsed"
+        class="py-4 px-2 border-b border-slate-100 flex items-center justify-center text-center bg-gradient-to-b from-slate-50/60 to-white flex-shrink-0"
       >
-        <RouterLink to="/profile" class="relative group block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold focus-visible:ring-offset-2" :class="isSidebarCollapsed ? '' : 'mb-3'" :title="isSidebarCollapsed ? user.fullName : 'View your profile'">
-          <!-- Bigger Profile Image (w-28 h-28) -->
+        <RouterLink
+          to="/profile"
+          class="relative group flex items-center justify-center shrink-0 w-12 h-12 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+          :title="`${user.fullName} (Profile)`"
+        >
           <img
             :src="user.profile.photo"
             alt="Student Avatar"
-            class="rounded-full shadow-md border-4 border-white ring-4 ring-brighture-gold/20 object-cover transition-all duration-300 group-hover:scale-105"
-            :class="isSidebarCollapsed ? 'w-11 h-11 border-2 ring-2' : 'w-24 h-24 xl:w-28 xl:h-28'"
+            class="w-12 h-12 aspect-square shrink-0 rounded-full shadow-md border-2 border-white ring-4 ring-brighture-gold/30 object-cover transition-all duration-300 group-hover:scale-105 group-hover:ring-brighture-gold"
           />
+        </RouterLink>
+      </div>
+
+      <!-- Expanded Header: Full User Profile Snapshot with Edit Profile Link -->
+      <div
+        v-else
+        class="p-6 border-b border-slate-100 flex flex-col items-center text-center bg-gradient-to-b from-slate-50/60 to-white"
+      >
+        <RouterLink to="/profile" class="relative mb-3 group block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold focus-visible:ring-offset-2">
+          <!-- Big Profile Image -->
+          <img
+            :src="user.profile.photo"
+            alt="Student Avatar"
+            class="w-24 h-24 xl:w-28 xl:h-28 rounded-full shadow-md border-4 border-white ring-4 ring-brighture-gold/20 object-cover transition-transform duration-300 group-hover:scale-105"
+          />
+          <!-- Hover Edit Overlay -->
+          <div class="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[11px] font-bold backdrop-blur-[1px]">
+            <i class="fa-solid fa-camera text-sm mb-0.5"></i>
+            <span>Edit</span>
+          </div>
           <span
-            v-if="!isSidebarCollapsed"
-            class="absolute bottom-1 right-1 w-5 h-5 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-200 flex items-center justify-center text-[10px] text-white font-bold"
+            class="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-200 flex items-center justify-center text-[11px] text-white font-bold group-hover:opacity-0 transition-opacity"
             title="Online & Ready"
           >
             ✓
           </span>
-          <div v-if="!isSidebarCollapsed" class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 via-brighture-gold to-amber-500 text-white text-[10px] font-black px-3 py-0.5 rounded-full shadow-sm uppercase tracking-wider whitespace-nowrap">
+          <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 via-brighture-gold to-amber-500 text-white text-[10px] font-black px-3 py-0.5 rounded-full shadow-sm uppercase tracking-wider whitespace-nowrap">
             {{ user.stats.rank }}
           </div>
         </RouterLink>
 
-        <h2 v-if="!isSidebarCollapsed" class="text-lg font-black text-slate-900 tracking-tight">{{ user.fullName }}</h2>
+        <h2 class="text-lg font-black text-slate-900 tracking-tight">{{ user.fullName }}</h2>
 
         <!-- Level & Streak Badges -->
-        <div v-if="!isSidebarCollapsed" class="mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
+        <div class="mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
           <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-brighture-cream text-brighture-bronze text-xs font-extrabold rounded-xl border border-brighture-gold/20 shadow-2xs">
             🎯 {{ user.profile.level.split(' ')[0] }}
           </span>
@@ -43,22 +64,28 @@
             🔥 {{ user.stats.currentStreak }}d streak
           </span>
         </div>
+
+        <!-- Prominent Edit Profile Button -->
+        <RouterLink
+          to="/profile"
+          class="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-brighture-cream text-slate-700 hover:text-brighture-ink text-xs font-bold transition-all active:scale-95 border border-slate-200/80 hover:border-brighture-gold/40 shadow-2xs"
+        >
+          <i class="fa-solid fa-pen-to-square text-[11px] text-slate-400"></i>
+          <span>Edit Profile</span>
+        </RouterLink>
       </div>
 
       <!-- Navigation Links -->
-      <!-- Collapsed, overflow must be visible or the hover labels and the flyout
-           get clipped: CSS forces overflow-x to auto whenever overflow-y is. Rows
-           are tighter in the rail so the list still fits without scrolling. -->
       <nav
-        class="flex-1 py-4 space-y-1.5"
-        :class="isSidebarCollapsed ? 'overflow-visible px-2.5' : 'overflow-y-auto px-4 custom-scrollbar'"
+        class="flex-1 py-4 space-y-2"
+        :class="isSidebarCollapsed ? 'overflow-visible px-3' : 'overflow-y-auto px-4 custom-scrollbar space-y-1.5'"
       >
-        <template v-for="item in navItems" :key="item.path">
+        <template v-for="item in navItems" :key="item.path || item.key">
           <button
             v-if="item.action"
             @click="item.action"
-            class="relative flex items-center w-full px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink"
-            :class="isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'justify-between'"
+            class="relative flex items-center rounded-2xl text-sm font-bold transition-all duration-150 group text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink"
+            :class="isSidebarCollapsed ? 'justify-center mx-auto w-12 h-12 p-0' : 'justify-between w-full px-4 py-3'"
           >
             <div class="flex items-center gap-3">
               <i :class="[item.icon]" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
@@ -67,12 +94,12 @@
             <span
               v-if="isSidebarCollapsed"
               aria-hidden="true"
-              class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+              class="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
             >
               {{ t(item.label) }}
             </span>
-
           </button>
+
           <!-- Expandable group -->
           <div v-else-if="item.children" class="relative group/flyout">
             <button
@@ -81,13 +108,15 @@
               :aria-expanded="isSidebarCollapsed ? null : (isGroupOpen(item) ? 'true' : 'false')"
               :aria-haspopup="isSidebarCollapsed ? 'true' : null"
               :class="[
-                'relative flex items-center w-full px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group',
-                isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'justify-between',
-                groupHasActiveChild(item) ? 'text-brighture-ink bg-brighture-cream' : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
+                'relative flex items-center rounded-2xl text-sm font-bold transition-all duration-150 group',
+                isSidebarCollapsed ? 'justify-center mx-auto w-12 h-12 p-0' : 'justify-between w-full px-4 py-3',
+                groupHasActiveChild(item)
+                  ? (isSidebarCollapsed ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-md shadow-brighture-amber/40' : 'text-brighture-ink bg-brighture-cream')
+                  : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
               ]"
             >
               <span class="flex items-center gap-3">
-                <i :class="[item.icon]" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
+                <i :class="[item.icon, (isSidebarCollapsed && groupHasActiveChild(item)) ? '!text-brighture-ink' : '']" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
                 <span :class="isSidebarCollapsed ? 'sr-only' : ''">{{ t(item.label) }}</span>
               </span>
               <i
@@ -97,11 +126,10 @@
               ></i>
             </button>
 
-            <!-- Collapsed: the children can't nest in a 76px rail, so they come
-                 out as a flyout on hover or keyboard focus. -->
+            <!-- Collapsed Flyout on Hover -->
             <div
               v-if="isSidebarCollapsed"
-              class="invisible absolute left-full top-0 z-50 ml-2 w-52 rounded-2xl border border-slate-200 bg-white p-1.5 opacity-0 shadow-xl transition-all duration-150 group-hover/flyout:visible group-hover/flyout:opacity-100 group-focus-within/flyout:visible group-focus-within/flyout:opacity-100"
+              class="invisible absolute left-full top-0 z-50 ml-3 w-52 rounded-2xl border border-slate-200 bg-white p-1.5 opacity-0 shadow-xl transition-all duration-150 group-hover/flyout:visible group-hover/flyout:opacity-100 group-focus-within/flyout:visible group-focus-within/flyout:opacity-100"
             >
               <p class="px-2.5 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 {{ t(item.label) }}
@@ -122,6 +150,7 @@
               </RouterLink>
             </div>
 
+            <!-- Expanded Nested Submenu -->
             <div v-show="isGroupOpen(item) && !isSidebarCollapsed" class="mt-1 ml-5 space-y-1 border-l border-slate-200 pl-3">
               <RouterLink
                 v-for="child in item.children"
@@ -143,9 +172,9 @@
           <RouterLink
             v-else
             :to="item.path"
-            class="relative flex items-center px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group"
+            class="relative flex items-center rounded-2xl text-sm font-bold transition-all duration-150 group"
             :class="[
-              isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'justify-between',
+              isSidebarCollapsed ? 'justify-center mx-auto w-12 h-12 p-0' : 'justify-between px-4 py-3',
               isCurrentRoute(item.path)
                 ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-md shadow-brighture-amber/40'
                 : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
@@ -158,7 +187,7 @@
             <span
               v-if="isSidebarCollapsed"
               aria-hidden="true"
-              class="pointer-events-none absolute left-full top-1/2 z-50 ml-2 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+              class="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
             >
               {{ t(item.label) }}
             </span>
@@ -166,24 +195,94 @@
         </template>
       </nav>
 
-      <!-- Bottom Profile & Logout -->
-      <div class="p-4 border-t border-slate-100 bg-slate-50/50 space-y-1.5" :class="isSidebarCollapsed ? 'px-2' : ''">
-        <RouterLink
-          to="/profile"
-          :title="isSidebarCollapsed ? t('nav.profile') : null"
-          class="flex items-center gap-3 w-full py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
-          :class="isSidebarCollapsed ? 'justify-center px-0' : 'px-4'"
+      <!-- Bottom Actions: Settings / User Menu Popover Trigger (Shadcn style) -->
+      <div class="relative border-t border-slate-100 bg-slate-50/60 p-3 flex-shrink-0">
+        <!-- Invisible backdrop to close popover on outside click -->
+        <div
+          v-if="isUserMenuOpen"
+          class="fixed inset-0 z-40"
+          @click="isUserMenuOpen = false"
+        ></div>
+
+        <!-- Floating Popover Menu (Shadcn-style flyout) -->
+        <div
+          v-if="isUserMenuOpen"
+          class="absolute z-50 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl transition-all duration-150 animate-in fade-in zoom-in-95"
+          :class="isSidebarCollapsed ? 'left-full bottom-2 ml-3 w-64' : 'bottom-full left-3 right-3 mb-2 w-auto min-w-[230px]'"
         >
-          <i class="fa-solid fa-user w-4 text-center text-slate-500"></i>
-          <span v-if="!isSidebarCollapsed">{{ t('nav.profile') }}</span>
-        </RouterLink>
+          <!-- User Profile Header -->
+          <div class="flex items-center gap-3 p-2.5 rounded-xl bg-slate-50 border border-slate-100 mb-1.5">
+            <img
+              :src="user.profile.photo"
+              alt="Avatar"
+              class="w-10 h-10 rounded-full object-cover border border-white shadow-xs ring-1 ring-slate-200"
+            />
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-black text-slate-900 truncate">{{ user.fullName }}</p>
+              <p class="text-[11px] text-slate-500 font-medium truncate">{{ user.profile.level.split(' ')[0] }} &bull; {{ user.stats.rank }}</p>
+            </div>
+          </div>
+
+          <!-- Menu Items -->
+          <div class="space-y-0.5">
+            <RouterLink
+              to="/profile"
+              @click="isUserMenuOpen = false"
+              class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink transition"
+            >
+              <i class="fa-solid fa-user-gear w-4 text-center text-slate-400"></i>
+              <span>Profile</span>
+            </RouterLink>
+
+            <a
+              :href="`mailto:${SUPPORT_EMAIL}`"
+              @click="isUserMenuOpen = false"
+              class="flex items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink transition"
+            >
+              <i class="fa-solid fa-headset w-4 text-center text-sky-500"></i>
+              <span>Contact us</span>
+            </a>
+          </div>
+
+          <!-- Divider -->
+          <div class="my-1.5 border-t border-slate-100"></div>
+
+          <!-- Logout Action -->
+          <button
+            type="button"
+            @click="isUserMenuOpen = false"
+            class="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 transition"
+          >
+            <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-slate-400"></i>
+            <span>Log out</span>
+          </button>
+        </div>
+
+        <!-- Trigger Button when Collapsed (Settings gear) -->
         <button
-          :title="isSidebarCollapsed ? t('nav.logout') : null"
-          class="flex items-center gap-3 w-full py-2.5 text-xs font-bold text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
-          :class="isSidebarCollapsed ? 'justify-center px-0' : 'px-4'"
+          v-if="isSidebarCollapsed"
+          type="button"
+          @click="toggleUserMenu"
+          class="relative flex h-11 w-11 mx-auto items-center justify-center rounded-2xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 active:scale-95 transition-all"
+          :class="isUserMenuOpen ? 'bg-slate-200/80 text-slate-900 shadow-inner' : ''"
+          title="Settings"
         >
-          <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-slate-400"></i>
-          <span v-if="!isSidebarCollapsed">{{ t('nav.logout') }}</span>
+          <i class="fa-solid fa-gear text-lg transition-transform duration-200" :class="isUserMenuOpen ? 'rotate-90 text-brighture-bronze' : ''"></i>
+        </button>
+
+        <!-- Trigger Button when Expanded (Settings row with icon & chevron) -->
+        <button
+          v-else
+          type="button"
+          @click="toggleUserMenu"
+          class="flex items-center justify-between w-full px-3 py-2.5 rounded-xl text-xs font-bold text-slate-700 hover:bg-slate-100 hover:text-slate-900 transition-all active:scale-[0.99] group"
+          :class="isUserMenuOpen ? 'bg-slate-100 text-slate-900' : ''"
+        >
+          <div class="flex items-center gap-2.5 min-w-0">
+            <i class="fa-solid fa-gear text-sm text-slate-500 group-hover:text-slate-900 transition-transform duration-200" :class="isUserMenuOpen ? 'rotate-90 text-brighture-bronze' : ''"></i>
+            <span class="truncate">Settings</span>
+          </div>
+          <i class="fa-solid fa-ellipsis-vertical text-slate-400 group-hover:text-slate-600 text-xs"></i>
         </button>
       </div>
     </aside>
@@ -442,6 +541,8 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
 import RouteProgress from '../../components/RouteProgress.vue';
+import brightureLogo from '@/assets/logo-black.svg';
+import brightureIcon from '@/assets/icon-black.svg';
 
 const { t } = useI18n();
 const route = useRoute();
@@ -449,6 +550,19 @@ const router = useRouter();
 const user = useUserStore();
 
 const isMobileMenuOpen = ref(false);
+// TODO: confirm the real support address before launch.
+const SUPPORT_EMAIL = 'support@brighture-edu.com';
+
+const isUserMenuOpen = ref(false);
+const toggleUserMenu = () => {
+  isUserMenuOpen.value = !isUserMenuOpen.value;
+};
+
+// Close user menu on route navigation
+watch(() => route.path, () => {
+  isUserMenuOpen.value = false;
+});
+
 // Sidebar width preference. Persisted so it survives a reload; a blocked or
 // empty localStorage just falls back to expanded.
 const SIDEBAR_KEY = 'brighture:sidebar-collapsed';

@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
-import { teacherImage } from '@/lib/teacherImages';
+import { teacherImage, imageForKey } from '@/lib/teacherImages';
 import { findPlan, isSubscription } from '@/lib/plans';
 
 export const useUserStore = defineStore('user', () => {
@@ -385,7 +385,7 @@ Homework: read the five tongue twisters aloud for three minutes before sleep.`,
     minutesUntil: 28,
     isLiveSoon: true,
     teacherName: 'Jirvy Dela Torre',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184',
+    teacherPhoto: imageForKey(184),
     subject: '[SF] Speech Fluency & Discussion',
     topic: 'Cross-Border Negotiations & Pitching',
     meetLink: 'https://meet.google.com/abc-defg-hij',

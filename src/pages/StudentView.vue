@@ -1,4 +1,5 @@
 <script setup>
+import { imageForKey } from '@/lib/teacherImages';
 import { ref, computed, watch } from "vue";
 import studentImage from "@/assets/student-1.svg";
 import teacherPhoto1 from "@/assets/Adobe Express - file.png";
@@ -66,18 +67,18 @@ const TEACHER_MODAL_IMAGES = [teacherPhoto1, teacherPhoto2, teacherPhoto3, teach
 // One portrait per instructor — keys verified to return real teacher photos
 // (this endpoint also serves placeholders, graphics and stock images).
 const TEACHER_LIST_IMAGES = [
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=181",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=178",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=177",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=176",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=175",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=174",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=120",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=121",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=122",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=126",
-  "https://brighture-edu.com/api.html?model=teacher&cmd=image&key=170",
+  imageForKey(181),
+  imageForKey(178),
+  imageForKey(177),
+  imageForKey(176),
+  imageForKey(175),
+  imageForKey(174),
+  imageForKey(120),
+  imageForKey(121),
+  imageForKey(122),
+  imageForKey(184),
+  imageForKey(126),
+  imageForKey(170),
 ];
 const TEACHER_PROFILE_BY_ID = {
   1: {

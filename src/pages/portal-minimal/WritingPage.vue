@@ -191,6 +191,7 @@
 </template>
 
 <script setup>
+import { imageForKey } from '@/lib/teacherImages';
 import { ref, computed } from 'vue';
 
 const isCreatingNew = ref(false);
@@ -209,7 +210,7 @@ const tickets = ref([
     statusColor: 'bg-emerald-50 text-emerald-700 border border-emerald-200/60',
     date: 'Aug 20, 2026',
     teacherName: 'Emily Rivera',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=176',
+    teacherPhoto: imageForKey(176),
     originalText: `Hello everyone, my name is Taro. I have worked in global marketing for 4 years. I want to improve my speaking and presentation skills so that I can pitch to European clients effectively.`,
     teacherResponse: `Great introduction, Taro! Here are a few small refinements:\n• "I have worked in global marketing for 4 years" -> "I have been working in global marketing for four years." (More natural for ongoing experience)\n• "so that I can pitch to European clients effectively" -> "to deliver persuasive pitches to international stakeholders."`,
   },
@@ -220,7 +221,7 @@ const tickets = ref([
     statusColor: 'bg-zinc-100 text-zinc-700',
     date: 'Aug 18, 2026',
     teacherName: 'Sarah Jenkins',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184',
+    teacherPhoto: imageForKey(184),
     originalText: `Last week I visited the Singapore office. The meeting was very fruitful and we decided the roadmap for the next quarter.`,
     teacherResponse: null,
   },

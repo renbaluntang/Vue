@@ -668,7 +668,7 @@ const shareVia = (channel) => {
         @click.self="showReferModal = false"
       >
         <div
-          class="relative w-full max-w-md overflow-hidden rounded-t-[28px] sm:rounded-3xl bg-white text-slate-800 shadow-2xl"
+          class="relative w-full max-w-md overflow-y-auto max-h-[92vh] supports-[max-height:100dvh]:max-h-[92dvh] rounded-t-[28px] sm:rounded-3xl bg-white text-slate-800 shadow-2xl"
           @click.stop
         >
           <!-- Gradient header -->

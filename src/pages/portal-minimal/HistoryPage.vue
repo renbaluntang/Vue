@@ -91,6 +91,7 @@
 </template>
 
 <script setup>
+import { imageForKey } from '@/lib/teacherImages';
 import { ref } from 'vue';
 
 const selectedLessonFeedback = ref(null);
@@ -100,7 +101,7 @@ const pastLessons = ref([
     id: 101,
     date: 'Aug 19, 2026',
     teacherName: 'Sarah Jenkins',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=184',
+    teacherPhoto: imageForKey(184),
     subject: '[SF] Speech Fluency & Discussion',
     topic: 'International Marketing & Market Fit',
     duration: 30,
@@ -111,7 +112,7 @@ const pastLessons = ref([
     id: 102,
     date: 'Aug 16, 2026',
     teacherName: 'James Anderson',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=178',
+    teacherPhoto: imageForKey(178),
     subject: '[PP101] Pronunciation Training — Vowels',
     topic: 'Short vowels vs Long vowels distinction',
     duration: 50,
@@ -122,7 +123,7 @@ const pastLessons = ref([
     id: 103,
     date: 'Aug 12, 2026',
     teacherName: 'Emily Rivera',
-    teacherPhoto: 'https://brighture-edu.com/api.html?model=teacher&cmd=image&key=176',
+    teacherPhoto: imageForKey(176),
     subject: '[DC] Daily Conversation',
     topic: 'Weekend activities & travel experiences in Kyoto',
     duration: 30,
