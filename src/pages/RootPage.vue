@@ -62,13 +62,13 @@
           :href="withBase('/student-portal')"
           class="inline-flex items-center justify-center rounded-2xl border border-indigo-300 bg-indigo-50 px-5 py-4 text-center text-sm font-semibold text-indigo-950 transition hover:bg-indigo-100"
         >
-          ✨ New Student Portal ✨
+          New Student Portal
         </a>
         <a
-          :href="withBase('/student-portal-v2')"
-          class="inline-flex items-center justify-center rounded-2xl border border-zinc-900 bg-zinc-900 px-5 py-4 text-center text-sm font-semibold text-white shadow-sm transition hover:bg-zinc-800"
+          :href="withBase('/teacher-portal')"
+          class="inline-flex items-center justify-center rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-center text-sm font-semibold text-emerald-950 transition hover:bg-emerald-100"
         >
-          ✨ Minimalist Student Portal (V2) ✨
+          New Teacher Portal
         </a>
         <a
           :href="withBase('/points-purchase')"

@@ -3,6 +3,7 @@ import { createPinia } from "pinia";
 import { getRouter } from "./router";
 import { getClassicRouter } from "./router/classic";
 import { getMinimalRouter } from "./router/minimal";
+import { getTeacherRouter } from "./router/teacher";
 import i18n from "./i18n";
 import App from "./pages/app-panel/App.vue";
 import LoginRegisterPanel from "./pages/LoginRegisterPanel.vue";
@@ -15,6 +16,7 @@ import StudentViewV3 from "./pages/StudentViewV3.vue";
 import StudentViewV4 from "./pages/StudentViewV4.vue";
 import PointsPurchase from "./pages/PointsPurchase.vue";
 import PortalApp from "./pages/PortalApp.vue";
+import TeacherPortalApp from "./pages/TeacherPortalApp.vue";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./styles.css";
 
@@ -25,6 +27,8 @@ const rawPath = window.location.pathname.replace(/\/+$/, "") || "/";
 const normalizedPath =
   (BASE_PREFIX && rawPath.startsWith(BASE_PREFIX) ? rawPath.slice(BASE_PREFIX.length) : rawPath) || "/";
 const isTeacherView = normalizedPath === "/teacher";
+const isTeacherPortalView =
+  normalizedPath === "/teacher-portal" || normalizedPath.startsWith("/teacher-portal/");
 const isStudentView = normalizedPath === "/student";
 const isStudentViewV2 = normalizedPath === "/student-2";
 const isStudentViewV3 = normalizedPath === "/student-3";
@@ -47,6 +51,9 @@ const isStudentPortalView =
   (normalizedPath === "/student-portal" || normalizedPath.startsWith("/student-portal/"));
 
 const getPage = () => {
+  if (isTeacherPortalView) {
+    return TeacherPortalApp;
+  }
   if (isTeacherView) {
     return App;
   }
@@ -83,7 +90,10 @@ const getPage = () => {
 const page = getPage();
 const app = createApp(page);
 
-if (page === PortalApp) {
+if (page === TeacherPortalApp) {
+  app.use(createPinia());
+  app.use(getTeacherRouter());
+} else if (page === PortalApp) {
   app.use(createPinia());
   if (isStudentPortalV2View) {
     app.use(getMinimalRouter());
