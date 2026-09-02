@@ -28,14 +28,14 @@
       <!-- Expanded Header: Full User Profile Snapshot with Edit Profile Link -->
       <div
         v-else
-        class="p-6 border-b border-slate-100 flex flex-col items-center text-center bg-gradient-to-b from-slate-50/60 to-white"
+        class="sidebar-profile p-6 border-b border-slate-100 flex flex-col items-center text-center bg-gradient-to-b from-slate-50/60 to-white"
       >
         <RouterLink to="/profile" class="relative mb-3 group block rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold focus-visible:ring-offset-2">
           <!-- Big Profile Image -->
           <img
             :src="user.profile.photo"
             alt="Student Avatar"
-            class="w-24 h-24 xl:w-28 xl:h-28 rounded-full shadow-md border-4 border-white ring-4 ring-brighture-gold/20 object-cover transition-transform duration-300 group-hover:scale-105"
+            class="sidebar-avatar w-24 h-24 xl:w-28 xl:h-28 rounded-full shadow-md border-4 border-white ring-4 ring-brighture-gold/20 object-cover transition-transform duration-300 group-hover:scale-105"
           />
           <!-- Hover Edit Overlay -->
           <div class="absolute inset-0 rounded-full bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white text-[11px] font-bold backdrop-blur-[1px]">
@@ -48,7 +48,7 @@
           >
             ✓
           </span>
-          <div class="absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 via-brighture-gold to-amber-500 text-white text-[10px] font-black px-3 py-0.5 rounded-full shadow-sm uppercase tracking-wider whitespace-nowrap">
+          <div class="sidebar-rank absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 via-brighture-gold to-amber-500 text-white text-[10px] font-black px-3 py-0.5 rounded-full shadow-sm uppercase tracking-wider whitespace-nowrap">
             {{ user.stats.rank }}
           </div>
         </RouterLink>
@@ -56,7 +56,7 @@
         <h2 class="text-lg font-black text-slate-900 tracking-tight">{{ user.fullName }}</h2>
 
         <!-- Level & Streak Badges -->
-        <div class="mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
+        <div class="sidebar-badges mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
           <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-brighture-cream text-brighture-bronze text-xs font-extrabold rounded-xl border border-brighture-gold/20 shadow-2xs">
             🎯 {{ user.profile.level.split(' ')[0] }}
           </span>
@@ -64,26 +64,27 @@
             🔥 {{ user.stats.currentStreak }}d streak
           </span>
         </div>
-
-        <!-- Prominent Edit Profile Button -->
-        <RouterLink
-          to="/profile"
-          class="mt-3.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-100 hover:bg-brighture-cream text-slate-700 hover:text-brighture-ink text-xs font-bold transition-all active:scale-95 border border-slate-200/80 hover:border-brighture-gold/40 shadow-2xs"
-        >
-          <i class="fa-solid fa-pen-to-square text-[11px] text-slate-400"></i>
-          <span>Edit Profile</span>
-        </RouterLink>
       </div>
 
       <!-- Navigation Links -->
+      <!-- overflow-x is hidden on purpose. A scroll container cannot have a
+           visible x-axis and a scrolling y-axis: setting overflow-y makes
+           overflow-x compute to auto, which clipped the collapsed flyouts and
+           put a horizontal scrollbar under the rail. The popups are position:
+           fixed instead, anchored by anchorRailPopup, so they escape entirely. -->
       <nav
-        class="flex-1 py-4 space-y-2"
-        :class="isSidebarCollapsed ? 'overflow-visible px-3' : 'overflow-y-auto px-4 custom-scrollbar space-y-1.5'"
+        ref="railEl"
+        class="nav-rail flex-1 py-4 space-y-2 overflow-y-auto overflow-x-hidden"
+        :class="isSidebarCollapsed ? 'px-3' : 'px-4 custom-scrollbar space-y-1.5'"
+        @scroll="onRailScroll"
       >
         <template v-for="item in navItems" :key="item.path || item.key">
           <button
             v-if="item.action"
             @click="item.action"
+            @mouseenter="anchorRailPopup"
+            @focusin="anchorRailPopup"
+            @mouseleave="releaseRailPopup"
             class="relative flex items-center rounded-2xl text-sm font-bold transition-all duration-150 group text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink"
             :class="isSidebarCollapsed ? 'justify-center mx-auto w-12 h-12 p-0' : 'justify-between w-full px-4 py-3'"
           >
@@ -94,14 +95,22 @@
             <span
               v-if="isSidebarCollapsed"
               aria-hidden="true"
-              class="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+              data-rail-popup
+              data-popup-align="middle"
+              class="pointer-events-none fixed z-50 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
             >
               {{ t(item.label) }}
             </span>
           </button>
 
           <!-- Expandable group -->
-          <div v-else-if="item.children" class="relative group/flyout">
+          <div
+            v-else-if="item.children"
+            class="relative group/flyout"
+            @mouseenter="anchorRailPopup"
+            @focusin="anchorRailPopup"
+            @mouseleave="releaseRailPopup"
+          >
             <button
               type="button"
               @click="onGroupClick(item)"
@@ -129,7 +138,9 @@
             <!-- Collapsed Flyout on Hover -->
             <div
               v-if="isSidebarCollapsed"
-              class="invisible absolute left-full top-0 z-50 ml-3 w-52 rounded-2xl border border-slate-200 bg-white p-1.5 opacity-0 shadow-xl transition-all duration-150 group-hover/flyout:visible group-hover/flyout:opacity-100 group-focus-within/flyout:visible group-focus-within/flyout:opacity-100"
+              data-rail-popup
+              data-popup-align="top"
+              class="invisible fixed z-50 w-52 rounded-2xl border border-slate-200 bg-white p-1.5 opacity-0 shadow-xl transition-opacity duration-150 group-hover/flyout:visible group-hover/flyout:opacity-100 group-focus-within/flyout:visible group-focus-within/flyout:opacity-100"
             >
               <p class="px-2.5 pb-1.5 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 {{ t(item.label) }}
@@ -172,6 +183,9 @@
           <RouterLink
             v-else
             :to="item.path"
+            @mouseenter="anchorRailPopup"
+            @focusin="anchorRailPopup"
+            @mouseleave="releaseRailPopup"
             class="relative flex items-center rounded-2xl text-sm font-bold transition-all duration-150 group"
             :class="[
               isSidebarCollapsed ? 'justify-center mx-auto w-12 h-12 p-0' : 'justify-between px-4 py-3',
@@ -187,7 +201,9 @@
             <span
               v-if="isSidebarCollapsed"
               aria-hidden="true"
-              class="pointer-events-none absolute left-full top-1/2 z-50 ml-3 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
+              data-rail-popup
+              data-popup-align="middle"
+              class="pointer-events-none fixed z-50 -translate-y-1/2 whitespace-nowrap rounded-xl bg-slate-900 px-3 py-1.5 text-xs font-bold text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover:opacity-100 group-focus-visible:opacity-100"
             >
               {{ t(item.label) }}
             </span>
@@ -299,7 +315,7 @@
       :class="isMobileMenuOpen ? 'translate-x-0' : '-translate-x-full'"
     >
       <!-- Mobile Profile Snapshot with Big Avatar + PLAIN Points Display -->
-      <div class="p-6 border-b border-slate-100 flex flex-col items-center text-center relative bg-gradient-to-b from-slate-50 to-white">
+      <div class="drawer-profile p-6 border-b border-slate-100 flex flex-col items-center text-center relative bg-gradient-to-b from-slate-50 to-white">
         <button
           @click="isMobileMenuOpen = false"
           class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold"
@@ -312,13 +328,13 @@
           <img
             :src="user.profile.photo"
             alt="Avatar"
-            class="w-24 h-24 rounded-full shadow-md border-4 border-white ring-4 ring-brighture-gold/10 object-cover"
+            class="drawer-avatar w-24 h-24 rounded-full shadow-md border-4 border-white ring-4 ring-brighture-gold/10 object-cover"
           />
         </RouterLink>
         <h2 class="text-base font-black text-slate-900">{{ user.fullName }}</h2>
 
         <!-- PLAIN Points Display in Mobile Drawer (No Background) -->
-        <div class="mt-3.5 w-full text-center space-y-0.5">
+        <div class="drawer-points mt-3.5 w-full text-center space-y-0.5">
           <div class="flex items-baseline justify-center gap-1.5 text-slate-900">
             <span class="text-xs font-bold text-slate-400 uppercase tracking-wider">Points :</span>
             <span class="text-xl font-black text-slate-900">{{ user.profile.pointsBalance }}</span>
@@ -395,21 +411,58 @@
         </template>
       </nav>
 
-      <!-- shrink-0 so a long nav list can never squeeze these two off the panel,
-           and the safe-area padding keeps them clear of the iOS home indicator. -->
+      <!-- shrink-0 so a long nav list can never squeeze these off the panel, and
+           the safe-area padding keeps them clear of the iOS home indicator.
+           Same Settings group as the desktop sidebar — Profile, Contact us and
+           Log out live behind one gear rather than sitting loose in the drawer,
+           so the drawer footer is one row tall in landscape. -->
       <div class="shrink-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-100 bg-slate-50/50 space-y-1.5">
-        <RouterLink
-          to="/profile"
-          @click="isMobileMenuOpen = false"
-          class="flex items-center gap-3 w-full px-4 py-3 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
-        >
-          <i class="fa-solid fa-user w-4 text-center text-slate-500"></i> {{ t('nav.profile') }}
-        </RouterLink>
+        <div v-show="isUserMenuOpen" class="space-y-0.5 pb-1.5 mb-1.5 border-b border-slate-200/70">
+          <RouterLink
+            to="/profile"
+            @click="isMobileMenuOpen = false; isUserMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink rounded-xl transition"
+          >
+            <i class="fa-solid fa-user-gear w-4 text-center text-slate-400"></i>
+            <span>{{ t('nav.profile') }}</span>
+          </RouterLink>
+
+          <a
+            :href="`mailto:${SUPPORT_EMAIL}`"
+            @click="isMobileMenuOpen = false; isUserMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink rounded-xl transition"
+          >
+            <i class="fa-solid fa-headset w-4 text-center text-sky-500"></i>
+            <span>Contact us</span>
+          </a>
+
+          <button
+            @click="isMobileMenuOpen = false; isUserMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
+          >
+            <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-slate-400"></i>
+            <span>{{ t('nav.logout') }}</span>
+          </button>
+        </div>
+
         <button
-          @click="isMobileMenuOpen = false"
-          class="flex items-center gap-3 w-full px-4 py-3 text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
+          type="button"
+          @click="toggleUserMenu"
+          :aria-expanded="isUserMenuOpen ? 'true' : 'false'"
+          class="flex items-center justify-between w-full px-4 py-3 text-xs font-bold rounded-xl transition group"
+          :class="isUserMenuOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'"
         >
-          <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-slate-400"></i> {{ t('nav.logout') }}
+          <span class="flex items-center gap-3">
+            <i
+              class="fa-solid fa-gear w-4 text-center text-slate-500 transition-transform duration-200"
+              :class="isUserMenuOpen ? 'rotate-90 text-brighture-bronze' : ''"
+            ></i>
+            <span>Settings</span>
+          </span>
+          <i
+            class="fa-solid fa-chevron-up text-[10px] text-slate-400 transition-transform duration-200"
+            :class="isUserMenuOpen ? '' : 'rotate-180'"
+          ></i>
         </button>
       </div>
     </aside>
@@ -528,7 +581,107 @@
           ></i>
           <span class="text-[10px] tracking-tight truncate">{{ item.shortLabel }}</span>
         </RouterLink>
+
+        <!-- Settings is permanently on screen in the desktop sidebar, so it needs
+             a permanent home here too. Without it the only route to Profile,
+             Contact us or Log out on a phone is knowing the drawer exists. -->
+        <button
+          type="button"
+          @click="isSettingsSheetOpen = true"
+          :aria-expanded="isSettingsSheetOpen ? 'true' : 'false'"
+          aria-haspopup="dialog"
+          class="flex flex-col items-center justify-center flex-1 py-1 text-center transition"
+          :class="isCurrentRoute('/profile')
+            ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40 rounded-xl'
+            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+        >
+          <i
+            class="fa-solid fa-gear mb-0.5 text-lg leading-none"
+            :class="isCurrentRoute('/profile') ? '!text-brighture-ink' : 'text-slate-500'"
+          ></i>
+          <span class="text-[10px] tracking-tight truncate">Settings</span>
+        </button>
       </nav>
+
+      <!-- Settings Bottom Sheet (mobile & tablet) -->
+      <Transition
+        enter-active-class="transition-opacity duration-200 ease-out"
+        enter-from-class="opacity-0"
+        leave-active-class="transition-opacity duration-200 ease-in"
+        leave-to-class="opacity-0"
+      >
+        <div
+          v-if="isSettingsSheetOpen"
+          class="lg:hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs"
+          @click="isSettingsSheetOpen = false"
+        ></div>
+      </Transition>
+
+      <Transition
+        enter-active-class="transition-transform duration-300 ease-out"
+        enter-from-class="translate-y-full"
+        leave-active-class="transition-transform duration-200 ease-in"
+        leave-to-class="translate-y-full"
+      >
+        <div
+          v-if="isSettingsSheetOpen"
+          role="dialog"
+          aria-modal="true"
+          aria-label="Settings"
+          class="lg:hidden fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-slate-200 bg-white shadow-2xl"
+        >
+          <!-- Pinned to the sheet, not the scrolling body, so it stays in the
+               corner however far the content scrolls. -->
+          <button
+            type="button"
+            @click="isSettingsSheetOpen = false"
+            class="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-xs ring-1 ring-slate-200 transition hover:text-slate-900 active:scale-95"
+            aria-label="Close settings"
+          >
+            <i class="fa-solid fa-xmark text-xs"></i>
+          </button>
+
+          <!-- Capped and scrollable: a phone in landscape has ~360px of height,
+               and the sheet must never grow past what is on screen. -->
+          <div class="max-h-[85vh] supports-[max-height:100dvh]:max-h-[85dvh] overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+            <!-- Grab handle: the visual cue that this panel came from the edge. -->
+            <div class="mx-auto mb-6 h-1.5 w-10 shrink-0 rounded-full bg-slate-300"></div>
+
+            <div class="space-y-1">
+              <RouterLink
+                to="/profile"
+                @click="isSettingsSheetOpen = false"
+                class="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink active:scale-[0.99]"
+              >
+                <i class="fa-solid fa-user-gear w-5 text-center text-slate-400"></i>
+                <span>{{ t('nav.profile') }}</span>
+                <i class="fa-solid fa-chevron-right ml-auto text-[10px] text-slate-300"></i>
+              </RouterLink>
+
+              <a
+                :href="`mailto:${SUPPORT_EMAIL}`"
+                @click="isSettingsSheetOpen = false"
+                class="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink active:scale-[0.99]"
+              >
+                <i class="fa-solid fa-headset w-5 text-center text-sky-500"></i>
+                <span>Contact us</span>
+                <i class="fa-solid fa-chevron-right ml-auto text-[10px] text-slate-300"></i>
+              </a>
+
+              <div class="my-1.5 border-t border-slate-100"></div>
+
+              <button
+                type="button"
+                @click="isSettingsSheetOpen = false"
+                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-500 transition hover:bg-red-50 hover:text-red-600 active:scale-[0.99]"
+              >
+                <i class="fa-solid fa-arrow-right-from-bracket w-5 text-center text-slate-400"></i>
+                <span>{{ t('nav.logout') }}</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </Transition>
     </div>
 
   </div>
@@ -552,6 +705,47 @@ const user = useUserStore();
 const isMobileMenuOpen = ref(false);
 // TODO: confirm the real support address before launch.
 const SUPPORT_EMAIL = 'support@brighture-edu.com';
+
+// --- Collapsed-rail popups ---------------------------------------------------
+// The rail has to scroll (a landscape phone has no room for eight rows), and a
+// scrolling box clips anything that reaches outside it. So the flyouts and hover
+// labels are position: fixed, which no ancestor can clip — the cost is that
+// fixed ignores the trigger, so we place them by hand on hover and keep them
+// glued while the rail scrolls underneath.
+const railEl = ref(null);
+let hoveredRailHost = null;
+
+const placeRailPopup = (host) => {
+  const popup = host?.querySelector('[data-rail-popup]');
+  if (!popup) return;
+  const anchor = host.getBoundingClientRect();
+  popup.style.left = `${Math.round(anchor.right + 12)}px`;
+
+  if (popup.dataset.popupAlign === 'middle') {
+    popup.style.top = `${Math.round(anchor.top + anchor.height / 2)}px`;
+    return;
+  }
+  // Flyouts hang downward, so near the foot of a short screen they have to be
+  // pulled back up to stay on it.
+  const height = popup.offsetHeight;
+  const maxTop = window.innerHeight - height - 8;
+  popup.style.top = `${Math.round(Math.max(8, Math.min(anchor.top, maxTop)))}px`;
+};
+
+const anchorRailPopup = (event) => {
+  if (!isSidebarCollapsed.value) return;
+  hoveredRailHost = event.currentTarget;
+  placeRailPopup(hoveredRailHost);
+};
+
+const releaseRailPopup = () => {
+  hoveredRailHost = null;
+};
+
+/** Keeps an open popup attached to its row while the rail scrolls. */
+const onRailScroll = () => {
+  if (hoveredRailHost) placeRailPopup(hoveredRailHost);
+};
 
 const isUserMenuOpen = ref(false);
 const toggleUserMenu = () => {
@@ -614,8 +808,18 @@ const mobileBottomNavItems = [
   { path: '/booking', shortLabel: 'Book Class', icon: 'fa-solid fa-calendar-days text-indigo-500' },
   { path: '/analytics', shortLabel: 'Badges', icon: 'fa-solid fa-medal text-amber-500' },
   { path: '/history', shortLabel: 'History', icon: 'fa-solid fa-clock-rotate-left text-violet-500' },
-  { path: '/profile', shortLabel: 'Profile', icon: 'fa-solid fa-user text-slate-500' },
+  // No '/profile' tab: Settings takes the last slot and Profile lives inside it,
+  // exactly as it does on the desktop sidebar.
 ];
+
+// Settings gets its own bottom sheet rather than reusing the nav drawer: the
+// drawer is a full-height panel of unrelated navigation, and sliding all of it
+// in to show three rows means the answer arrives buried in the thing you did
+// not ask for. The sheet rises from the tab that summoned it instead.
+const isSettingsSheetOpen = ref(false);
+
+// Any navigation out of the sheet should leave it closed behind you.
+watch(() => route.path, () => { isSettingsSheetOpen.value = false; });
 
 // A group opens itself when one of its pages is active; clicking the row then
 // overrides that until the route changes again.
@@ -655,6 +859,36 @@ const currentPageTitle = computed(() => {
 </script>
 
 <style scoped>
+/* Landscape is a height problem, not a width one: a phone at 844x390 has less
+   vertical room than the narrowest portrait phone. These rules trade the
+   decorative half of the profile header for list space, so the nav and the
+   Settings row below it stay reachable instead of being squeezed into a sliver.
+   Keyed off height alone so they fire in landscape on any device. */
+@media (max-height: 820px) {
+  .sidebar-profile { padding: 1rem 1rem 0.875rem; }
+  .sidebar-profile .sidebar-avatar { width: 4rem; height: 4rem; }
+  .sidebar-profile .sidebar-badges { display: none; }
+}
+
+@media (max-height: 700px) {
+  .sidebar-profile .sidebar-avatar { width: 3rem; height: 3rem; border-width: 2px; }
+  .sidebar-profile .sidebar-rank { display: none; }
+}
+
+@media (max-height: 560px) {
+  /* Stack the drawer header sideways: a centred column of avatar, name and
+     points eats over half a landscape phone screen on its own. */
+  .drawer-profile {
+    flex-direction: row;
+    align-items: center;
+    text-align: left;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+  }
+  .drawer-profile .drawer-avatar { width: 2.75rem; height: 2.75rem; border-width: 2px; }
+  .drawer-profile .drawer-points { display: none; }
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 4px;
 }
