@@ -108,3 +108,216 @@
   transform: translateY(40px);
   opacity: 0;
 }
+/* ===========================================================================
+   Dark theme
+   ---------------------------------------------------------------------------
+   The portal's pages are written in literal Tailwind utilities rather than
+   semantic tokens, so the theme is applied by remapping the handful of surface
+   utilities they actually use instead of adding a `dark:` variant to ~700
+   class occurrences. `.dark .bg-white` outranks `.bg-white` on specificity, so
+   no !important is needed, and everything stays in one place to tune.
+
+   Deliberately untouched: the brand gold, the emerald/rose/amber status
+   colours, and any slash-opacity utility (bg-white/10 and friends generate
+   their own class), all of which already read correctly on a dark ground.
+   =========================================================================== */
+.dark {
+  color-scheme: dark;
+}
+
+.dark body {
+  background-color: #0B1120;
+  color: #E2E8F0;
+}
+
+/* --- Surfaces -------------------------------------------------------------- */
+.dark .bg-white { background-color: #0F172A; }
+.dark .bg-slate-50 { background-color: #0B1120; }
+.dark .bg-slate-100 { background-color: #1E293B; }
+.dark .bg-slate-200 { background-color: #334155; }
+.dark .bg-brighture-cream { background-color: #2A2313; }
+
+/* Arbitrary-value classes. `bg-[#f8fafc]` is its own class, so remapping
+   bg-slate-50 never reached the portal shell — which left a light page under
+   light text. The gold ones are brand colour and stay put. */
+.dark .bg-\[\#f8fafc\] { background-color: #0B1120; }
+.dark .bg-\[\#f1f5f9\] { background-color: #111C2F; }
+
+/* Gradient stops. These generate their own classes, so remapping `bg-white`
+   leaves a light gradient sitting on top of a dark page — which is what put
+   light text on a light hero. */
+.dark .from-white { --tw-gradient-from: #0F172A var(--tw-gradient-from-position); --tw-gradient-to: rgb(15 23 42 / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.dark .to-white { --tw-gradient-to: #0F172A var(--tw-gradient-to-position); }
+.dark .from-slate-50,
+.dark .from-slate-50\/60 { --tw-gradient-from: #0B1120 var(--tw-gradient-from-position); --tw-gradient-to: rgb(11 17 32 / 0) var(--tw-gradient-to-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to); }
+.dark .to-slate-50 { --tw-gradient-to: #0B1120 var(--tw-gradient-to-position); }
+
+/* Slash-opacity surfaces. Each opacity step compiles to its own class, so the
+   solid mappings above never reach them. Only the light ones are listed —
+   bg-white/10 and friends sit on dark panels already and stay as they are. */
+.dark .bg-white\/70,
+.dark .bg-white\/80,
+.dark .bg-white\/90,
+.dark .bg-white\/95 { background-color: rgb(15 23 42 / 0.92); }
+
+.dark .bg-slate-50\/50,
+.dark .bg-slate-50\/60,
+.dark .bg-slate-50\/70,
+.dark .bg-slate-50\/80 { background-color: rgb(11 17 32 / 0.6); }
+
+.dark .bg-slate-200\/70,
+.dark .bg-slate-200\/80 { background-color: rgb(30 41 59 / 0.8); }
+
+.dark .bg-brighture-cream\/30 { background-color: rgb(42 35 19 / 0.45); }
+.dark .bg-brighture-cream\/70 { background-color: rgb(42 35 19 / 0.8); }
+
+/* --- Borders --------------------------------------------------------------- */
+.dark .border-slate-100 { border-color: #1E293B; }
+.dark .border-slate-200,
+.dark .border-slate-200\/60,
+.dark .border-slate-200\/80 { border-color: #263449; }
+.dark .border-slate-300 { border-color: #334155; }
+.dark .ring-slate-200 { --tw-ring-color: #263449; }
+.dark .divide-slate-100 > :not([hidden]) ~ :not([hidden]) { border-color: #1E293B; }
+
+/* --- Text ------------------------------------------------------------------ */
+.dark .text-slate-900,
+.dark .text-slate-950 { color: #F1F5F9; }
+.dark .text-slate-800 { color: #E2E8F0; }
+.dark .text-slate-700 { color: #CBD5E1; }
+.dark .text-slate-600 { color: #94A3B8; }
+.dark .text-slate-500 { color: #94A3B8; }
+.dark .text-slate-400 { color: #64748B; }
+
+/* Ink text serves two grounds: gold (a brand fill that stays gold in dark mode)
+   and cream (a surface that goes dark). So it lightens by default and is
+   re-darkened only where it actually sits on gold — white on gold is 1.5:1 and
+   must never happen, while ink on a dark cream panel is just as unreadable. */
+.dark .text-brighture-ink,
+.dark .\!text-brighture-ink { color: #F1F5F9; }
+
+.dark .bg-brighture-gold .text-brighture-ink,
+.dark .bg-brighture-gold .\!text-brighture-ink,
+.dark .from-brighture-gold .text-brighture-ink,
+.dark .from-brighture-gold .\!text-brighture-ink,
+.dark .bg-\[\#FFCD00\] .text-brighture-ink,
+.dark .bg-\[\#FFCD00\] .\!text-brighture-ink,
+.dark .text-brighture-ink.bg-brighture-gold,
+.dark .text-brighture-ink.from-brighture-gold,
+.dark .text-brighture-ink.bg-\[\#FFCD00\],
+.dark .\!text-brighture-ink.bg-brighture-gold,
+.dark .\!text-brighture-ink.from-brighture-gold { color: #1A1A1A; }
+.dark .text-brighture-bronze { color: #FFCD00; }
+
+
+/* --- Tinted status cards ---------------------------------------------------
+   A -50 card is a pale wash of its hue with near-black ink on top. Inverting
+   only the ink leaves it unreadable, so the wash inverts with it: a deep
+   translucent tint of the same hue, and the ink moves to that hue's light end.
+   Solid mid-tone fills (bg-emerald-500, bg-red-700 …) are untouched — they
+   already carry their own contrast. */
+.dark .bg-emerald-50 { background-color: rgb(6 78 59 / 0.28); }
+.dark .bg-emerald-100 { background-color: rgb(6 78 59 / 0.45); }
+.dark .border-emerald-100,
+.dark .border-emerald-200,
+.dark .border-emerald-300 { border-color: rgb(6 95 70 / 0.6); }
+.dark .text-emerald-700,
+.dark .text-emerald-800,
+.dark .text-emerald-900,
+.dark .text-emerald-950 { color: #6EE7B7; }
+
+.dark .bg-amber-50 { background-color: rgb(120 53 15 / 0.28); }
+.dark .bg-amber-100 { background-color: rgb(120 53 15 / 0.45); }
+.dark .border-amber-100,
+.dark .border-amber-200,
+.dark .border-amber-300 { border-color: rgb(146 64 14 / 0.6); }
+.dark .text-amber-700,
+.dark .text-amber-800,
+.dark .text-amber-900,
+.dark .text-amber-950 { color: #FCD34D; }
+
+.dark .bg-violet-50 { background-color: rgb(76 29 149 / 0.28); }
+.dark .bg-violet-100 { background-color: rgb(76 29 149 / 0.45); }
+.dark .border-violet-100,
+.dark .border-violet-200,
+.dark .border-violet-300 { border-color: rgb(91 33 182 / 0.6); }
+.dark .text-violet-700,
+.dark .text-violet-800,
+.dark .text-violet-900,
+.dark .text-violet-950 { color: #C4B5FD; }
+
+.dark .bg-purple-50 { background-color: rgb(88 28 135 / 0.28); }
+.dark .bg-purple-100 { background-color: rgb(88 28 135 / 0.45); }
+.dark .border-purple-100,
+.dark .border-purple-200,
+.dark .border-purple-300 { border-color: rgb(107 33 168 / 0.6); }
+.dark .text-purple-700,
+.dark .text-purple-800,
+.dark .text-purple-900,
+.dark .text-purple-950 { color: #D8B4FE; }
+
+.dark .bg-sky-50 { background-color: rgb(12 74 110 / 0.28); }
+.dark .bg-sky-100 { background-color: rgb(12 74 110 / 0.45); }
+.dark .border-sky-100,
+.dark .border-sky-200,
+.dark .border-sky-300 { border-color: rgb(3 105 161 / 0.6); }
+.dark .text-sky-700,
+.dark .text-sky-800,
+.dark .text-sky-900,
+.dark .text-sky-950 { color: #7DD3FC; }
+
+.dark .bg-rose-50 { background-color: rgb(136 19 55 / 0.28); }
+.dark .bg-rose-100 { background-color: rgb(136 19 55 / 0.45); }
+.dark .border-rose-100,
+.dark .border-rose-200,
+.dark .border-rose-300 { border-color: rgb(159 18 57 / 0.6); }
+.dark .text-rose-700,
+.dark .text-rose-800,
+.dark .text-rose-900,
+.dark .text-rose-950 { color: #FDA4AF; }
+
+.dark .bg-red-50 { background-color: rgb(127 29 29 / 0.28); }
+.dark .bg-red-100 { background-color: rgb(127 29 29 / 0.45); }
+.dark .border-red-100,
+.dark .border-red-200,
+.dark .border-red-300 { border-color: rgb(153 27 27 / 0.6); }
+.dark .text-red-700,
+.dark .text-red-800,
+.dark .text-red-900,
+.dark .text-red-950 { color: #FCA5A5; }
+
+.dark .bg-indigo-50 { background-color: rgb(49 46 129 / 0.28); }
+.dark .bg-indigo-100 { background-color: rgb(49 46 129 / 0.45); }
+.dark .border-indigo-100,
+.dark .border-indigo-200,
+.dark .border-indigo-300 { border-color: rgb(67 56 202 / 0.6); }
+.dark .text-indigo-700,
+.dark .text-indigo-800,
+.dark .text-indigo-900,
+.dark .text-indigo-950 { color: #A5B4FC; }
+
+.dark .bg-teal-50 { background-color: rgb(19 78 74 / 0.28); }
+.dark .bg-teal-100 { background-color: rgb(19 78 74 / 0.45); }
+.dark .border-teal-100,
+.dark .border-teal-200,
+.dark .border-teal-300 { border-color: rgb(15 118 110 / 0.6); }
+.dark .text-teal-700,
+.dark .text-teal-800,
+.dark .text-teal-900,
+.dark .text-teal-950 { color: #5EEAD4; }
+
+/* --- Form fields ----------------------------------------------------------- */
+.dark input,
+.dark textarea,
+.dark select { color-scheme: dark; }
+.dark input::placeholder,
+.dark textarea::placeholder { color: #64748B; }
+
+/* --- Depth ----------------------------------------------------------------- */
+/* Shadows are invisible on a dark ground; a hairline does the lifting instead. */
+.dark .shadow-sm,
+.dark .shadow-md,
+.dark .shadow-lg,
+.dark .shadow-xl { box-shadow: 0 1px 0 0 rgb(255 255 255 / 0.04), 0 8px 24px -12px rgb(0 0 0 / 0.7); }
+
+.dark .custom-scrollbar::-webkit-scrollbar-thumb { background: #334155; }

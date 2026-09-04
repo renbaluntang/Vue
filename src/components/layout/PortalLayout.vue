@@ -258,6 +258,31 @@
               <i class="fa-solid fa-headset w-4 text-center text-sky-500"></i>
               <span>Contact us</span>
             </a>
+
+            <!-- The menu stays open on toggle: seeing the theme change under
+                 the switch is the confirmation. -->
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="isDark ? 'true' : 'false'"
+              @click="toggleTheme"
+              class="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink transition"
+            >
+              <i
+                class="w-4 text-center"
+                :class="isDark ? 'fa-solid fa-moon text-indigo-400' : 'fa-solid fa-sun text-amber-500'"
+              ></i>
+              <span>Dark mode</span>
+              <span
+                class="ml-auto flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors"
+                :class="isDark ? 'bg-brighture-gold' : 'bg-slate-300'"
+              >
+                <span
+                  class="h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
+                  :class="isDark ? 'translate-x-4' : 'translate-x-0'"
+                ></span>
+              </span>
+            </button>
           </div>
 
           <!-- Divider -->
@@ -435,6 +460,29 @@
             <i class="fa-solid fa-headset w-4 text-center text-sky-500"></i>
             <span>Contact us</span>
           </a>
+
+          <button
+            type="button"
+            role="switch"
+            :aria-checked="isDark ? 'true' : 'false'"
+            @click="toggleTheme"
+            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink rounded-xl transition"
+          >
+            <i
+              class="w-4 text-center"
+              :class="isDark ? 'fa-solid fa-moon text-indigo-400' : 'fa-solid fa-sun text-amber-500'"
+            ></i>
+            <span>Dark mode</span>
+            <span
+              class="ml-auto flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors"
+              :class="isDark ? 'bg-brighture-gold' : 'bg-slate-300'"
+            >
+              <span
+                class="h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
+                :class="isDark ? 'translate-x-4' : 'translate-x-0'"
+              ></span>
+            </span>
+          </button>
 
           <button
             @click="isMobileMenuOpen = false; isUserMenuOpen = false"
@@ -668,6 +716,29 @@
                 <i class="fa-solid fa-chevron-right ml-auto text-[10px] text-slate-300"></i>
               </a>
 
+              <button
+                type="button"
+                role="switch"
+                :aria-checked="isDark ? 'true' : 'false'"
+                @click="toggleTheme"
+                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink active:scale-[0.99]"
+              >
+                <i
+                  class="w-5 text-center"
+                  :class="isDark ? 'fa-solid fa-moon text-indigo-400' : 'fa-solid fa-sun text-amber-500'"
+                ></i>
+                <span>Dark mode</span>
+                <span
+                  class="ml-auto flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors"
+                  :class="isDark ? 'bg-brighture-gold' : 'bg-slate-300'"
+                >
+                  <span
+                    class="h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
+                    :class="isDark ? 'translate-x-5' : 'translate-x-0'"
+                  ></span>
+                </span>
+              </button>
+
               <div class="my-1.5 border-t border-slate-100"></div>
 
               <button
@@ -695,6 +766,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
 import RouteProgress from '../../components/RouteProgress.vue';
 import brightureLogo from '@/assets/logo-black.svg';
+import { isDark, toggleTheme } from '@/lib/theme';
 import brightureIcon from '@/assets/icon-black.svg';
 
 const { t } = useI18n();

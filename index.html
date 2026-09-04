@@ -5,6 +5,39 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="theme-color" content="#FDF9EF" />
     <title>Instructor Panel</title>
+    <!-- Theme-aware favicon: the ink mark on light tab strips, the white mark
+         on dark ones. The media attribute is the declarative half; browsers
+         that ignore it on icon links are handled by the swap script below. -->
+    <link rel="icon" type="image/svg+xml" href="/icon-black.svg" media="(prefers-color-scheme: light)" />
+    <link rel="icon" type="image/svg+xml" href="/icon-white.svg" media="(prefers-color-scheme: dark)" />
+    <!-- Home-screen icons are composited on an opaque tile, so a transparent
+         mark would sit on black. The gold plate keeps that case legible. -->
+    <link rel="apple-touch-icon" href="/favicon.svg" />
+    <script>
+      // Not every browser honours `media` on an icon link, and none of them
+      // re-evaluate it when the OS theme flips mid-session. Pointing a single
+      // link at the right file covers both.
+      (function () {
+        // Take the base from the link above rather than hardcoding "/": the
+        // build rewrites that href for subpath deploys (/Vue/ on Pages), but it
+        // cannot rewrite a string sitting inside this script.
+        var declared = document.querySelector('link[rel="icon"][media*="light"]');
+        var base = (declared ? declared.getAttribute("href") : "/icon-black.svg")
+          .replace(/icon-black\.svg$/, "");
+        var dark = window.matchMedia("(prefers-color-scheme: dark)");
+        var link = document.createElement("link");
+        link.rel = "icon";
+        link.type = "image/svg+xml";
+        var apply = function () {
+          link.href = base + (dark.matches ? "icon-white.svg" : "icon-black.svg");
+        };
+        apply();
+        document.head.appendChild(link);
+        // Safari <14 only has the deprecated listener form.
+        if (dark.addEventListener) dark.addEventListener("change", apply);
+        else if (dark.addListener) dark.addListener(apply);
+      })();
+    </script>
     <link rel="preload" as="image" href="/icon-tower.svg" />
     <link rel="preload" as="image" href="/icon-rays.svg" />
     <style>

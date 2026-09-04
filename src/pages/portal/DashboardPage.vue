@@ -30,7 +30,7 @@
           <span class="absolute -top-2 -right-2 bg-brighture-gold text-brighture-ink text-[9px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full shadow-md animate-pulse">
             Instant
           </span>
-          <span class="shrink-0">⚡</span> <span>Free Conversation</span>
+          <span class="shrink-0">⚡</span> <span>Talk Now</span>
         </button>
 
       </div>
@@ -406,7 +406,7 @@
     </RouterLink>
     <!-- ===== /Refer a Friend Banner ===== -->
 
-    <!-- Free Conversation Modal -->
+    <!-- Talk Now Modal -->
     <FreeConversationModal
       :isOpen="showFreeConversationModal"
       @close="showFreeConversationModal = false"

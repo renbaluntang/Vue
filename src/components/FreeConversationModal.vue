@@ -11,7 +11,7 @@
           ⚡
         </div>
         <div class="flex items-center justify-center gap-2">
-          <h2 class="text-xl sm:text-2xl font-black tracking-tight">Free Conversation</h2>
+          <h2 class="text-xl sm:text-2xl font-black tracking-tight">Talk Now</h2>
           <span class="rounded-full bg-brighture-gold px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brighture-ink shadow-sm">
             Instant
           </span>
@@ -35,7 +35,7 @@
           </div>
           <div class="flex justify-between items-center text-sm">
             <span class="text-slate-500 font-semibold">Subject:</span>
-            <span class="text-slate-800 font-bold">Free Conversation</span>
+            <span class="text-slate-800 font-bold">Talk Now</span>
           </div>
           <div class="flex justify-between items-center text-sm border-t border-slate-200 pt-3 mt-3">
             <span class="text-slate-500 font-semibold">Cost:</span>
@@ -63,7 +63,7 @@
           🎉
         </div>
         <h3 class="text-2xl font-black text-slate-900">Booked Successfully!</h3>
-        <p class="text-slate-500 font-medium text-sm">Your Free Conversation starts immediately. Please join the Google Meet room.</p>
+        <p class="text-slate-500 font-medium text-sm">Your Talk Now lesson starts immediately. Please join the Google Meet room.</p>
         
         <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mt-4">
           <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Assigned Teacher</p>

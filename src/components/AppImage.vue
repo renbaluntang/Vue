@@ -2,7 +2,25 @@
   <!-- Sizing and rounding classes go on the wrapper; the image fills it, so the
        skeleton occupies exactly the same box and nothing reflows on load. -->
   <span class="app-image relative block overflow-hidden bg-slate-100">
-    <span v-if="state !== 'loaded'" class="app-image__skeleton absolute inset-0" aria-hidden="true"></span>
+    <!-- The image is never hidden with display:none. A lazy image that is not
+         displayed is never "near the viewport", so the browser never fetches
+         it, so @load never fires and the skeleton stays up forever — hidden
+         because unloaded, unloaded because hidden. Fading with opacity keeps a
+         real layout box, which is what lazy loading needs to trigger. -->
+    <img
+      ref="imgEl"
+      :src="src"
+      :alt="alt"
+      :loading="eager ? 'eager' : 'lazy'"
+      decoding="async"
+      class="app-image__img absolute inset-0 h-full w-full object-cover transition-opacity duration-300"
+      :class="state === 'loaded' ? 'opacity-100' : 'opacity-0'"
+      @load="state = 'loaded'"
+      @error="state = 'error'"
+    />
+
+    <!-- Overlays come after the image so they paint above it without z-index. -->
+    <span v-if="state === 'loading'" class="app-image__skeleton absolute inset-0" aria-hidden="true"></span>
 
     <span
       v-if="state === 'error'"
@@ -11,22 +29,11 @@
     >
       <span class="text-[0.7em] font-black uppercase tracking-wider">{{ initials }}</span>
     </span>
-
-    <img
-      v-show="state === 'loaded'"
-      :src="src"
-      :alt="alt"
-      :loading="eager ? 'eager' : 'lazy'"
-      decoding="async"
-      class="app-image__img absolute inset-0 h-full w-full object-cover"
-      @load="state = 'loaded'"
-      @error="state = 'error'"
-    />
   </span>
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, nextTick } from 'vue';
 
 const props = defineProps({
   src: { type: String, default: '' },
@@ -40,6 +47,19 @@ const state = ref('loading'); // loading | loaded | error
 // A changed src means a new download — show the skeleton again rather than
 // leaving the previous face on screen while the next one arrives.
 watch(() => props.src, () => { state.value = 'loading'; });
+
+// A cached image can finish decoding before the listener is attached, in which
+// case no load event ever arrives. Ask the element directly once it is in the
+// DOM rather than waiting for an event that already happened.
+const imgEl = ref(null);
+const settleIfCached = () => {
+  const img = imgEl.value;
+  if (img?.complete && img.naturalWidth > 0) state.value = 'loaded';
+  else if (img?.complete && img.naturalWidth === 0 && img.getAttribute('src')) state.value = 'error';
+};
+
+onMounted(settleIfCached);
+watch(() => props.src, () => nextTick(settleIfCached));
 
 const initials = computed(() =>
   (props.alt || '?')
@@ -69,17 +89,8 @@ const initials = computed(() =>
   to   { background-position: -60% 0; }
 }
 
-.app-image__img {
-  animation: app-image-fade .45s ease-out both;
-}
-
-@keyframes app-image-fade {
-  from { opacity: 0; transform: scale(1.015); }
-  to   { opacity: 1; transform: none; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .app-image__skeleton { animation: none; background: rgb(226 232 240); }
-  .app-image__img { animation: none; }
+  .app-image__img { transition: none; }
 }
 </style>

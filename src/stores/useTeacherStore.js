@@ -27,7 +27,12 @@ export const useTeacherStore = defineStore('teacher', () => {
 
   /** Away pauses new Free Conversation reservations, as in the legacy app. */
   const isAway = ref(false);
-  const toggleAway = () => { isAway.value = !isAway.value; };
+  /** When Away began, so the overlay can run the admin-notification countdown. */
+  const awaySince = ref(null);
+  const toggleAway = () => {
+    isAway.value = !isAway.value;
+    awaySince.value = isAway.value ? Date.now() : null;
+  };
 
   // Away only governs Free Conversation, so the control is meaningless to an
   // instructor who does not offer it — the UI hides it in that case.
@@ -38,6 +43,14 @@ export const useTeacherStore = defineStore('teacher', () => {
   /** Start time and range in whichever zone the instructor set on their profile. */
   const localStart = (row) => (usesTokyo.value ? row.startTokyo : row.startManila);
   const localRange = (row) => (usesTokyo.value ? row.rangeTokyo : row.rangeManila);
+
+  /**
+   * A lesson close enough that nothing may stand between the instructor and it.
+   * The Away overlay surfaces this so being Away can never hide a class.
+   */
+  const imminentReservation = computed(() =>
+    reservations.value.find((row) => row.minutesUntil <= 15) ?? null
+  );
 
   const googleCalendarLinked = ref(true);
 
@@ -135,6 +148,48 @@ export const useTeacherStore = defineStore('teacher', () => {
       startStudent: 'Sep 3, 2026 06:00 (UTC +01:00) London',
       meetLink: 'https://meet.google.com/uvw-xyza-bcd',
       note: 'Reviewing my IELTS Task 2 essay structure.',
+    },
+    {
+      id: 'r-505',
+      topic: 'Tech Trends: AI & Workplace Automation',
+      rangeManila: '3:30 PM – 4:00 PM PHT',
+      rangeTokyo: '4:30 PM – 5:00 PM JST',
+      studentId: 58,
+      studentName: 'Daiki Suzuki',
+      studentPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
+      membership: 'Regular',
+      category: 'Online',
+      subject: '[LS1] Listening & Discussion',
+      lessonClass: 'Online',
+      point: 10,
+      substitution: false,
+      minutesUntil: 1570,
+      startManila: 'Sep 3, 2026 15:30',
+      startTokyo: 'Sep 3, 2026 16:30',
+      startStudent: 'Sep 3, 2026 16:30 (UTC +09:00) Tokyo',
+      meetLink: 'https://meet.google.com/qrs-tuvw-xyz',
+      note: 'Looking forward to discussing industry terminology and podcast summaries.',
+    },
+    {
+      id: 'r-506',
+      topic: 'Travel plans to Cebu & cultural exchange',
+      rangeManila: '10:00 AM – 10:30 AM PHT',
+      rangeTokyo: '11:00 AM – 11:30 AM JST',
+      studentId: 63,
+      studentName: 'Yuka Morita',
+      studentPhoto: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80',
+      membership: 'Trial',
+      category: 'Free Conversation',
+      subject: '[FC] Free Conversation',
+      lessonClass: 'Online',
+      point: 5,
+      substitution: false,
+      minutesUntil: 2680,
+      startManila: 'Sep 4, 2026 10:00',
+      startTokyo: 'Sep 4, 2026 11:00',
+      startStudent: 'Sep 4, 2026 11:00 (UTC +09:00) Tokyo',
+      meetLink: 'https://meet.google.com/efg-hijk-lmn',
+      note: 'Practicing everyday English for my upcoming trip to Cebu.',
     },
   ]);
 
@@ -311,6 +366,116 @@ export const useTeacherStore = defineStore('teacher', () => {
   };
   const openSlotCount = computed(() => Object.values(availability.value).filter(Boolean).length);
 
+  // Teaching analytics. Figures are consistent with `stats` above so the
+  // dashboard and the analytics page never contradict each other.
+  const analytics = ref({
+    ranges: ['This month', 'Last 3 months', 'This year'],
+    byRange: {
+      'This month': {
+        lessons: 62,
+        hours: '31.0',
+        rating: 4.98,
+        completionRate: 99,
+        feedbackHours: 6,
+        repeatShare: 78,
+        // Lessons per calendar week within the range.
+        series: [
+          { label: 'W1', lessons: 14 },
+          { label: 'W2', lessons: 17 },
+          { label: 'W3', lessons: 16 },
+          { label: 'W4', lessons: 15 },
+        ],
+        subjects: [
+          { code: 'SF', label: 'Speech Fluency', lessons: 24 },
+          { code: 'DC', label: 'Daily Conversation', lessons: 15 },
+          { code: 'FC', label: 'Free Conversation', lessons: 11 },
+          { code: 'LS1', label: 'Listening 1', lessons: 8 },
+          { code: 'EP', label: 'Exam Prep', lessons: 4 },
+        ],
+        ratings: [
+          { stars: 5, count: 54 },
+          { stars: 4, count: 6 },
+          { stars: 3, count: 1 },
+          { stars: 2, count: 0 },
+          { stars: 1, count: 0 },
+        ],
+        attendance: [
+          { label: 'Completed', count: 61, tone: 'emerald' },
+          { label: 'Student no-show', count: 1, tone: 'rose' },
+          { label: 'Cancelled by student', count: 3, tone: 'amber' },
+          { label: 'Cancelled by you', count: 0, tone: 'slate' },
+        ],
+      },
+      'Last 3 months': {
+        lessons: 178,
+        hours: '89.0',
+        rating: 4.96,
+        completionRate: 98,
+        feedbackHours: 8,
+        repeatShare: 74,
+        series: [
+          { label: 'Jun', lessons: 54 },
+          { label: 'Jul', lessons: 62 },
+          { label: 'Aug', lessons: 62 },
+        ],
+        subjects: [
+          { code: 'SF', label: 'Speech Fluency', lessons: 66 },
+          { code: 'DC', label: 'Daily Conversation', lessons: 44 },
+          { code: 'FC', label: 'Free Conversation', lessons: 31 },
+          { code: 'LS1', label: 'Listening 1', lessons: 24 },
+          { code: 'EP', label: 'Exam Prep', lessons: 13 },
+        ],
+        ratings: [
+          { stars: 5, count: 149 },
+          { stars: 4, count: 24 },
+          { stars: 3, count: 4 },
+          { stars: 2, count: 1 },
+          { stars: 1, count: 0 },
+        ],
+        attendance: [
+          { label: 'Completed', count: 174, tone: 'emerald' },
+          { label: 'Student no-show', count: 4, tone: 'rose' },
+          { label: 'Cancelled by student', count: 9, tone: 'amber' },
+          { label: 'Cancelled by you', count: 2, tone: 'slate' },
+        ],
+      },
+      'This year': {
+        lessons: 486,
+        hours: '243.0',
+        rating: 4.95,
+        completionRate: 98,
+        feedbackHours: 9,
+        repeatShare: 71,
+        series: [
+          { label: 'Q1', lessons: 108 },
+          { label: 'Q2', lessons: 132 },
+          { label: 'Q3', lessons: 178 },
+          { label: 'Q4', lessons: 68 },
+        ],
+        subjects: [
+          { code: 'SF', label: 'Speech Fluency', lessons: 181 },
+          { code: 'DC', label: 'Daily Conversation', lessons: 118 },
+          { code: 'FC', label: 'Free Conversation', lessons: 84 },
+          { code: 'LS1', label: 'Listening 1', lessons: 66 },
+          { code: 'EP', label: 'Exam Prep', lessons: 37 },
+        ],
+        ratings: [
+          { stars: 5, count: 402 },
+          { stars: 4, count: 68 },
+          { stars: 3, count: 12 },
+          { stars: 2, count: 3 },
+          { stars: 1, count: 1 },
+        ],
+        attendance: [
+          { label: 'Completed', count: 474, tone: 'emerald' },
+          { label: 'Student no-show', count: 12, tone: 'rose' },
+          { label: 'Cancelled by student', count: 26, tone: 'amber' },
+          { label: 'Cancelled by you', count: 5, tone: 'slate' },
+        ],
+      },
+    },
+  });
+
   /** Booked lessons per weekday, paired with the slots left open that day. */
   const lessonsBookedByDay = ref({ sun: 0, mon: 5, tue: 4, wed: 3, thu: 5, fri: 2, sat: 1 });
 
@@ -365,11 +530,12 @@ export const useTeacherStore = defineStore('teacher', () => {
 
   return {
     profile, fullName, isAway, toggleAway, teachesFreeConversation, googleCalendarLinked, stats,
-    usesTokyo, localStart, localRange,
+    usesTokyo, localStart, localRange, awaySince, imminentReservation,
     reservations, nextReservation, laterReservations, canJoin,
     writingTasks, pendingWritingCount,
     lessonLog, pendingFeedback, submitFeedback,
     scheduleDays, scheduleSlots, availability, isOpen, toggleSlot, setDay, setSlotRow, openSlotCount,
     weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings,
+    analytics,
   };
 });

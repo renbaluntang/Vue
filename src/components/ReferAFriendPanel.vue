@@ -20,13 +20,15 @@
           <i class="fa-solid fa-coins text-2xl text-violet-500 mb-1"></i>
           <p class="text-xl font-black text-violet-900">+{{ terms.referrerPoints }} pts</p>
           <p class="text-xs text-violet-600 font-semibold">You earn</p>
-          <p class="text-[10px] text-violet-400 mt-0.5">when they buy a plan &amp; start learning</p>
+          <p class="text-[10px] text-violet-400 mt-0.5 leading-tight">when they buy a plan &amp; start learning</p>
         </div>
         <div class="rounded-2xl bg-emerald-50 border border-emerald-100 p-4 text-center">
           <i class="fa-solid fa-tag text-2xl text-emerald-500 mb-1"></i>
           <p class="text-xl font-black text-emerald-900">{{ terms.friendDiscountLabel }} off</p>
           <p class="text-xs text-emerald-600 font-semibold">Friend gets</p>
-          <p class="text-[10px] text-emerald-400 mt-0.5">USD off their plan</p>
+          <!-- "first purchase" is the actual condition, and the rules below say
+               so too — the card should not imply a standing discount. -->
+          <p class="text-[10px] text-emerald-400 mt-0.5 leading-tight">USD off their first purchase</p>
         </div>
       </div>
 

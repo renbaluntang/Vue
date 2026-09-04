@@ -538,24 +538,10 @@
       </Transition>
     </div>
 
-    <!-- Away takeover, carried over from the legacy portal: while Away the
-         instructor must not miss that reservations are paused. -->
-    <div
-      v-if="teacher.isAway && teacher.teachesFreeConversation"
-      class="fixed bottom-20 lg:bottom-6 left-1/2 -translate-x-1/2 z-40 w-[calc(100%-2rem)] max-w-md rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 shadow-xl flex items-center gap-3"
-    >
-      <i class="fa-solid fa-moon text-amber-500"></i>
-      <p class="min-w-0 flex-1 text-xs font-bold text-amber-900">
-        You are Away — no new Free Conversation reservations.
-      </p>
-      <button
-        type="button"
-        @click="teacher.toggleAway()"
-        class="shrink-0 rounded-xl bg-amber-500 px-3 py-1.5 text-xs font-black text-white transition hover:bg-amber-600 active:scale-95"
-      >
-        Resume
-      </button>
-    </div>
+    <!-- Away is a blocking state, as in the legacy portal: while it is on, the
+         instructor is not working, so the portal is not usable. -->
+    <AwayOverlay />
+
   </div>
 </template>
 
@@ -563,6 +549,7 @@
 import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import RouteProgress from '../RouteProgress.vue';
+import AwayOverlay from '../teacher/AwayOverlay.vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
 
 const route = useRoute();
@@ -579,6 +566,7 @@ const navItems = [
   { path: '/schedule', label: 'Scheduling', shortLabel: 'Schedule', icon: 'fa-solid fa-table-cells text-teal-500' },
   { path: '/lessons', label: 'Lesson Log', shortLabel: 'Log', icon: 'fa-solid fa-clock-rotate-left text-violet-500', badge: 'feedback' },
   { path: '/writing', label: 'Writing', shortLabel: 'Writing', icon: 'fa-solid fa-pen-nib text-rose-500', badge: 'writing' },
+  { path: '/analytics', label: 'Analytics', shortLabel: 'Stats', icon: 'fa-solid fa-chart-line text-emerald-500' },
 ];
 
 // Profile is reached through Settings — the sidebar, the drawer footer, the
