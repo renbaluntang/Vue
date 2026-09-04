@@ -12,7 +12,7 @@
         </div>
         <div class="flex items-center justify-center gap-2">
           <h2 class="text-xl sm:text-2xl font-black tracking-tight">Talk Now</h2>
-          <span class="rounded-full bg-brighture-gold px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brighture-ink shadow-sm">
+          <span class="rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-sm">
             Instant
           </span>
         </div>

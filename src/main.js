@@ -88,6 +88,15 @@ const getPage = () => {
 };
 
 const page = getPage();
+
+// The <title> in index.html is only a fallback. Each portal names itself so the
+// tab says which one is open — the two are often side by side while testing.
+if (isStudentPortalView || isStudentPortalClassicView || isStudentPortalV2View) {
+  document.title = "Student Panel";
+} else if (isTeacherPortalView || isTeacherView) {
+  document.title = "Instructor Panel";
+}
+
 const app = createApp(page);
 
 if (page === TeacherPortalApp) {

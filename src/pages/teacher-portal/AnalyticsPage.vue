@@ -1,9 +1,10 @@
 <template>
-  <div class="p-4 sm:p-6 lg:p-8 space-y-5 max-w-7xl mx-auto">
-    <header class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+  <div class="max-w-7xl mx-auto space-y-6 p-4 sm:p-6 lg:p-8">
+    <header class="flex flex-col gap-4 border-b border-slate-200/80 pb-5 sm:flex-row sm:items-end sm:justify-between">
       <div class="min-w-0">
-        <h1 class="text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">Analytics</h1>
-        <p class="mt-0.5 text-sm text-slate-500">How your teaching is going, and where the time went.</p>
+        <p class="text-[10px] font-black uppercase tracking-[0.2em] text-brighture-bronze">Teaching record</p>
+        <h1 class="mt-1 text-2xl font-black tracking-tight text-slate-950 sm:text-3xl">Your teaching, in focus.</h1>
+        <p class="mt-1 text-sm text-slate-500">See the work that students return for, and where your teaching time is going.</p>
       </div>
 
       <div class="inline-flex shrink-0 self-start rounded-2xl border border-slate-200 bg-white p-1 shadow-sm sm:self-auto">
@@ -22,21 +23,26 @@
 
     <!-- ===== Headline figures ===== -->
     <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
-      <div v-for="card in kpis" :key="card.label" class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm">
-        <div class="flex items-center gap-2">
-          <i :class="card.icon" class="text-sm"></i>
-          <p class="text-[11px] font-bold uppercase tracking-wider text-slate-400">{{ card.label }}</p>
+      <div v-for="card in kpis" :key="card.label" class="group rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">
+        <div class="flex items-center justify-between gap-2">
+          <p class="text-[10px] font-black uppercase tracking-[0.14em] text-slate-400">{{ card.label }}</p>
+          <span class="grid h-8 w-8 place-items-center rounded-xl" :class="card.iconBg">
+            <i :class="card.icon" class="text-sm"></i>
+          </span>
         </div>
-        <p class="mt-1.5 text-2xl font-black text-slate-900">{{ card.value }}</p>
+        <p class="mt-2 text-2xl font-black tracking-tight text-slate-950">{{ card.value }}</p>
         <p v-if="card.hint" class="mt-0.5 text-[11px] text-slate-400">{{ card.hint }}</p>
       </div>
     </section>
 
     <div class="grid gap-5 xl:grid-cols-3">
       <!-- ===== Volume ===== -->
-      <section class="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm xl:col-span-2">
+      <section class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm xl:col-span-2 sm:p-6">
         <div class="flex items-center justify-between gap-3">
-          <h2 class="text-sm font-black uppercase tracking-wider text-slate-400">Lessons taught</h2>
+          <div>
+            <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Teaching volume</p>
+            <h2 class="mt-1 text-base font-black text-slate-900">Lessons taught</h2>
+          </div>
           <p class="text-xs font-bold text-slate-500">
             {{ data.lessons }} total · avg {{ averagePerBucket }} per {{ bucketNoun }}
           </p>
@@ -45,9 +51,9 @@
         <div class="mt-5 flex items-end justify-between gap-3">
           <div v-for="point in data.series" :key="point.label" class="flex flex-1 flex-col items-center gap-2">
             <p class="text-[11px] font-black text-slate-800 tabular-nums">{{ point.lessons }}</p>
-            <div class="flex h-40 w-full max-w-[56px] items-end overflow-hidden rounded-lg bg-slate-100">
+            <div class="flex h-40 w-full max-w-[56px] items-end overflow-hidden rounded-t-xl bg-slate-100">
               <div
-                class="w-full rounded-t-lg bg-gradient-to-t from-brighture-gold-deep to-brighture-gold transition-[height] duration-300"
+                class="w-full rounded-t-xl bg-gradient-to-t from-brighture-gold-deep to-brighture-gold transition-[height] duration-300 motion-reduce:transition-none"
                 :style="{ height: `${barHeight(point.lessons)}%` }"
               ></div>
             </div>
@@ -57,8 +63,9 @@
       </section>
 
       <!-- ===== Ratings ===== -->
-      <section class="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-        <h2 class="text-sm font-black uppercase tracking-wider text-slate-400">Rating breakdown</h2>
+      <section class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+        <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Student voice</p>
+        <h2 class="mt-1 text-base font-black text-slate-900">Rating breakdown</h2>
         <p class="mt-1 text-3xl font-black text-slate-900">
           {{ data.rating }}
           <span class="align-middle text-base font-bold text-amber-500">★</span>
@@ -80,8 +87,9 @@
       </section>
 
       <!-- ===== Subject mix ===== -->
-      <section class="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm xl:col-span-2">
-        <h2 class="text-sm font-black uppercase tracking-wider text-slate-400">Subject mix</h2>
+      <section class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm xl:col-span-2 sm:p-6">
+        <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Curriculum balance</p>
+        <h2 class="mt-1 text-base font-black text-slate-900">Subject mix</h2>
 
         <ul class="mt-4 space-y-3">
           <li v-for="subject in data.subjects" :key="subject.code" class="flex items-center gap-3">
@@ -107,8 +115,9 @@
       </section>
 
       <!-- ===== Attendance ===== -->
-      <section class="min-w-0 rounded-2xl border border-slate-200/80 bg-white p-5 shadow-sm">
-        <h2 class="text-sm font-black uppercase tracking-wider text-slate-400">Attendance</h2>
+      <section class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+        <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Reliability</p>
+        <h2 class="mt-1 text-base font-black text-slate-900">Attendance</h2>
         <p class="mt-1 text-3xl font-black text-slate-900">{{ data.completionRate }}%</p>
         <p class="text-[11px] text-slate-400">of scheduled lessons completed</p>
 
@@ -150,19 +159,25 @@ const activeRange = ref(teacher.analytics.ranges[0]);
 const data = computed(() => teacher.analytics.byRange[activeRange.value]);
 
 const kpis = computed(() => [
-  { label: 'Lessons taught', value: data.value.lessons, icon: 'fa-solid fa-chalkboard-user text-sky-500' },
-  { label: 'Hours taught', value: data.value.hours, icon: 'fa-solid fa-clock text-indigo-500' },
+  {
+    label: 'Lessons taught', value: data.value.lessons, icon: 'fa-solid fa-chalkboard-user text-sky-600', iconBg: 'bg-sky-50',
+  },
+  {
+    label: 'Hours taught', value: data.value.hours, icon: 'fa-solid fa-clock text-indigo-600', iconBg: 'bg-indigo-50',
+  },
   {
     label: 'Feedback turnaround',
     value: `${data.value.feedbackHours}h`,
     hint: 'median after a lesson',
     icon: 'fa-solid fa-comment-dots text-rose-500',
+    iconBg: 'bg-rose-50',
   },
   {
     label: 'Returning students',
     value: `${data.value.repeatShare}%`,
     hint: 'booked you again',
     icon: 'fa-solid fa-repeat text-emerald-500',
+    iconBg: 'bg-emerald-50',
   },
 ]);
 

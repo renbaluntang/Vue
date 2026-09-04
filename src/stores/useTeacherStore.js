@@ -201,11 +201,17 @@ export const useTeacherStore = defineStore('teacher', () => {
     !!reservation.meetLink && reservation.minutesUntil <= 5;
 
   // Writing submissions awaiting a correction.
+  // Correction tickets are conversations, not one-shot submissions: the student
+  // sends a passage, the instructor sends back a corrected version plus notes,
+  // and the student can come back with follow-up questions. `messages[0]` is
+  // always the student's original passage, so the thread needs no separate
+  // "submission" field.
   const writingTasks = ref([
     {
       id: 'w-88',
       studentId: 21,
       studentName: 'Taro Yamada',
+      studentPhoto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&auto=format&fit=crop&q=80',
       title: 'Business email — supplier delay apology',
       submittedManila: 'Sep 1, 2026 14:20',
       submittedTokyo: 'Sep 1, 2026 15:20',
@@ -213,11 +219,30 @@ export const useTeacherStore = defineStore('teacher', () => {
       urgency: 'warning',
       words: 245,
       dueInHours: 9,
+      messages: [
+        {
+          id: 'm-1',
+          from: 'student',
+          time: 'Sep 1, 14:20',
+          body: `Dear Mr. Tanaka,
+
+I am writing to apologize about the delay of our shipment. We had a problem in the factory last week, so the products could not be finished on time.
+
+We will send the products by next Friday. I am very sorry for the inconvenience.`,
+        },
+        {
+          id: 'm-2',
+          from: 'student',
+          time: 'Sep 1, 14:26',
+          body: 'Sorry, one more thing — is "apologize about" correct here, or should it be "apologize for"?',
+        },
+      ],
     },
     {
       id: 'w-89',
       studentId: 45,
       studentName: 'Mika Kobayashi',
+      studentPhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
       title: 'IELTS Task 2 — remote work essay',
       submittedManila: 'Sep 1, 2026 20:05',
       submittedTokyo: 'Sep 1, 2026 21:05',
@@ -225,11 +250,24 @@ export const useTeacherStore = defineStore('teacher', () => {
       urgency: 'normal',
       words: 312,
       dueInHours: 26,
+      messages: [
+        {
+          id: 'm-1',
+          from: 'student',
+          time: 'Sep 1, 20:05',
+          body: `Some people believe that working from home is better for employees, while others think the office is necessary for teamwork. Discuss both views and give your own opinion.
+
+In my opinion, remote work has more advantage than disadvantage. First, employees can save the commuting time, which in Tokyo is often two hours every day. Second, they can concentrate better because there is no interruption from colleagues.
+
+However, I admit that new staff needs the office to learn from senior members.`,
+        },
+      ],
     },
     {
       id: 'w-90',
       studentId: 34,
       studentName: 'Aiko Tanaka',
+      studentPhoto: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
       title: 'Self-introduction rewrite',
       submittedManila: 'Aug 31, 2026 09:40',
       submittedTokyo: 'Aug 31, 2026 10:40',
@@ -237,10 +275,56 @@ export const useTeacherStore = defineStore('teacher', () => {
       urgency: 'danger',
       words: 180,
       dueInHours: -4,
+      messages: [
+        {
+          id: 'm-1',
+          from: 'student',
+          time: 'Aug 31, 09:40',
+          body: `Hello everyone, my name is Aiko Tanaka. I work in the sales department for three years. I am interesting in international business and I want to improve my English for meeting with overseas client.
+
+Nice to meet you all and I hope we can work together well.`,
+        },
+        {
+          id: 'm-2',
+          from: 'teacher',
+          time: 'Aug 31, 11:05',
+          body: 'Thanks Aiko — I have your passage. I will send the full correction today. One quick note while you wait: "I am interesting" should be "I am interested". We use -ing for the thing, -ed for the person.',
+        },
+        {
+          id: 'm-3',
+          from: 'student',
+          time: 'Aug 31, 21:14',
+          body: 'Thank you! Could you also check whether "for three years" is right? My colleague said it should be "for three years now".',
+        },
+      ],
     },
   ]);
 
-  const pendingWritingCount = computed(() => writingTasks.value.length);
+  const pendingWritingCount = computed(
+    () => writingTasks.value.filter((task) => task.state !== 'Complete').length
+  );
+
+  /** Appends the instructor's reply, optionally carrying a corrected passage. */
+  const sendWritingReply = (taskId, { body, correction }) => {
+    const task = writingTasks.value.find((t) => t.id === taskId);
+    if (!task) return;
+    const text = (body ?? '').trim();
+    const fixed = (correction ?? '').trim();
+    if (!text && !fixed) return;
+    task.messages.push({
+      id: `m-${task.messages.length + 1}`,
+      from: 'teacher',
+      time: 'Just now',
+      body: text,
+      correction: fixed || undefined,
+    });
+  };
+
+  /** Closes the ticket so it drops out of the pending queue and badge count. */
+  const completeWritingTask = (taskId) => {
+    const task = writingTasks.value.find((t) => t.id === taskId);
+    if (task) task.state = 'Complete';
+  };
 
   // Completed lessons, newest first.
   const lessonLog = ref([
@@ -532,7 +616,7 @@ export const useTeacherStore = defineStore('teacher', () => {
     profile, fullName, isAway, toggleAway, teachesFreeConversation, googleCalendarLinked, stats,
     usesTokyo, localStart, localRange, awaySince, imminentReservation,
     reservations, nextReservation, laterReservations, canJoin,
-    writingTasks, pendingWritingCount,
+    writingTasks, pendingWritingCount, sendWritingReply, completeWritingTask,
     lessonLog, pendingFeedback, submitFeedback,
     scheduleDays, scheduleSlots, availability, isOpen, toggleSlot, setDay, setSlotRow, openSlotCount,
     weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings,

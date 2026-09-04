@@ -39,6 +39,20 @@ export const useUserStore = defineStore('user', () => {
   // subscription and a USD top-up can live in the same list.
   const purchaseHistory = ref([
     {
+      id: 'p-0',
+      date: 'Sep 2, 2026',
+      time: '10:15',
+      planId: 'sub-40',
+      planName: 'Subscription 40',
+      amount: 154,
+      currency: 'USD',
+      points: 40,
+      type: 'subscription',
+      method: 'PayPal',
+      status: 'paid',
+      receiptId: 'BR-20260902-1015',
+    },
+    {
       id: 'p-1',
       date: 'Aug 26, 2026',
       time: '08:23',
@@ -392,6 +406,134 @@ Homework: read the five tongue twisters aloud for three minutes before sleep.`,
     isSubstitute: false,
   });
 
+  // Writing correction tickets, newest activity first. Mirrors the instructor
+  // side: `messages[0]` is always the student's original passage, so a thread
+  // needs no separate "submission" field, and a correction travels attached to
+  // the message that explains it.
+  const writingTickets = ref([
+    {
+      id: 'wt-1',
+      title: 'Self Introduction Draft',
+      status: 'In Progress',
+      date: 'Oct 14, 2026',
+      teacherName: 'Analyn Y.',
+      teacherPhoto: teacherImage('Analyn Y.'),
+      words: 34,
+      remainingSends: 3,
+      messages: [
+        {
+          id: 'm-1',
+          from: 'student',
+          time: 'Oct 14, 09:00',
+          body: `Hi, I wrote this self introduction for my new job. Please check if the grammar is natural.
+
+"Hello everyone, my name is Taro. I am joining the marketing team. I looking forward to work with you all."`,
+        },
+        {
+          id: 'm-2',
+          from: 'teacher',
+          time: 'Oct 15, 10:30',
+          correction: 'Hello everyone, my name is Taro. I am joining the marketing team. I am looking forward to working with you all.',
+          body: `Hi Taro!
+
+This is a good start. The only change is the last sentence: when we use "look forward to", it must be followed by a noun or an -ing verb (gerund).`,
+        },
+      ],
+    },
+    {
+      id: 'wt-2',
+      title: 'Weekly Journal — Entry 5',
+      status: 'Complete',
+      date: 'Oct 10, 2026',
+      teacherName: 'Jirvy Dela Torre',
+      teacherPhoto: teacherImage('Jirvy Dela Torre'),
+      words: 12,
+      remainingSends: 0,
+      messages: [
+        {
+          id: 'm-1',
+          from: 'student',
+          time: 'Oct 10, 20:00',
+          body: 'Here is my journal entry about my weekend trip to Kyoto.',
+        },
+        {
+          id: 'm-2',
+          from: 'teacher',
+          time: 'Oct 11, 09:15',
+          body: 'Excellent writing! Very few mistakes this time, and the vocabulary was very descriptive.',
+        },
+      ],
+    },
+  ]);
+
+  const openWritingCount = computed(
+    () => writingTickets.value.filter((ticket) => ticket.status !== 'Complete').length
+  );
+
+  /** What a single correction costs, and what the ledger row will say. */
+  const WRITING_COST = 5;
+
+  /** Appends the student's follow-up and spends one of the thread's sends. */
+  const sendWritingReply = (ticketId, body) => {
+    const ticket = writingTickets.value.find((t) => t.id === ticketId);
+    if (!ticket || ticket.status === 'Complete' || ticket.remainingSends < 1) return;
+    const text = (body ?? '').trim();
+    if (!text) return;
+    ticket.messages.push({
+      id: `m-${ticket.messages.length + 1}`,
+      from: 'student',
+      time: 'Just now',
+      body: text,
+    });
+    ticket.remainingSends -= 1;
+  };
+
+  /** Closes the thread. It stays readable — only the reply box goes away. */
+  const finishWritingTicket = (ticketId) => {
+    const ticket = writingTickets.value.find((t) => t.id === ticketId);
+    if (ticket) ticket.status = 'Complete';
+  };
+
+  /**
+   * Opens a new ticket and charges the points, writing the ledger row the
+   * Point History page already shows for past corrections. Returns the new
+   * ticket so the page can jump straight to it, or null if the balance is short.
+   */
+  const submitWriting = ({ title, body }) => {
+    const text = (body ?? '').trim();
+    if (!text || profile.value.pointsBalance < WRITING_COST) return null;
+
+    const name = (title ?? '').trim() || 'Untitled passage';
+    const words = text.split(/\s+/).filter(Boolean).length;
+
+    const ticket = {
+      id: `wt-${Date.now()}`,
+      title: name,
+      status: 'In Progress',
+      date: 'Just now',
+      teacherName: null,
+      teacherPhoto: null,
+      words,
+      remainingSends: 3,
+      messages: [{ id: 'm-1', from: 'student', time: 'Just now', body: text }],
+    };
+    writingTickets.value.unshift(ticket);
+
+    profile.value.pointsBalance -= WRITING_COST;
+    pointLedger.value.unshift({
+      id: Date.now(),
+      date: 'Just now',
+      time: '',
+      points: -WRITING_COST,
+      reason: 'Writing Correction Submitted',
+      detail: name,
+      type: 'debit',
+      balanceAfter: profile.value.pointsBalance,
+    });
+
+    return ticket;
+  };
+
   /** The student's rating of the teacher for one past lesson. */
   const rateLesson = (id, rating, comment = '') => {
     const lesson = pastLessons.value.find((item) => item.id === id);
@@ -437,6 +579,12 @@ Homework: read the five tongue twisters aloud for three minutes before sleep.`,
     lastPurchase,
     pastLessons,
     rateLesson,
+    writingTickets,
+    openWritingCount,
+    WRITING_COST,
+    sendWritingReply,
+    finishWritingTicket,
+    submitWriting,
     nextUpcomingClass,
     bannerNotice,
     plan,

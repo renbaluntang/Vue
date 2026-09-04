@@ -106,6 +106,7 @@
           <!-- Expandable group -->
           <div
             v-else-if="item.children"
+            :data-tour="`nav-${item.key}`"
             class="relative group/flyout"
             @mouseenter="anchorRailPopup"
             @focusin="anchorRailPopup"
@@ -183,6 +184,7 @@
           <RouterLink
             v-else
             :to="item.path"
+            :data-tour="`nav-${item.path}`"
             @mouseenter="anchorRailPopup"
             @focusin="anchorRailPopup"
             @mouseleave="releaseRailPopup"
@@ -212,7 +214,7 @@
       </nav>
 
       <!-- Bottom Actions: Settings / User Menu Popover Trigger (Shadcn style) -->
-      <div class="relative border-t border-slate-100 bg-slate-50/60 p-3 flex-shrink-0">
+      <div data-tour="settings" class="relative border-t border-slate-100 bg-slate-50/60 p-3 flex-shrink-0">
         <!-- Invisible backdrop to close popover on outside click -->
         <div
           v-if="isUserMenuOpen"
@@ -249,6 +251,15 @@
               <i class="fa-solid fa-user-gear w-4 text-center text-slate-400"></i>
               <span>Profile</span>
             </RouterLink>
+
+            <button
+              type="button"
+              @click="openGuide(); isUserMenuOpen = false"
+              class="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink transition"
+            >
+              <i class="fa-solid fa-compass w-4 text-center text-teal-500"></i>
+              <span>{{ t('nav.guide') }}</span>
+            </button>
 
             <a
               :href="`mailto:${SUPPORT_EMAIL}`"
@@ -375,7 +386,7 @@
       <nav class="flex-1 overflow-y-auto p-4 space-y-1.5">
         <template v-for="item in navItems.filter(i => !i.action)" :key="item.key || item.path">
         <!-- Expandable group -->
-        <div v-if="item.children">
+        <div v-if="item.children" :data-tour="`dnav-${item.key}`">
           <button
             type="button"
             @click="toggleGroup(item)"
@@ -417,6 +428,7 @@
         <RouterLink
           v-else
           :to="item.path"
+          :data-tour="`dnav-${item.path}`"
           @click="isMobileMenuOpen = false"
           class="flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition"
           :class="[
@@ -451,6 +463,15 @@
             <i class="fa-solid fa-user-gear w-4 text-center text-slate-400"></i>
             <span>{{ t('nav.profile') }}</span>
           </RouterLink>
+
+          <button
+            type="button"
+            @click="openGuide(); isMobileMenuOpen = false; isUserMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink rounded-xl transition"
+          >
+            <i class="fa-solid fa-compass w-4 text-center text-teal-500"></i>
+            <span>{{ t('nav.guide') }}</span>
+          </button>
 
           <a
             :href="`mailto:${SUPPORT_EMAIL}`"
@@ -546,10 +567,11 @@
       </div>
 
       <!-- Top Sticky Header with Refined Points Capsule and Language Selector -->
-      <header class="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-10 sticky top-0">
+      <header data-tour="header" class="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-10 sticky top-0">
         <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <!-- Mobile Hamburger Toggle -->
           <button
+            data-tour="mobile-menu"
             @click="isMobileMenuOpen = true"
             class="lg:hidden shrink-0 -ml-1 p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
             aria-label="Open Menu"
@@ -562,6 +584,7 @@
           <!-- Desktop Sidebar Collapse/Expand Toggle -->
           <button
             type="button"
+            data-tour="sidebar-toggle"
             @click="toggleSidebar"
             class="hidden lg:inline-flex shrink-0 items-center justify-center -ml-1 h-9 w-9 rounded-xl text-slate-500 hover:text-slate-900 hover:bg-slate-100 active:scale-95 transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
             :title="isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
@@ -616,6 +639,7 @@
           v-for="item in mobileBottomNavItems"
           :key="item.path"
           :to="item.path"
+          :data-tour="`mnav-${item.path}`"
           class="flex flex-col items-center justify-center flex-1 py-1 text-center transition"
           :class="[
             isCurrentRoute(item.path)
@@ -635,6 +659,7 @@
              Contact us or Log out on a phone is knowing the drawer exists. -->
         <button
           type="button"
+          data-tour="mobile-settings"
           @click="isSettingsSheetOpen = true"
           :aria-expanded="isSettingsSheetOpen ? 'true' : 'false'"
           aria-haspopup="dialog"
@@ -706,6 +731,16 @@
                 <i class="fa-solid fa-chevron-right ml-auto text-[10px] text-slate-300"></i>
               </RouterLink>
 
+              <button
+                type="button"
+                @click="openGuide(); isSettingsSheetOpen = false"
+                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink active:scale-[0.99]"
+              >
+                <i class="fa-solid fa-compass w-5 text-center text-teal-500"></i>
+                <span>{{ t('nav.guide') }}</span>
+                <i class="fa-solid fa-chevron-right ml-auto text-[10px] text-slate-300"></i>
+              </button>
+
               <a
                 :href="`mailto:${SUPPORT_EMAIL}`"
                 @click="isSettingsSheetOpen = false"
@@ -755,6 +790,8 @@
       </Transition>
     </div>
 
+    <NavigationTour :open="isGuideOpen" @prepare="onTourStep" @close="isGuideOpen = false" />
+
   </div>
 
 </template>
@@ -765,6 +802,7 @@ import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
 import RouteProgress from '../../components/RouteProgress.vue';
+import NavigationTour from '../../components/NavigationTour.vue';
 import brightureLogo from '@/assets/logo-black.svg';
 import { isDark, toggleTheme } from '@/lib/theme';
 import brightureIcon from '@/assets/icon-black.svg';
@@ -817,6 +855,23 @@ const releaseRailPopup = () => {
 /** Keeps an open popup attached to its row while the rail scrolls. */
 const onRailScroll = () => {
   if (hoveredRailHost) placeRailPopup(hoveredRailHost);
+};
+
+// The tour is reached from three different Settings surfaces, each of which
+// closes as it opens — so the flag lives here rather than inside any of them.
+const isGuideOpen = ref(false);
+const openGuide = () => { isGuideOpen.value = true; };
+
+// The tour spotlights whatever is on screen, so the layout — not the tour —
+// puts the right surface on screen first. On a phone the last three pages live
+// in the drawer; on desktop every step is a sidebar row, so nothing opens.
+const onTourStep = (key) => {
+  isSettingsSheetOpen.value = false;
+  isUserMenuOpen.value = false;
+  isMobileMenuOpen.value = window.innerWidth < 1024 && ['writing', 'points', 'refer'].includes(key);
+  // Talk Now is a dashboard button, not a nav row — there is nothing to
+  // spotlight unless we are on the dashboard.
+  if (key === 'talknow' && route.path !== '/') router.push('/');
 };
 
 const isUserMenuOpen = ref(false);

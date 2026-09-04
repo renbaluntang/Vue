@@ -15,19 +15,20 @@
       </div>
 
       <!-- Quick Action Buttons -->
-      <div class="flex flex-wrap gap-2.5 sm:gap-3 w-full lg:w-auto">
+      <div class="grid grid-cols-2 gap-2.5 sm:gap-3 w-full lg:w-auto lg:shrink-0">
         <RouterLink
           to="/booking"
-          class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-[#FFCD00] text-black font-bold text-[13px] sm:text-sm leading-tight text-center shadow-md hover:bg-[#FFD933] hover:shadow-lg hover:scale-105 active:scale-95 transition-all"
+          class="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-[#FFCD00] text-black font-bold text-[13px] sm:text-sm leading-tight text-center shadow-md hover:bg-[#FFD933] hover:shadow-lg hover:scale-105 active:scale-95 transition-all"
         >
           <span class="shrink-0">🗓️</span> <span>Book Online Class</span>
         </RouterLink>
 
         <button
+          data-tour="talk-now"
           @click="showFreeConversationModal = true"
-          class="relative group flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold text-[13px] sm:text-sm leading-tight text-center shadow-lg shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all"
+          class="relative group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold text-[13px] sm:text-sm leading-tight text-center shadow-lg shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all"
         >
-          <span class="absolute -top-2 -right-2 bg-brighture-gold text-brighture-ink text-[9px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full shadow-md animate-pulse">
+          <span class="absolute -top-2 -right-2 bg-red-600 text-white text-[9px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full shadow-md">
             Instant
           </span>
           <span class="shrink-0">⚡</span> <span>Talk Now</span>

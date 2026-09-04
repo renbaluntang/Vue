@@ -468,7 +468,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-[4/3] sm:aspect-square";
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                   <h2 class="text-base font-extrabold tracking-tight sm:text-lg">Talk Now</h2>
-                  <span class="rounded-full bg-brighture-gold px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-brighture-ink shadow-sm">
+                  <span class="rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-sm">
                     Instant
                   </span>
                 </div>
