@@ -18,7 +18,7 @@
           Reservations
         </h1>
         <p class="mt-0.5 text-sm text-slate-500">
-          All scheduled lessons booked with you, sorted chronologically with student requests and meeting links.
+          All scheduled lessons booked with you, sorted chronologically with topics and meeting links.
         </p>
       </div>
 
@@ -47,7 +47,7 @@
     <!-- ================================================================= -->
     <!-- KPI Metric Cards                                                  -->
     <!-- ================================================================= -->
-    <section class="grid grid-cols-2 sm:grid-cols-4 gap-3 lg:gap-4">
+    <section class="grid grid-cols-2 sm:grid-cols-3 gap-3 lg:gap-4">
       <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
         <div class="flex items-center justify-between">
           <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Booked</span>
@@ -87,18 +87,6 @@
         </div>
       </div>
 
-      <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Points Value</span>
-          <span class="flex h-7 w-7 items-center justify-center rounded-xl bg-brighture-cream text-brighture-bronze">
-            <i class="fa-solid fa-star text-xs"></i>
-          </span>
-        </div>
-        <div class="mt-2 flex items-baseline gap-2">
-          <p class="text-2xl font-black text-slate-900">{{ totalPointsValue }}</p>
-          <span class="text-xs font-medium text-slate-500">pts</span>
-        </div>
-      </div>
     </section>
 
     <!-- ================================================================= -->
@@ -311,15 +299,12 @@
           class="hidden lg:block overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-xs"
         >
           <div class="overflow-x-auto">
-            <table class="w-full min-w-[1020px] text-sm">
+            <table class="w-full min-w-[640px] text-sm">
               <thead class="bg-slate-50/90 text-left text-[11px] font-extrabold uppercase tracking-wider text-slate-400 border-b border-slate-100">
                 <tr>
                   <th class="px-5 py-3.5">Time & Clock</th>
                   <th class="px-4 py-3.5">Student</th>
                   <th class="px-4 py-3.5">Subject & Topic</th>
-                  <th class="px-3 py-3.5 text-center">Category</th>
-                  <th class="px-3 py-3.5 text-center">Pts</th>
-                  <th class="px-4 py-3.5">Student Request</th>
                   <th class="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
@@ -411,38 +396,6 @@
                     </div>
                   </td>
 
-                  <!-- Category -->
-                  <td class="px-3 py-4 text-center whitespace-nowrap">
-                    <span
-                      class="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold"
-                      :class="row.category === 'Free Conversation'
-                        ? 'bg-teal-50 text-teal-800 border border-teal-200/60'
-                        : 'bg-slate-100 text-slate-700'"
-                    >
-                      <i v-if="row.category === 'Free Conversation'" class="fa-solid fa-comments text-[9px]"></i>
-                      <i v-else class="fa-solid fa-video text-[9px]"></i>
-                      {{ row.category }}
-                    </span>
-                  </td>
-
-                  <!-- Points -->
-                  <td class="px-3 py-4 text-center whitespace-nowrap">
-                    <span class="inline-flex items-center gap-1 text-xs font-black text-slate-800 bg-slate-100 px-2 py-1 rounded-lg">
-                      <i class="fa-solid fa-coins text-amber-500 text-[10px]"></i>
-                      {{ row.point }} pts
-                    </span>
-                  </td>
-
-                  <!-- Student Request Note -->
-                  <td class="px-4 py-4 max-w-[240px]">
-                    <div v-if="row.note" class="relative">
-                      <p class="text-xs italic text-slate-600 line-clamp-2 bg-slate-50/90 rounded-xl p-2 border border-slate-100 hover:border-slate-200 transition" :title="row.note">
-                        “{{ row.note }}”
-                      </p>
-                    </div>
-                    <span v-else class="text-xs text-slate-300 italic">—</span>
-                  </td>
-
                   <!-- Actions -->
                   <td class="px-5 py-4 text-right whitespace-nowrap">
                     <div class="flex items-center justify-end gap-1.5">
@@ -465,17 +418,6 @@
                         <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
                         <span>No link</span>
                       </span>
-
-                      <!-- Copy Link Button (if available) -->
-                      <button
-                        v-if="row.meetLink"
-                        type="button"
-                        @click="copyMeetLink(row)"
-                        class="h-8 w-8 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition active:scale-95"
-                        :title="copiedId === row.id ? 'Copied!' : 'Copy meet link'"
-                      >
-                        <i :class="copiedId === row.id ? 'fa-solid fa-check text-emerald-600' : 'fa-regular fa-copy text-xs'"></i>
-                      </button>
 
                       <!-- Details Button -->
                       <button
@@ -555,12 +497,6 @@
                     <span class="rounded-full bg-slate-100 px-2 py-0.2 text-[9px] font-bold text-slate-600">
                       {{ row.membership }}
                     </span>
-                    <span
-                      class="rounded-full px-2 py-0.2 text-[9px] font-bold"
-                      :class="row.category === 'Free Conversation' ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-600'"
-                    >
-                      {{ row.category }}
-                    </span>
                     <span v-if="row.substitution" class="rounded-full bg-amber-100 px-2 py-0.2 text-[9px] font-bold text-amber-800">
                       Sub
                     </span>
@@ -585,14 +521,6 @@
                   <strong class="text-slate-700">Topic:</strong> {{ row.topic }}
                 </p>
               </div>
-
-              <!-- Student Request Note -->
-              <div v-if="row.note" class="rounded-xl border border-brighture-gold/30 bg-brighture-cream/70 p-2.5 text-xs italic text-slate-700">
-                <div class="flex items-center gap-1 text-[10px] font-bold text-brighture-bronze uppercase tracking-wider mb-1">
-                  <i class="fa-solid fa-comment-dots"></i> Student request
-                </div>
-                <p class="line-clamp-2">“{{ row.note }}”</p>
-              </div>
             </div>
 
             <!-- Card Actions -->
@@ -612,16 +540,6 @@
               >
                 No link
               </span>
-
-              <button
-                v-if="row.meetLink"
-                type="button"
-                @click="copyMeetLink(row)"
-                class="h-8 w-8 inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-500 hover:bg-slate-50 hover:text-slate-800 transition active:scale-95 shrink-0"
-                :title="copiedId === row.id ? 'Copied!' : 'Copy meet link'"
-              >
-                <i :class="copiedId === row.id ? 'fa-solid fa-check text-emerald-600' : 'fa-regular fa-copy text-xs'"></i>
-              </button>
 
               <button
                 type="button"
@@ -669,9 +587,6 @@
                 >
                   NEXT
                 </span>
-                <span class="rounded-md bg-slate-100 px-1.5 py-0.5 text-[10px] font-bold text-slate-600">
-                  {{ row.point }} pts
-                </span>
               </div>
             </div>
 
@@ -697,12 +612,6 @@
                   <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-600">
                     {{ row.membership }}
                   </span>
-                  <span
-                    class="rounded-full px-2 py-0.5 text-[9px] font-bold"
-                    :class="row.category === 'Free Conversation' ? 'bg-teal-100 text-teal-800' : 'bg-slate-100 text-slate-600'"
-                  >
-                    {{ row.category }}
-                  </span>
                   <span v-if="row.substitution" class="rounded-full bg-amber-100 px-2 py-0.5 text-[9px] font-bold text-amber-800">
                     Sub
                   </span>
@@ -713,11 +622,6 @@
             <!-- Topic Banner -->
             <div v-if="row.topic" class="mt-3 rounded-xl bg-slate-50 p-2.5 text-xs text-slate-700">
               <span class="font-bold text-slate-900">Topic:</span> {{ row.topic }}
-            </div>
-
-            <!-- Student Note -->
-            <div v-if="row.note" class="mt-2 rounded-xl bg-brighture-cream/60 border border-brighture-gold/30 p-2.5 text-xs italic text-slate-700">
-              “{{ row.note }}”
             </div>
 
             <!-- Action Buttons -->
@@ -813,15 +717,10 @@ const timeZoneMode = ref('manila'); // 'manila' | 'tokyo' | 'student'
 const searchQuery = ref('');
 const activeTab = ref('all');
 const selectedStudent = ref(null);
-const copiedId = ref(null);
 
 // --- Stats Computeds ---------------------------------------------------------
 const freeConversationCount = computed(() =>
   teacher.reservations.filter((r) => r.category === 'Free Conversation').length
-);
-
-const totalPointsValue = computed(() =>
-  teacher.reservations.reduce((sum, r) => sum + (Number(r.point) || 0), 0)
 );
 
 // --- Filter Tabs -------------------------------------------------------------
@@ -964,20 +863,6 @@ const subjectBadgeStyle = (subject) => {
   if (code === 'RW') return 'bg-amber-100 text-amber-800 border border-amber-200/60';
   if (code.startsWith('LS')) return 'bg-indigo-100 text-indigo-800 border border-indigo-200/60';
   return 'bg-slate-100 text-slate-700';
-};
-
-// --- Link Copy Helper --------------------------------------------------------
-const copyMeetLink = async (row) => {
-  if (!row.meetLink) return;
-  try {
-    await navigator.clipboard.writeText(row.meetLink);
-    copiedId.value = row.id;
-    setTimeout(() => {
-      if (copiedId.value === row.id) copiedId.value = null;
-    }, 2000);
-  } catch {
-    // Fallback if clipboard fails
-  }
 };
 
 const resetFilters = () => {

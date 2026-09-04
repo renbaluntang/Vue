@@ -70,7 +70,7 @@
               <span class="text-brighture-gold">Topic:</span> {{ next.topic }}
             </p>
             <p class="mt-1.5 text-xs text-slate-400">
-              {{ next.membership }} · {{ next.category }} · {{ next.point }} pts
+              {{ next.membership }}
             </p>
           </div>
 
