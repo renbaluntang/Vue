@@ -28,6 +28,37 @@
       </button>
     </div>
 
+    <div class="relative max-w-md">
+      <label for="lesson-log-search" class="sr-only">Search lesson log</label>
+      <svg
+        class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        aria-hidden="true"
+      >
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
+      </svg>
+      <input
+        id="lesson-log-search"
+        v-model="searchQuery"
+        type="search"
+        placeholder="Search by student, subject, date, or status"
+        class="w-full rounded-2xl border border-slate-200 bg-white py-2.5 pl-9 pr-10 text-sm text-slate-800 shadow-sm outline-none transition placeholder:text-slate-400 focus:border-brighture-gold focus:ring-2 focus:ring-brighture-gold/30"
+      >
+      <button
+        v-if="searchQuery"
+        type="button"
+        class="absolute right-2 top-1/2 -translate-y-1/2 rounded-lg px-2 py-1 text-xs font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+        aria-label="Clear lesson log search"
+        @click="searchQuery = ''"
+      >
+        Clear
+      </button>
+    </div>
+
     <!-- Cards below lg, table above: eight columns will not fit a phone. -->
     <div class="space-y-3 lg:hidden">
       <article
@@ -126,7 +157,7 @@
     </div>
 
     <p v-if="!visibleLessons.length" class="rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
-      Nothing in this view yet.
+      {{ searchQuery ? 'No lessons match your search.' : 'Nothing in this view yet.' }}
     </p>
 
     <LessonFeedbackModal
@@ -149,10 +180,24 @@ const tabs = [
   { key: 'pending', label: 'Feedback pending' },
 ];
 const activeTab = ref('all');
+const searchQuery = ref('');
 
-const visibleLessons = computed(() =>
-  activeTab.value === 'pending' ? teacher.pendingFeedback : teacher.lessonLog
-);
+const visibleLessons = computed(() => {
+  const lessons = activeTab.value === 'pending' ? teacher.pendingFeedback : teacher.lessonLog;
+  const query = searchQuery.value.trim().toLocaleLowerCase();
+
+  if (!query) return lessons;
+
+  return lessons.filter((lesson) => [
+    lesson.studentName,
+    lesson.subject,
+    lesson.category,
+    lesson.status,
+    lesson.dateManila,
+    lesson.dateTokyo,
+    lesson.studentComment,
+  ].some((value) => value?.toLocaleLowerCase().includes(query)));
+});
 
 const feedbackLesson = ref(null);
 
