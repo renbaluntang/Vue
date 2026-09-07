@@ -37,6 +37,28 @@
       </div>
     </section>
 
+    <!-- Reschedule Success Banner -->
+    <div
+      v-if="rescheduleSuccessNotice"
+      class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300"
+    >
+      <div class="flex items-center gap-3">
+        <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-sm font-bold shrink-0">
+          <i class="fa-solid fa-check"></i>
+        </div>
+        <p class="text-xs sm:text-sm font-bold text-emerald-900">
+          {{ rescheduleSuccessNotice }}
+        </p>
+      </div>
+      <button
+        @click="rescheduleSuccessNotice = null"
+        class="text-xs font-bold text-emerald-700 hover:text-emerald-900 px-2 py-1 cursor-pointer"
+        aria-label="Dismiss notice"
+      >
+        ✕
+      </button>
+    </div>
+
     <!-- MERGED & UNIFIED: SCHEDULED ONLINE CLASSES SECTION -->
     <section class="space-y-4">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -418,6 +440,7 @@
       :lesson="detailsLesson"
       @close="detailsLesson = null"
       @cancel="requestCancelFromDetails"
+      @reschedule="requestRescheduleFromDetails"
       @edit="requestEditFromDetails"
     />
 
@@ -433,6 +456,14 @@
       :lesson="cancelTargetLesson"
       @close="cancelTargetLesson = null"
       @confirm="confirmCancelLesson"
+      @reschedule="requestRescheduleFromCancel"
+    />
+
+    <!-- Reschedule Class Modal -->
+    <RescheduleClassModal
+      :lesson="rescheduleTargetLesson"
+      @close="rescheduleTargetLesson = null"
+      @confirm="confirmRescheduleLesson"
     />
 
     <!-- Teacher Details Modal -->
@@ -456,6 +487,7 @@ import FreeConversationModal from '../../components/FreeConversationModal.vue';
 import ClassDetailsModal from '../../components/ClassDetailsModal.vue';
 import CancelClassModal from '../../components/CancelClassModal.vue';
 import EditClassModal from '../../components/EditClassModal.vue';
+import RescheduleClassModal from '../../components/RescheduleClassModal.vue';
 import TeacherDataModal from '../../components/TeacherDataModal.vue';
 
 const router = useRouter();
@@ -472,11 +504,39 @@ const scheduledLessons = computed(() =>
 const detailsLesson = ref(null);
 const editLesson = ref(null);
 const cancelTargetLesson = ref(null);
+const rescheduleTargetLesson = ref(null);
+const rescheduleSuccessNotice = ref(null);
 
 // The details modal hands off to the confirmation rather than cancelling outright.
 const requestCancelFromDetails = (lesson) => {
   detailsLesson.value = null;
   cancelTargetLesson.value = lesson;
+};
+
+const requestRescheduleFromDetails = (lesson) => {
+  detailsLesson.value = null;
+  rescheduleTargetLesson.value = lesson;
+};
+
+const requestRescheduleFromCancel = (lesson) => {
+  cancelTargetLesson.value = null;
+  rescheduleTargetLesson.value = lesson;
+};
+
+const confirmRescheduleLesson = ({ lesson, newDate, newTime }) => {
+  if (user.nextUpcomingClass && lesson.id === user.nextUpcomingClass.id) {
+    user.nextUpcomingClass.date = newDate;
+    user.nextUpcomingClass.time = newTime;
+    user.nextUpcomingClass.timeFull = newTime;
+    user.nextUpcomingClass.isLiveSoon = false;
+  }
+  upcomingLessons.value = upcomingLessons.value.map((item) =>
+    item.id === lesson.id
+      ? { ...item, date: newDate, time: newTime }
+      : item
+  );
+  rescheduleTargetLesson.value = null;
+  rescheduleSuccessNotice.value = `Class successfully rescheduled to ${newDate} at ${newTime}!`;
 };
 
 const saveLessonEdits = (updated) => {

@@ -23,16 +23,32 @@
         points are forfeited.
       </p>
 
+      <!-- Reschedule alternative tip -->
+      <div class="mt-3 rounded-xl bg-amber-50/90 border border-amber-200 p-3 text-left flex items-start gap-2.5">
+        <i class="fa-regular fa-calendar-days text-amber-600 text-sm mt-0.5 shrink-0"></i>
+        <div class="text-[11px] text-amber-900 leading-snug">
+          <span class="font-bold">Need a different time?</span>
+          <p class="text-amber-800/90 mt-0.5">Reschedule instead to move this session without forfeiting your points.</p>
+          <button
+            type="button"
+            @click="$emit('reschedule', lesson)"
+            class="mt-1.5 inline-flex items-center gap-1 text-[11px] font-bold text-amber-950 underline hover:text-amber-800 cursor-pointer"
+          >
+            Reschedule this class instead →
+          </button>
+        </div>
+      </div>
+
       <div class="mt-5 flex gap-2.5">
         <button
           @click="$emit('close')"
-          class="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+          class="flex-1 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 cursor-pointer"
         >
           Keep class
         </button>
         <button
           @click="$emit('confirm', lesson)"
-          class="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-red-700"
+          class="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-red-700 cursor-pointer"
         >
           Cancel class
         </button>
@@ -45,5 +61,5 @@
 defineProps({
   lesson: Object,
 });
-defineEmits(['close', 'confirm']);
+defineEmits(['close', 'confirm', 'reschedule']);
 </script>

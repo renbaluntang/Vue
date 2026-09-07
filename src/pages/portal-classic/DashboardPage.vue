@@ -388,6 +388,7 @@
       :lesson="detailsLesson"
       @close="detailsLesson = null"
       @cancel="requestCancelFromDetails"
+      @reschedule="requestRescheduleFromDetails"
       @edit="requestEditFromDetails"
     />
 
@@ -403,6 +404,14 @@
       :lesson="cancelTargetLesson"
       @close="cancelTargetLesson = null"
       @confirm="confirmCancelLesson"
+      @reschedule="requestRescheduleFromCancel"
+    />
+
+    <!-- Reschedule Class Modal -->
+    <RescheduleClassModal
+      :lesson="rescheduleTargetLesson"
+      @close="rescheduleTargetLesson = null"
+      @confirm="confirmRescheduleLesson"
     />
 
     <!-- Teacher Details Modal -->
@@ -423,6 +432,7 @@ import FreeConversationModal from '../../components/classic/FreeConversationModa
 import ClassDetailsModal from '../../components/classic/ClassDetailsModal.vue';
 import CancelClassModal from '../../components/classic/CancelClassModal.vue';
 import EditClassModal from '../../components/classic/EditClassModal.vue';
+import RescheduleClassModal from '../../components/RescheduleClassModal.vue';
 import TeacherDataModal from '../../components/classic/TeacherDataModal.vue';
 
 const router = useRouter();
@@ -438,11 +448,37 @@ const scheduledLessons = computed(() =>
 const detailsLesson = ref(null);
 const editLesson = ref(null);
 const cancelTargetLesson = ref(null);
+const rescheduleTargetLesson = ref(null);
 
 // The details modal hands off to the confirmation rather than cancelling outright.
 const requestCancelFromDetails = (lesson) => {
   detailsLesson.value = null;
   cancelTargetLesson.value = lesson;
+};
+
+const requestRescheduleFromDetails = (lesson) => {
+  detailsLesson.value = null;
+  rescheduleTargetLesson.value = lesson;
+};
+
+const requestRescheduleFromCancel = (lesson) => {
+  cancelTargetLesson.value = null;
+  rescheduleTargetLesson.value = lesson;
+};
+
+const confirmRescheduleLesson = ({ lesson, newDate, newTime }) => {
+  if (user.nextUpcomingClass && lesson.id === user.nextUpcomingClass.id) {
+    user.nextUpcomingClass.date = newDate;
+    user.nextUpcomingClass.time = newTime;
+    user.nextUpcomingClass.timeFull = newTime;
+    user.nextUpcomingClass.isLiveSoon = false;
+  }
+  upcomingLessons.value = upcomingLessons.value.map((item) =>
+    item.id === lesson.id
+      ? { ...item, date: newDate, time: newTime }
+      : item
+  );
+  rescheduleTargetLesson.value = null;
 };
 
 const saveLessonEdits = (updated) => {

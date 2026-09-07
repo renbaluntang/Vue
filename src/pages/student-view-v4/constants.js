@@ -159,7 +159,7 @@ const buildHalfHourSlots = (startHour, endHour) => {
 };
 
 export const WORK_START_HOUR = 8;
-export const WORK_END_HOUR = 17;
+export const WORK_END_HOUR = 21;
 export const LUNCH_HOUR = 12;
 
 export const BOOKING_TIME_SLOTS = buildHalfHourSlots(WORK_START_HOUR, WORK_END_HOUR);

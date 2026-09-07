@@ -71,22 +71,31 @@
         <!-- Policy — mirrors the footnote under the schedule table -->
         <div class="rounded-2xl bg-slate-50 p-3.5 text-[11px] leading-relaxed text-slate-500">
           <p><strong class="text-slate-600">Cancellation:</strong> free up to 3h before the class starts — points are refunded.</p>
+          <p class="mt-1"><strong class="text-slate-600">Reschedule:</strong> move to another date/time without forfeiting points.</p>
           <p class="mt-1"><strong class="text-slate-600">Changes:</strong> subject and message can be adjusted until 2h prior.</p>
         </div>
       </div>
 
       <!-- Actions -->
       <div class="flex items-center justify-between gap-3 border-t border-slate-100 bg-slate-50 p-4">
-        <button
-          @click="$emit('cancel', lesson)"
-          class="rounded-xl px-4 py-2.5 text-xs font-bold text-red-600 transition hover:bg-red-50"
-        >
-          Cancel class
-        </button>
+        <div class="flex items-center gap-2">
+          <button
+            @click="$emit('cancel', lesson)"
+            class="rounded-xl px-3.5 py-2.5 text-xs font-bold text-red-600 transition hover:bg-red-50 cursor-pointer"
+          >
+            Cancel class
+          </button>
+          <button
+            @click="$emit('reschedule', lesson)"
+            class="rounded-xl border border-amber-300 bg-amber-50 px-3.5 py-2.5 text-xs font-bold text-amber-900 transition hover:bg-amber-100 cursor-pointer"
+          >
+            🗓️ Reschedule
+          </button>
+        </div>
         <div class="flex items-center gap-2">
           <button
             @click="$emit('edit', lesson)"
-            class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+            class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50 cursor-pointer"
           >
             ✏️ Edit class
           </button>
@@ -94,7 +103,7 @@
             v-if="lesson.meetLink"
             :href="lesson.meetLink"
             target="_blank"
-            class="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-blue-700"
+            class="inline-flex items-center gap-1.5 rounded-xl bg-blue-600 px-5 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-blue-700 cursor-pointer"
           >
             <span>📹</span> Join Meet
           </a>
@@ -109,5 +118,5 @@ defineProps({
   /** null closes the modal — same pattern as TeacherDataModal. */
   lesson: Object,
 });
-defineEmits(['close', 'cancel', 'edit']);
+defineEmits(['close', 'cancel', 'edit', 'reschedule']);
 </script>

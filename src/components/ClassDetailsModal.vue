@@ -72,17 +72,28 @@
         <!-- Policy — mirrors the footnote under the schedule table -->
         <div class="rounded-2xl bg-slate-50 p-3.5 text-[11px] leading-relaxed text-slate-500">
           <p><strong class="text-slate-600">Cancellation:</strong> free up to 3h before the class starts — points are refunded.</p>
+          <p class="mt-1"><strong class="text-slate-600">Reschedule:</strong> move to another date/time without forfeiting points.</p>
           <p class="mt-1"><strong class="text-slate-600">Changes:</strong> subject and message can be adjusted until 2h prior.</p>
         </div>
 
         <!-- Sits under the policy it depends on, and scrolls with the content —
              the pinned footer is for the two things you'd normally come here to do. -->
-        <button
-          @click="$emit('cancel', lesson)"
-          class="w-full rounded-xl border border-red-200 bg-white px-3 py-2.5 text-[11px] font-bold text-red-600 transition hover:bg-red-50 sm:text-xs"
-        >
-          Cancel this class
-        </button>
+        <div class="space-y-2">
+          <button
+            @click="$emit('reschedule', lesson)"
+            class="w-full flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50/80 px-3 py-2.5 text-[11px] font-bold text-amber-900 transition hover:bg-amber-100 hover:border-amber-400 sm:text-xs shadow-2xs cursor-pointer"
+          >
+            <i class="fa-regular fa-calendar-days text-amber-600"></i>
+            <span>Reschedule this class</span>
+          </button>
+
+          <button
+            @click="$emit('cancel', lesson)"
+            class="w-full rounded-xl border border-red-200 bg-white px-3 py-2.5 text-[11px] font-bold text-red-600 transition hover:bg-red-50 sm:text-xs cursor-pointer"
+          >
+            Cancel this class
+          </button>
+        </div>
       </div>
 
       <!-- Actions -->
@@ -90,7 +101,7 @@
       <div class="shrink-0 grid grid-cols-2 gap-2 border-t border-slate-100 bg-slate-50 p-3 sm:flex sm:items-center sm:justify-end sm:gap-3 sm:p-4">
         <button
           @click="$emit('edit', lesson)"
-          class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50 sm:px-4 sm:text-xs"
+          class="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50 sm:px-4 sm:text-xs cursor-pointer"
         >
           ✏️ Edit class
         </button>
@@ -98,7 +109,7 @@
           v-if="lesson.meetLink"
           :href="lesson.meetLink"
           target="_blank"
-          class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2.5 text-[11px] font-bold text-white shadow-xs transition hover:bg-emerald-700 sm:px-5 sm:text-xs"
+          class="inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2.5 text-[11px] font-bold text-white shadow-xs transition hover:bg-emerald-700 sm:px-5 sm:text-xs cursor-pointer"
         >
           <span>📹</span> Join Meet
         </a>
@@ -113,5 +124,5 @@ defineProps({
   /** null closes the modal — same pattern as TeacherDataModal. */
   lesson: Object,
 });
-defineEmits(['close', 'cancel', 'edit']);
+defineEmits(['close', 'cancel', 'edit', 'reschedule']);
 </script>
