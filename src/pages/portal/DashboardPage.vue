@@ -163,15 +163,26 @@
           </div>
         </div>
 
-        <!-- 2. SUBSEQUENT SCHEDULED LESSONS TABLE -->
-        <div class="p-4 sm:p-6 bg-white space-y-3">
-          <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-slate-400">
-            <span>Upcoming Lesson Schedule</span>
-            <span>{{ scheduledLessons.length }} after this one</span>
+        <!-- 2. SUBSEQUENT SCHEDULED LESSONS -->
+        <div class="sched p-4 sm:p-6 bg-white space-y-4">
+          <div class="flex items-center justify-between gap-2 pb-1 border-b border-slate-100/80">
+            <div class="flex items-center gap-2">
+              <span class="text-xs font-black uppercase tracking-wider text-slate-500">Upcoming Lesson Schedule</span>
+              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-extrabold text-slate-700 border border-slate-200">
+                {{ scheduledLessons.length }} {{ scheduledLessons.length === 1 ? 'lesson' : 'lessons' }} after this one
+              </span>
+            </div>
+            <RouterLink
+              to="/booking"
+              class="text-[11px] font-bold text-brighture-bronze hover:underline inline-flex items-center gap-1 shrink-0"
+            >
+              <span>+ Book another</span>
+            </RouterLink>
           </div>
 
-          <div class="overflow-x-auto">
-            <table class="w-full text-left border-collapse min-w-[650px]">
+          <!-- Desktop Table View -->
+          <div class="sched__table overflow-x-auto">
+            <table class="w-full text-left border-collapse min-w-[680px]">
               <thead>
                 <tr class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-100">
                   <th class="py-3 px-4">Date & Time</th>
@@ -200,7 +211,7 @@
                     <button
                       type="button"
                       @click="openTeacherDetails({ name: lesson.teacherName, photo: lesson.teacherPhoto, specialty: lesson.subject, rating: '4.95' })"
-                      class="flex items-center gap-3 text-left group/teacher"
+                      class="flex items-center gap-3 text-left group/teacher cursor-pointer"
                       title="View teacher profile"
                     >
                       <AppImage
@@ -232,15 +243,24 @@
                         v-if="lesson.meetLink"
                         :href="lesson.meetLink"
                         target="_blank"
-                        class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-xs hover:bg-emerald-100 hover:scale-105 active:scale-95 transition whitespace-nowrap flex-shrink-0 shadow-2xs"
+                        class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-xs hover:bg-emerald-100 hover:scale-105 active:scale-95 transition whitespace-nowrap flex-shrink-0 shadow-2xs cursor-pointer"
                       >
                         <span>📹</span>
                         <span>Join Meet</span>
                       </a>
                       <button
                         type="button"
+                        @click="requestRescheduleFromDetails(lesson)"
+                        class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/70 text-amber-900 font-bold text-xs hover:bg-amber-100 hover:border-amber-300 active:scale-95 transition whitespace-nowrap flex-shrink-0 cursor-pointer shadow-2xs"
+                        title="Reschedule class"
+                      >
+                        <span>🗓️</span>
+                        <span>Reschedule</span>
+                      </button>
+                      <button
+                        type="button"
                         @click="detailsLesson = lesson"
-                        class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition whitespace-nowrap flex-shrink-0"
+                        class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition whitespace-nowrap flex-shrink-0 cursor-pointer shadow-2xs"
                         title="View class details"
                       >
                         <span>ℹ️</span>
@@ -249,7 +269,7 @@
                       <button
                         type="button"
                         @click="cancelTargetLesson = lesson"
-                        class="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition flex-shrink-0"
+                        class="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition flex-shrink-0 cursor-pointer"
                         title="Cancel class"
                         aria-label="Cancel class"
                       >
@@ -260,6 +280,174 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <!-- Narrow / Mobile View: Restructured 2-line Thumb-Sized Stacked List (Never Horizontal Scroll or Chunky Disjointed Cards) -->
+          <div class="sched__rows border border-slate-200/90 rounded-2xl overflow-hidden bg-white divide-y divide-slate-100 shadow-2xs">
+            <div
+              v-for="lesson in scheduledLessons"
+              :key="lesson.id"
+              class="transition-colors group"
+              :class="[
+                lesson.isNext ? 'bg-amber-50/20' : 'hover:bg-slate-50/70',
+                isLessonOpen(lesson) ? 'bg-slate-50/40' : ''
+              ]"
+            >
+              <!-- Collapsed / 2-Line Row Surface: Thumb-Sized Tap Target -->
+              <div
+                @click="toggleLesson(lesson.id)"
+                @keydown.enter="toggleLesson(lesson.id)"
+                @keydown.space.prevent="toggleLesson(lesson.id)"
+                tabindex="0"
+                role="button"
+                :aria-expanded="isLessonOpen(lesson)"
+                class="w-full py-3 px-3.5 sm:px-4 cursor-pointer select-none focus:outline-none focus:bg-slate-100/60 transition-colors"
+              >
+                <!-- Line 1: Identity Left (Teacher + Subject), Value Right (Time Slot) -->
+                <div class="flex items-center justify-between gap-3">
+                  <!-- Left: Teacher Name & Subject Identity -->
+                  <div class="flex items-center gap-2 min-w-0">
+                    <AppImage
+                      :src="lesson.teacherPhoto"
+                      :alt="lesson.teacherName"
+                      class="h-6 w-6 rounded-full object-cover shrink-0 ring-1 ring-slate-200"
+                    />
+                    <div class="flex items-center gap-1.5 min-w-0">
+                      <span class="font-extrabold text-sm text-slate-900 truncate">
+                        {{ lesson.teacherName }}
+                      </span>
+                      <span class="text-xs text-slate-500 font-medium truncate">
+                        · {{ lesson.subject }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Right: Rigid Value / Time Slot with Tabular Figures -->
+                  <div class="text-right shrink-0">
+                    <span class="font-black text-sm text-slate-900 tabular-nums tracking-tight">
+                      {{ startTime(lesson.time) }}
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Line 2: Status & Due Date Underneath (Label the ambiguous) -->
+                <div class="flex items-center justify-between gap-2 mt-1">
+                  <!-- Left: Contextual Date + State Badges -->
+                  <div class="flex items-center gap-1.5 flex-wrap min-w-0">
+                    <span class="text-[11px] text-slate-600 font-medium">
+                      <span class="text-slate-400 font-normal">Starts:</span> <strong class="text-slate-700 font-semibold">{{ lesson.date }}</strong>
+                    </span>
+
+                    <span
+                      v-if="lesson.isSubstitute"
+                      class="inline-flex items-center gap-0.5 rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 border border-amber-200/70 shrink-0"
+                    >
+                      <i class="fa-solid fa-arrows-rotate text-[7px]"></i> Sub
+                    </span>
+
+                    <span
+                      v-if="lesson.isNext"
+                      class="inline-flex items-center rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-700 border border-emerald-200 shrink-0"
+                    >
+                      Next up
+                    </span>
+
+                    <span
+                      v-if="lesson.classType"
+                      class="text-[10px] text-slate-400 font-medium uppercase tracking-wider truncate"
+                    >
+                      {{ lesson.classType }}
+                    </span>
+                  </div>
+
+                  <!-- Right: Expand Affordance Chevron -->
+                  <div class="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-slate-600 shrink-0">
+                    <i
+                      class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200"
+                      :class="{ 'rotate-180 text-brighture-bronze': isLessonOpen(lesson) }"
+                    ></i>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Expanded In-Place Drawer: Hidden isn't deleted. Tap the row. Actions slide in. Two fields expand in place. A full record, never a new page for a glance -->
+              <div
+                v-if="isLessonOpen(lesson)"
+                class="bg-slate-50/80 border-t border-slate-100 px-3.5 sm:px-4 py-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150"
+              >
+                <!-- Two Fields Expand In Place -->
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
+                  <!-- Field 1: Curriculum & Instructor -->
+                  <div class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80">
+                    <div class="min-w-0">
+                      <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Class Curriculum</span>
+                      <span class="font-bold text-slate-800 truncate block">{{ lesson.subject }}</span>
+                      <span class="text-[11px] text-slate-500 font-medium block mt-0.5">{{ lesson.classType || 'One-on-one session' }}</span>
+                    </div>
+                    <button
+                      type="button"
+                      @click.stop="openTeacherDetails({ name: lesson.teacherName, photo: lesson.teacherPhoto, specialty: lesson.subject, rating: '4.95' })"
+                      class="ml-2 text-[11px] font-bold text-brighture-bronze hover:underline shrink-0 cursor-pointer"
+                    >
+                      Teacher Profile →
+                    </button>
+                  </div>
+
+                  <!-- Field 2: Scheduled Time Range & Meet Room -->
+                  <div class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80">
+                    <div class="min-w-0">
+                      <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Scheduled Time</span>
+                      <span class="font-bold text-slate-800 tabular-nums block">{{ lesson.time }}</span>
+                      <span class="text-[11px] text-slate-500 font-medium block mt-0.5">Google Meet Room Ready</span>
+                    </div>
+                    <span v-if="lesson.isNext" class="ml-2 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
+                      Live Soon
+                    </span>
+                  </div>
+                </div>
+
+                <!-- Actions Slide In -->
+                <div class="pt-1 flex items-center justify-between gap-2 flex-wrap">
+                  <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                    <button
+                      type="button"
+                      @click.stop="detailsLesson = lesson"
+                      class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-100 hover:border-slate-300 active:scale-95 transition cursor-pointer shadow-2xs"
+                    >
+                      <span>ℹ️</span> Details
+                    </button>
+                    <button
+                      type="button"
+                      @click.stop="requestRescheduleFromDetails(lesson)"
+                      class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 font-bold text-xs hover:bg-amber-100 hover:border-amber-300 active:scale-95 transition cursor-pointer shadow-2xs"
+                    >
+                      <span>🗓️</span> Reschedule
+                    </button>
+                  </div>
+
+                  <div class="flex items-center gap-1.5 shrink-0">
+                    <a
+                      v-if="lesson.meetLink"
+                      :href="lesson.meetLink"
+                      target="_blank"
+                      @click.stop
+                      class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer"
+                    >
+                      <span>📹</span> Join Meet
+                    </a>
+                    <button
+                      type="button"
+                      @click.stop="cancelTargetLesson = lesson"
+                      class="h-8 w-8 rounded-xl border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 flex items-center justify-center transition cursor-pointer"
+                      title="Cancel class"
+                      aria-label="Cancel class"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
 
           <p v-if="!scheduledLessons.length" class="py-6 text-center text-sm font-medium text-slate-400">
@@ -502,6 +690,15 @@ const scheduledLessons = computed(() =>
 );
 
 const detailsLesson = ref(null);
+
+// A row shows what you scan for and hides what you only sometimes need. The
+// next lesson starts open, because its Join button is the reason you came.
+const openLessons = ref({});
+const toggleLesson = (id) => { openLessons.value[id] = !isLessonOpen({ id, isNext: false }); };
+const isLessonOpen = (lesson) => openLessons.value[lesson.id] ?? !!lesson.isNext;
+
+/** "8:00 PM - 8:50 PM JST" -> "8:00 PM"; the full range lives in the row. */
+const startTime = (time) => String(time || '').split(/\s*[-–]\s*/)[0].trim();
 const editLesson = ref(null);
 const cancelTargetLesson = ref(null);
 const rescheduleTargetLesson = ref(null);
@@ -645,6 +842,32 @@ const upcomingLessons = ref([
     classType: 'Open Topic & Fluency',
     meetLink: 'https://meet.google.com/xyz-uvwx-rst',
   },
+  {
+    id: 3,
+    date: 'Mon, Aug 24',
+    time: '7:30 PM - 8:00 PM JST',
+    teacherName: 'Jane Pasanting',
+    teacherPhoto: imageForKey(178),
+    isSubstitute: false,
+    isNext: false,
+    subject: '[PP101] Pronunciation — Vowels',
+    classType: 'Level 2 / Drills',
+    // Booked far enough ahead that the room has not been generated yet — the
+    // list has to survive a lesson with no link.
+    meetLink: '',
+  },
+  {
+    id: 4,
+    date: 'Wed, Aug 26',
+    time: '9:00 PM - 9:50 PM JST',
+    teacherName: 'Analyn Yosores',
+    teacherPhoto: imageForKey(176),
+    isSubstitute: false,
+    isNext: false,
+    subject: '[RW] Reading & Writing',
+    classType: 'Business Email Drafting',
+    meetLink: 'https://meet.google.com/klm-nopq-tuv',
+  },
 ]);
 
 const writingTasks = ref([
@@ -668,3 +891,25 @@ const writingTasks = ref([
   },
 ]);
 </script>
+
+<style scoped>
+/* The breakpoint belongs to the table, not the screen. Six columns want about
+   700px; below that the rows take over — so the same section dropped into a
+   narrow panel restacks itself without knowing the window size. */
+.sched { container-type: inline-size; }
+.sched__table { display: none; }
+.sched__rows { display: block; }
+
+@container (min-width: 44rem) {
+  .sched__table { display: block; }
+  .sched__rows { display: none; }
+}
+
+/* Safari 15 and other pre-container-query engines fall back to the viewport. */
+@supports not (container-type: inline-size) {
+  @media (min-width: 64rem) {
+    .sched__table { display: block; }
+    .sched__rows { display: none; }
+  }
+}
+</style>

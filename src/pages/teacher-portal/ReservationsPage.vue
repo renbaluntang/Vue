@@ -631,13 +631,13 @@
                 :href="row.meetLink"
                 target="_blank"
                 rel="noopener"
-                class="flex-1 rounded-xl bg-emerald-500 py-2.5 px-3 text-center text-xs font-extrabold text-slate-950 transition hover:bg-emerald-400 active:scale-95 shadow-2xs"
+                class="flex-1 rounded-xl border border-transparent bg-emerald-500 py-3 px-3 text-center text-xs font-extrabold text-slate-950 transition hover:bg-emerald-400 active:scale-95 shadow-2xs"
               >
                 📹 Join Meet
               </a>
               <span
                 v-else
-                class="flex-1 rounded-xl bg-rose-50 py-2.5 px-3 text-center text-[11px] font-bold text-rose-700 border border-rose-200/60"
+                class="flex-1 rounded-xl bg-rose-50 py-3 px-3 text-center text-[11px] font-bold text-rose-700 border border-rose-200/60"
               >
                 No link
               </span>
@@ -645,7 +645,7 @@
               <button
                 type="button"
                 @click="selectedStudent = row"
-                class="flex-1 rounded-xl border border-slate-200 bg-white py-2.5 px-3 text-center text-xs font-bold text-slate-700 transition hover:bg-slate-50 active:scale-95"
+                class="flex-1 rounded-xl border border-slate-200 bg-white py-3 px-3 text-center text-xs font-bold text-slate-700 transition hover:bg-slate-50 active:scale-95"
               >
                 Details
               </button>
