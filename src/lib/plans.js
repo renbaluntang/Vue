@@ -78,3 +78,40 @@ export const ALL_PLANS = [...SUBSCRIPTION_PLANS, ...ONE_TIME_PLANS];
 export const findPlan = (id) => ALL_PLANS.find((plan) => plan.id === id) ?? null;
 
 export const isSubscription = (id) => SUBSCRIPTION_PLANS.some((plan) => plan.id === id);
+
+// --- Pricing maths -----------------------------------------------------------
+// Plan prices above are what the site advertises: the amount before tax and
+// before any referral credit.
+
+/**
+ * Consumption tax applied at checkout. Students are billed in USD but are
+ * Japanese consumers, so this is Japan's 10% consumption tax.
+ * TODO: confirm the rate that actually gets charged, and whether Philippine
+ * VAT applies instead for any billing entity.
+ */
+export const TAX_RATE = 0.1;
+export const TAX_LABEL = `Consumption tax (${Math.round(TAX_RATE * 100)}%)`;
+
+const round2 = (value) => Math.round((value + Number.EPSILON) * 100) / 100;
+
+/**
+ * One place that knows how a line total is built, so the checkout panel and the
+ * plan page can never disagree about what a student owes.
+ *
+ * Tax is charged on the discounted amount, not the list price — a referral
+ * credit reduces the taxable sale, it is not a rebate paid afterwards.
+ */
+export const priceBreakdown = ({ base, discount = 0 }) => {
+  const safeBase = Math.max(0, Number(base) || 0);
+  const safeDiscount = Math.min(Math.max(0, Number(discount) || 0), safeBase);
+  const subtotal = round2(safeBase - safeDiscount);
+  const tax = round2(subtotal * TAX_RATE);
+  return {
+    base: round2(safeBase),
+    discount: safeDiscount,
+    subtotal,
+    taxRate: TAX_RATE,
+    tax,
+    total: round2(subtotal + tax),
+  };
+};

@@ -27,6 +27,8 @@ import {
   CALENDAR_ROW_HEIGHT,
   computeCalendarBlocks,
   getInitialFavorites,
+  getSubjectBadgeStyle,
+  getSubjectCategory,
 } from "../student-view-v4/constants";
 
 const favorites = ref(getInitialFavorites());
@@ -460,15 +462,33 @@ const draftSubjectOptions = computed(() => {
                   >
                     {{ teacher.name }}
                   </h3>
-                  <span class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.2 text-[10px] font-semibold text-emerald-700 border border-emerald-200/60">
-                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Available
+                  <span class="inline-flex items-center gap-1 rounded-md bg-emerald-50 px-2 py-0.5 text-[10px] font-semibold text-emerald-700 border border-emerald-200/60">
+                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span> Available
                   </span>
                 </div>
                 <p class="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5 truncate">{{ teacher.major }}</p>
                 <div class="flex items-center gap-2 mt-1">
-                  <span class="text-xs text-amber-600 font-bold">★ 4.95</span>
+                  <span class="text-xs text-amber-600 font-bold">★ {{ teacher.rating || '4.95' }}</span>
+                  <span class="text-zinc-400 text-[11px]">({{ teacher.lessonCount || '1,000+' }} lessons)</span>
                   <span class="text-zinc-300">•</span>
-                  <span class="text-xs text-zinc-500 font-medium">30m: <strong>{{ pointsForDuration(teacher, 30) }} pts</strong></span>
+                  <span class="text-xs text-zinc-600 font-medium">30m: <strong class="text-zinc-900">{{ pointsForDuration(teacher, 30) }} pts</strong></span>
+                </div>
+
+                <!-- Teacher Subjects Covered Chips -->
+                <div class="flex flex-wrap items-center gap-1.5 mt-2">
+                  <span
+                    v-for="code in parseSubjectCodes(teacher.specialty)"
+                    :key="code"
+                    class="inline-flex items-center gap-1 rounded-md px-2 py-0.5 text-[10px] font-bold border transition"
+                    :class="getSubjectBadgeStyle(code, subjectFilter === code || isSubjectMatchingFilter(code, subjectFilter)).badgeClass"
+                  >
+                    <span
+                      class="w-1.5 h-1.5 rounded-full"
+                      :class="getSubjectBadgeStyle(code, subjectFilter === code || isSubjectMatchingFilter(code, subjectFilter)).dotClass"
+                    ></span>
+                    <span>[{{ code }}]</span>
+                    <span class="hidden sm:inline">{{ SUBJECT_LABELS[code] || code }}</span>
+                  </span>
                 </div>
               </div>
             </div>

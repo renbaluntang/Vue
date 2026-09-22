@@ -42,12 +42,6 @@
             <i class="fa-solid fa-camera text-sm mb-0.5"></i>
             <span>Edit</span>
           </div>
-          <span
-            class="absolute bottom-1 right-1 w-6 h-6 rounded-full bg-emerald-500 border-2 border-white ring-1 ring-emerald-200 flex items-center justify-center text-[11px] text-white font-bold group-hover:opacity-0 transition-opacity"
-            title="Online & Ready"
-          >
-            ✓
-          </span>
           <div class="sidebar-rank absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 via-brighture-gold to-amber-500 text-white text-[10px] font-black px-3 py-0.5 rounded-full shadow-sm uppercase tracking-wider whitespace-nowrap">
             {{ user.stats.rank }}
           </div>
@@ -914,6 +908,7 @@ const navItems = [
   { path: '/booking', label: 'nav.book', icon: 'fa-solid fa-calendar-days text-indigo-500' },
   { path: '/history', label: 'nav.history', icon: 'fa-solid fa-clock-rotate-left text-violet-500' },
   { path: '/writing', label: 'nav.writing', icon: 'fa-solid fa-pen-nib text-rose-500' },
+  { path: '/materials', label: 'nav.materials', icon: 'fa-solid fa-folder-open text-teal-500' },
   { path: '/analytics', label: 'nav.analytics', icon: 'fa-solid fa-chart-line text-emerald-500' },
   // The ledger and the top-up are two views of the same balance, so they sit
   // together behind one expandable row rather than as two peers.
@@ -993,8 +988,10 @@ const currentPageTitle = computed(() => {
    Keyed off height alone so they fire in landscape on any device. */
 @media (max-height: 820px) {
   .sidebar-profile { padding: 1rem 1rem 0.875rem; }
-  .sidebar-profile .sidebar-avatar { width: 4rem; height: 4rem; }
+  .sidebar-profile .sidebar-avatar { width: 4rem; height: 4rem; border-width: 3px; }
   .sidebar-profile .sidebar-badges { display: none; }
+  /* Wider than the photo it sits on, otherwise. */
+  .sidebar-profile .sidebar-rank { font-size: 8px; padding-inline: 0.5rem; }
 }
 
 @media (max-height: 700px) {

@@ -31,16 +31,13 @@
           <div class="text-center sm:text-left space-y-2 flex-1">
             <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900">{{ teacher.name }}</h3>
-              <span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
-                ★ {{ teacher.rating || '4.95' }} Rating
-              </span>
             </div>
             <p class="text-sm font-semibold text-brighture-bronze">{{ teacher.specialty || '[SF] Speech Fluency, [LS1] Listening & Speaking, [DC] Daily Conversation' }}</p>
 
             <!-- Rates & Audio Voice sample -->
             <div class="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <span class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-xl">
-                Rate: <strong>5 pts (30 min)</strong> · <strong>10 pts (1 hr)</strong>
+                Rate: <strong>{{ teacher.points || 4 }} pts (30m)</strong> · <strong>{{ (teacher.points || 4) * 2 }} pts (1hr)</strong>
               </span>
 
               <!-- Voice Audio Sample Button -->
@@ -79,16 +76,19 @@
 
         <!-- Subjects Taught (Accurate Brighture List) -->
         <div class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4 space-y-2">
-          <div class="text-[10px] font-bold uppercase tracking-wider text-slate-400">
-            Subjects Taught (Online 1-on-1)
+          <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-400">
+            <span>Subjects Covered ({{ displaySubjects.length }})</span>
+            <span class="text-[10px] text-slate-500 font-medium lowercase">authentic specialties</span>
           </div>
           <div class="flex flex-wrap gap-1.5">
             <span
-              v-for="(sub, i) in (teacher.subjects || '[SF] Speech Fluency, [LS1] Listening & Speaking, [DC] Daily Conversation, [RW] Reading & Writing, [SC] Social Conversation, [PP101] Pronunciation — Vowels, [PP102] Pronunciation — R-controlled Vowels, [PP201] Pronunciation — Consonants, [PP202] Pronunciation — American T, [EP] Exam Prep, [TA] Trial Lesson & Assessment, [CS] Counseling Session').split(',')"
-              :key="i"
-              class="px-2.5 py-1 rounded-lg bg-white border border-slate-200 text-xs font-bold text-slate-700 shadow-2xs"
+              v-for="sub in displaySubjects"
+              :key="sub.code"
+              class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-bold transition shadow-2xs"
+              :class="sub.style.badgeClass"
             >
-              {{ sub.trim() }}
+              <span class="w-1.5 h-1.5 rounded-full" :class="sub.style.dotClass"></span>
+              <span>[{{ sub.code }}] {{ sub.name }}</span>
             </span>
           </div>
         </div>
@@ -124,11 +124,17 @@
 </template>
 
 <script setup>
+import { computed, ref } from 'vue';
 import { imageForKey } from '@/lib/teacherImages';
 import AppImage from './AppImage.vue';
-import { ref } from 'vue';
+import {
+  parseSubjectCodes,
+  SUBJECT_LABELS,
+  getSubjectBadgeStyle,
+  getTeacherProfile,
+} from '@/pages/student-view-v4/constants';
 
-defineProps({
+const props = defineProps({
   teacher: Object,
 });
 
@@ -140,4 +146,24 @@ const getTeacherModalImage = (teacher) => {
   if (teacher?.photo) return teacher.photo;
   return imageForKey(184);
 };
+
+const displaySubjects = computed(() => {
+  if (!props.teacher) return [];
+  const spec = props.teacher.specialty || props.teacher.expertise || '';
+  let codes = parseSubjectCodes(spec);
+  if (!codes.length && props.teacher.id) {
+    const profile = getTeacherProfile(props.teacher);
+    if (profile?.expertise) {
+      codes = parseSubjectCodes(profile.expertise);
+    }
+  }
+  if (!codes.length) {
+    codes = ['SF', 'DC'];
+  }
+  return codes.map((code) => ({
+    code,
+    name: SUBJECT_LABELS[code] || code,
+    style: getSubjectBadgeStyle(code, false),
+  }));
+});
 </script>

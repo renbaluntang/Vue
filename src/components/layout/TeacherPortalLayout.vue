@@ -47,14 +47,6 @@
         <h2 class="text-lg font-black text-slate-900 tracking-tight">{{ teacher.fullName }}</h2>
         <p class="mt-0.5 text-[11px] font-bold uppercase tracking-wider text-slate-400">Instructor</p>
 
-        <div class="sidebar-badges mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-brighture-cream text-brighture-bronze text-xs font-extrabold rounded-xl border border-brighture-gold/20">
-            ★ {{ teacher.profile.rating }}
-          </span>
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-brighture-cream text-brighture-bronze text-xs font-black rounded-xl border border-brighture-gold/30">
-            🎓 {{ teacher.stats.lessonsThisMonth }} this month
-          </span>
-        </div>
       </div>
 
       <!-- overflow-x is hidden on purpose: a box cannot scroll on y and stay
@@ -71,18 +63,18 @@
           @mouseenter="anchorRailPopup"
           @focusin="anchorRailPopup"
           @mouseleave="releaseRailPopup"
-          class="relative flex items-center rounded-2xl text-sm font-bold transition-all duration-150 group"
+          class="relative flex items-center rounded-lg text-sm font-semibold transition-colors duration-150 group"
           :class="[
-            isSidebarCollapsed ? 'justify-center mx-auto w-12 h-12 p-0' : 'justify-between px-4 py-3',
+            isSidebarCollapsed ? 'justify-center mx-auto w-10 h-10 p-0' : 'justify-between px-3.5 py-2.5',
             isCurrentRoute(item.path)
-              ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-md shadow-brighture-amber/40'
-              : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
+              ? 'bg-brighture-gold text-brighture-ink'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           ]"
         >
           <div class="flex items-center gap-3 min-w-0">
             <i
-              :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : '']"
-              class="w-5 text-center text-lg transition-transform group-hover:scale-110"
+              :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : 'text-slate-400 group-hover:text-slate-600']"
+              class="w-5 text-center text-base transition-transform group-hover:scale-105"
             ></i>
             <span :class="isSidebarCollapsed ? 'sr-only' : 'truncate'">{{ item.label }}</span>
           </div>
@@ -141,6 +133,30 @@
             <i class="fa-solid fa-headset w-4 text-center text-sky-500"></i>
             <span>Contact admin</span>
           </a>
+
+          <button
+            type="button"
+            @click="openCalendarSettings(); isUserMenuOpen = false"
+            class="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink transition"
+          >
+            <i class="fa-brands fa-google w-4 text-center" :class="teacher.googleCalendarLinked ? 'text-sky-500' : 'text-amber-500'"></i>
+            <span>Google Calendar</span>
+            <span
+              class="ml-auto text-[10px] font-black uppercase tracking-wide"
+              :class="teacher.googleCalendarLinked ? 'text-emerald-600' : 'text-amber-600'"
+            >
+              {{ teacher.googleCalendarLinked ? 'Linked' : 'Not linked' }}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            @click="openTimezoneSettings(); isUserMenuOpen = false"
+            class="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink transition"
+          >
+            <i class="fa-solid fa-earth-americas w-4 text-center text-brighture-bronze"></i>
+            <span>Timezones</span>
+          </button>
 
           <div class="my-1.5 border-t border-slate-100"></div>
 
@@ -219,15 +235,15 @@
           :key="item.path"
           :to="item.path"
           @click="isMobileMenuOpen = false"
-          class="flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition"
+          class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
           :class="[
             isCurrentRoute(item.path)
-              ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-md shadow-brighture-amber/40'
-              : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+              ? 'bg-brighture-gold text-brighture-ink'
+              : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           ]"
         >
           <span class="flex items-center gap-3">
-            <i :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : '']" class="w-5 text-center text-lg"></i>
+            <i :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : 'text-slate-400 group-hover:text-slate-600']" class="w-5 text-center text-base"></i>
             <span>{{ item.label }}</span>
           </span>
           <span
@@ -259,6 +275,29 @@
             <span>Contact admin</span>
           </a>
           <button
+            type="button"
+            @click="openCalendarSettings(); isMobileMenuOpen = false; isUserMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink rounded-xl transition"
+          >
+            <i class="fa-brands fa-google w-4 text-center" :class="teacher.googleCalendarLinked ? 'text-sky-500' : 'text-amber-500'"></i>
+            <span>Google Calendar</span>
+            <span
+              class="ml-auto text-[10px] font-black uppercase tracking-wide"
+              :class="teacher.googleCalendarLinked ? 'text-emerald-600' : 'text-amber-600'"
+            >
+              {{ teacher.googleCalendarLinked ? 'Linked' : 'Not linked' }}
+            </span>
+          </button>
+
+          <button
+            type="button"
+            @click="openTimezoneSettings(); isMobileMenuOpen = false; isUserMenuOpen = false"
+            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink rounded-xl transition"
+          >
+            <i class="fa-solid fa-earth-americas w-4 text-center text-brighture-bronze"></i>
+            <span>Timezones</span>
+          </button>
+          <button
             @click="isMobileMenuOpen = false; isUserMenuOpen = false"
             class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
           >
@@ -288,7 +327,7 @@
       <!-- Next lesson strip: one line at every width, like the student portal. -->
       <div
         v-if="teacher.nextReservation && !isDashboardRoute"
-        class="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white px-3 sm:px-6 py-1.5 text-xs font-semibold flex flex-nowrap items-center gap-2 sm:gap-3 shadow-md flex-shrink-0 z-30"
+        class="bg-slate-900 border-b border-slate-800 text-white px-3 sm:px-6 py-1.5 text-xs font-semibold flex flex-nowrap items-center gap-2 sm:gap-3 flex-shrink-0 z-30"
       >
         <p class="min-w-0 flex-1 truncate leading-5">
           <strong class="text-[11px] font-extrabold uppercase tracking-wide text-slate-300">
@@ -342,75 +381,65 @@
         </div>
 
         <div class="flex shrink-0 items-center gap-2 sm:gap-3">
-          <!-- A segmented control, not a toggle: both states are on screen and
-               labelled, so setting yourself Away is a deliberate pick rather
-               than a single click that silently stops your bookings. The FC
-               chip says what the setting actually governs. -->
-          <div
+          <!-- Global: every lesson time in the portal is projected through this
+               one setting, so it belongs above the router view and stays put
+               between pages. Narrow screens reach it through Settings instead,
+               where the header has no room. -->
+          <TimezoneToolbar
+            v-model="teacher.viewTimezone"
+            v-model:added-timezones="teacher.viewTimezones"
+            v-model:settings-open="teacher.timezoneSettingsOpen"
+            :base-timezone="teacher.profile.timezone"
+            :show-gear="false"
+            picker-class="hidden md:block"
+          />
+
+          <!-- One button, because the second segment was unreachable: going
+               Away raises the full-screen overlay, and the only way back is its
+               own "Set to Available". The overlay is also what makes a single
+               click safe here — it states plainly what just stopped, so the
+               pick is never silent. The action is spelled out beside the state
+               rather than left to a tooltip. -->
+          <button
             v-if="teacher.teachesFreeConversation"
-            role="radiogroup"
-            aria-label="Booking availability"
-            class="inline-flex items-center gap-0.5 rounded-full bg-slate-100 p-0.5"
+            type="button"
+            @click="setAway(!teacher.isAway)"
+            :aria-pressed="teacher.isAway ? 'true' : 'false'"
+            :aria-label="teacher.isAway ? 'Set yourself to Available' : 'Set yourself to Away'"
+            :title="teacher.isAway
+              ? 'Come back: students can book Free Conversation with you again.'
+              : 'Pause new Free Conversation reservations. Lessons already booked are unaffected.'"
+            class="group inline-flex items-center gap-2 rounded-full border py-1.5 pl-2.5 pr-2.5 text-xs font-bold transition active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold sm:pl-3"
+            :class="teacher.isAway
+              ? 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
+              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'"
           >
-            <button
-              v-for="option in statusOptions"
-              :key="option.label"
-              type="button"
-              role="radio"
-              :aria-checked="teacher.isAway === option.away"
-              @click="setAway(option.away)"
-              :title="option.hint"
-              class="inline-flex items-center gap-1.5 rounded-full px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all active:scale-95"
-              :class="teacher.isAway === option.away
-                ? `bg-white shadow-sm ${option.activeText}`
-                : 'text-slate-500 hover:text-slate-700'"
+            <span
+              v-if="!teacher.isAway"
+              class="h-2 w-2 shrink-0 rounded-full bg-emerald-500 animate-pulse"
+            ></span>
+            <i v-else class="fa-solid fa-moon shrink-0 text-[11px] text-amber-500"></i>
+
+            <span>{{ teacher.isAway ? 'Away' : 'Available' }}</span>
+
+            <span
+              v-if="!teacher.isAway"
+              class="hidden rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black leading-none text-emerald-700 sm:inline"
+              title="Free Conversation"
             >
-              <span
-                v-if="!option.away"
-                class="h-2 w-2 rounded-full"
-                :class="teacher.isAway ? 'bg-slate-300' : 'bg-emerald-500 animate-pulse'"
-              ></span>
-              <i
-                v-else
-                class="fa-solid fa-moon text-[10px]"
-                :class="teacher.isAway ? 'text-amber-500' : 'text-slate-400'"
-              ></i>
-
-              <!-- The active label always shows; the other one waits for room. -->
-              <span :class="teacher.isAway === option.away ? '' : 'hidden sm:inline'">{{ option.label }}</span>
-
-              <span
-                v-if="!option.away"
-                class="hidden rounded-full px-1.5 py-0.5 text-[9px] font-black leading-none sm:inline"
-                :class="teacher.isAway ? 'bg-slate-200 text-slate-500' : 'bg-emerald-100 text-emerald-700'"
-                title="Free Conversation"
-              >
-                FC
-              </span>
-            </button>
-          </div>
-
-          <!-- Calendar status, not a toggle: one stray click in a header should
-               never unlink an instructor's calendar. It routes to Profile,
-               where the connect/disconnect control lives. -->
-          <RouterLink
-            to="/profile"
-            class="inline-flex items-center gap-2 rounded-full border px-2.5 sm:px-3 py-1.5 text-xs font-bold transition-all hover:scale-105 active:scale-95"
-            :class="teacher.googleCalendarLinked
-              ? 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
-              : 'border-amber-300 bg-amber-50 text-amber-800'"
-            :title="teacher.googleCalendarLinked
-              ? 'Google Calendar is linked — reservations sync automatically'
-              : 'Google Calendar is not connected'"
-          >
-            <i
-              class="fa-brands fa-google text-[11px]"
-              :class="teacher.googleCalendarLinked ? 'text-sky-500' : 'text-amber-500'"
-            ></i>
-            <span class="hidden sm:inline">
-              {{ teacher.googleCalendarLinked ? 'Calendar linked' : 'Not connected' }}
+              FC
             </span>
-          </RouterLink>
+
+            <span
+              class="border-l pl-2 text-[10px] font-black uppercase tracking-wide transition-colors"
+              :class="teacher.isAway
+                ? 'border-amber-300/70 text-amber-700 group-hover:text-amber-900'
+                : 'border-slate-200 text-slate-400 group-hover:text-slate-700'"
+            >
+              {{ teacher.isAway ? 'Resume' : 'Set away' }}
+            </span>
+          </button>
+
         </div>
       </header>
 
@@ -427,7 +456,7 @@
           class="relative flex flex-col items-center justify-center flex-1 py-1 text-center transition"
           :class="[
             isCurrentRoute(item.path)
-              ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40 rounded-xl'
+              ? 'bg-brighture-gold text-brighture-ink rounded-lg font-bold'
               : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
           ]"
         >
@@ -437,7 +466,7 @@
           >
             {{ badgeFor(item) }}
           </span>
-          <i :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : '']" class="mb-0.5 text-lg leading-none"></i>
+          <i :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : '']" class="mb-0.5 text-base leading-none"></i>
           <span class="text-[10px] tracking-tight truncate">{{ item.shortLabel }}</span>
         </RouterLink>
 
@@ -448,10 +477,10 @@
           aria-haspopup="dialog"
           class="flex flex-col items-center justify-center flex-1 py-1 text-center transition"
           :class="isCurrentRoute('/profile')
-            ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40 rounded-xl'
+            ? 'bg-brighture-gold text-brighture-ink rounded-lg font-bold'
             : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
         >
-          <i class="fa-solid fa-gear mb-0.5 text-lg leading-none" :class="isCurrentRoute('/profile') ? '!text-brighture-ink' : 'text-slate-500'"></i>
+          <i class="fa-solid fa-gear mb-0.5 text-base leading-none" :class="isCurrentRoute('/profile') ? '!text-brighture-ink' : 'text-slate-500'"></i>
           <span class="text-[10px] tracking-tight truncate">Settings</span>
         </button>
       </nav>
@@ -522,6 +551,31 @@
                 <i class="fa-solid fa-chevron-right ml-auto text-[10px] text-slate-300"></i>
               </a>
 
+              <button
+                type="button"
+                @click="openCalendarSettings(); isSettingsSheetOpen = false"
+                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink active:scale-[0.99]"
+              >
+                <i class="fa-brands fa-google w-5 text-center" :class="teacher.googleCalendarLinked ? 'text-sky-500' : 'text-amber-500'"></i>
+                <span>Google Calendar</span>
+                <span
+                  class="ml-auto text-[11px] font-bold"
+                  :class="teacher.googleCalendarLinked ? 'text-emerald-600' : 'text-amber-600'"
+                >
+                  {{ teacher.googleCalendarLinked ? 'Linked' : 'Not linked' }}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                @click="openTimezoneSettings(); isSettingsSheetOpen = false"
+                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink active:scale-[0.99]"
+              >
+                <i class="fa-solid fa-earth-americas w-5 text-center text-brighture-bronze"></i>
+                <span>Timezones</span>
+                <span class="ml-auto text-[11px] font-bold text-slate-400">{{ activeZoneAbbr }}</span>
+              </button>
+
               <div class="my-1.5 border-t border-slate-100"></div>
 
               <button
@@ -541,6 +595,7 @@
     <!-- Away is a blocking state, as in the legacy portal: while it is on, the
          instructor is not working, so the portal is not usable. -->
     <AwayOverlay />
+    <CalendarLinkModal />
 
   </div>
 </template>
@@ -550,6 +605,9 @@ import { ref, computed, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import RouteProgress from '../RouteProgress.vue';
 import AwayOverlay from '../teacher/AwayOverlay.vue';
+import CalendarLinkModal from '../teacher/CalendarLinkModal.vue';
+import TimezoneToolbar from '../teacher/TimezoneToolbar.vue';
+import { getTimeZoneInfo, normalizeTimeZone } from '../../lib/timezoneUtils';
 import { useTeacherStore } from '../../stores/useTeacherStore';
 
 const route = useRoute();
@@ -561,12 +619,12 @@ const SUPPORT_EMAIL = 'support@brighture-edu.com';
 // The portal is instructor-facing and the teaching staff work in English, so
 // unlike the student portal this one carries no locale switch.
 const navItems = [
-  { path: '/', label: 'Dashboard', shortLabel: 'Home', icon: 'fa-solid fa-chart-pie text-sky-500' },
-  { path: '/reservations', label: 'Reservations', shortLabel: 'Lessons', icon: 'fa-solid fa-calendar-check text-indigo-500' },
-  { path: '/schedule', label: 'Scheduling', shortLabel: 'Schedule', icon: 'fa-solid fa-table-cells text-teal-500' },
-  { path: '/lessons', label: 'Lesson Log', shortLabel: 'Log', icon: 'fa-solid fa-clock-rotate-left text-violet-500', badge: 'feedback' },
-  { path: '/writing', label: 'Writing', shortLabel: 'Writing', icon: 'fa-solid fa-pen-nib text-rose-500', badge: 'writing' },
-  { path: '/analytics', label: 'Analytics', shortLabel: 'Stats', icon: 'fa-solid fa-chart-line text-emerald-500' },
+  { path: '/', label: 'Dashboard', shortLabel: 'Home', icon: 'fa-solid fa-chart-pie' },
+  { path: '/reservations', label: 'Reservations', shortLabel: 'Lessons', icon: 'fa-solid fa-calendar-check' },
+  { path: '/schedule', label: 'Scheduling', shortLabel: 'Schedule', icon: 'fa-solid fa-table-cells' },
+  { path: '/lessons', label: 'Lesson Log', shortLabel: 'Log', icon: 'fa-solid fa-clock-rotate-left', badge: 'feedback' },
+  { path: '/writing', label: 'Writing', shortLabel: 'Writing', icon: 'fa-solid fa-pen-nib', badge: 'writing' },
+  { path: '/analytics', label: 'Analytics', shortLabel: 'Stats', icon: 'fa-solid fa-chart-line' },
 ];
 
 // Profile is reached through Settings — the sidebar, the drawer footer, the
@@ -629,21 +687,6 @@ const onRailScroll = () => { if (hoveredRailHost) placeRailPopup(hoveredRailHost
 // --- Menus -------------------------------------------------------------------
 const isMobileMenuOpen = ref(false);
 const isUserMenuOpen = ref(false);
-const statusOptions = [
-  {
-    away: false,
-    label: 'Available',
-    hint: 'Students can book Free Conversation lessons with you.',
-    activeText: 'text-emerald-800',
-  },
-  {
-    away: true,
-    label: 'Away',
-    hint: 'No new Free Conversation reservations. Lessons already booked are unaffected.',
-    activeText: 'text-amber-800',
-  },
-];
-
 /** Away can only read as Away when the setting it governs is in play. */
 const showAway = computed(() => teacher.isAway && teacher.teachesFreeConversation);
 
@@ -651,6 +694,12 @@ const setAway = (away) => {
   if (teacher.isAway !== away) teacher.toggleAway();
 };
 const isSettingsSheetOpen = ref(false);
+
+const activeZoneAbbr = computed(
+  () => getTimeZoneInfo(normalizeTimeZone(teacher.viewTimezone || teacher.profile.timezone)).abbr
+);
+const openTimezoneSettings = () => { teacher.timezoneSettingsOpen = true; };
+const openCalendarSettings = () => { teacher.calendarSettingsOpen = true; };
 const toggleUserMenu = () => { isUserMenuOpen.value = !isUserMenuOpen.value; };
 
 watch(() => route.path, () => {

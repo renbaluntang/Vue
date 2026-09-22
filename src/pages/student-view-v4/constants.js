@@ -5,11 +5,51 @@ import { TEACHER_IMAGES, imageForKey } from "@/lib/teacherImages";
 // the photo can never drift onto the wrong name. Subjects and point costs are
 // taken from the live booking page ("LS" there is this app's [LS1]).
 export const INSTRUCTORS = [
-  { id: 1, name: "Jirvy Dela Torre", imageKey: 184, points: 2, specialty: "[DC]" },
-  { id: 2, name: "Jane Pasanting", imageKey: 178, points: 4, specialty: "[SF], [LS1], [DC], [RW], [PP101], [PP102], [PP201], [PP202], [EP], [TA]" },
-  { id: 3, name: "Analyn Yosores", imageKey: 176, points: 4, specialty: "[SF], [LS1], [DC], [RW], [PP101], [PP102], [PP201], [PP202], [EP], [TA], [CS]" },
-  { id: 4, name: "Sandra Auman", imageKey: 175, points: 5, specialty: "[SF], [LS1], [DC], [RW], [PP101], [PP102], [PP201], [PP202], [EP], [TA], [CS]" },
-  { id: 5, name: "Nash Tatoy", imageKey: 139, points: 5, specialty: "[SF], [LS1], [DC], [RW], [PP101], [PP102], [PP201], [PP202], [EP], [TA], [CS]" },
+  {
+    id: 1,
+    name: "Jirvy Dela Torre",
+    imageKey: 184,
+    points: 2,
+    rating: 4.98,
+    lessonCount: 1240,
+    specialty: "[SF], [LS1], [DC], [EP]",
+  },
+  {
+    id: 2,
+    name: "Jane Pasanting",
+    imageKey: 178,
+    points: 4,
+    rating: 4.95,
+    lessonCount: 980,
+    specialty: "[DC], [SC], [PP101], [PP102], [PP201], [PP202]",
+  },
+  {
+    id: 3,
+    name: "Analyn Yosores",
+    imageKey: 176,
+    points: 4,
+    rating: 4.92,
+    lessonCount: 850,
+    specialty: "[RW], [SC], [LS1], [TA]",
+  },
+  {
+    id: 4,
+    name: "Sandra Auman",
+    imageKey: 175,
+    points: 5,
+    rating: 4.89,
+    lessonCount: 1120,
+    specialty: "[SF], [SC], [DC], [CS]",
+  },
+  {
+    id: 5,
+    name: "Nash Tatoy",
+    imageKey: 139,
+    points: 5,
+    rating: 4.96,
+    lessonCount: 1450,
+    specialty: "[LS1], [PP101], [PP201], [TA], [EP]",
+  },
 ];
 
 // Display names for the exact subject codes requested:
@@ -193,27 +233,107 @@ export const TEACHER_MODAL_IMAGES = TEACHER_IMAGES;
 
 export const getTeacherModalImage = (teacher) => getTeacherPhoto(teacher);
 
-export const TEACHER_INTRO_VIDEO = "https://www.youtube.com/embed/lGGJPOQzdW0";
+// YouTube retired the parameters that used to strip player chrome: `showinfo`
+// went in 2018 and `modestbranding` in 2023, so the title header and the logo
+// cannot be turned off any more, and `rel=0` no longer removes the "More
+// videos" grid — it only narrows it to this channel. These are the ones that
+// still do something. `controls=0` takes the whole bottom bar with it
+// (scrubber, CC, settings, YouTube wordmark); a 39-second intro does not need
+// scrubbing, and the modal has its own Close. Drop `controls=0` to get the bar
+// back. nocookie defers YouTube's tracking cookies until playback starts.
+export const INTRO_VIDEO_ID = "lGGJPOQzdW0";
+
+export const TEACHER_INTRO_VIDEO =
+  `https://www.youtube-nocookie.com/embed/${INTRO_VIDEO_ID}` +
+  "?autoplay=1" +
+  "&rel=0" +              // related videos limited to Brighture's own channel
+  "&controls=0" +         // no bottom bar
+  "&iv_load_policy=3" +   // no annotations
+  "&cc_load_policy=0" +   // no forced captions
+  "&playsinline=1" +      // stays in the modal on iOS
+  "&disablekb=1" +
+  "&color=white";
 
 export const TEACHER_PROFILE_BY_ID = {
   1: {
-    major: "Education, English Linguistics",
-    expertise: "[SF] Speech Fluency, [LS1] Listening & Speaking, [DC] Daily Conversation",
-    subjectsTaught:
-      "[SF] Speech Fluency, [LS1] Listening & Speaking, [DC] Daily Conversation, [PP101] Pronunciation — Vowels",
+    major: "B.A. in English Linguistics & Education",
+    expertise: "[SF] Speech Fluency, [LS1] Listening & Speaking, [EP] Exam Prep",
     selfIntro:
-      "Hello! I am dedicated to helping learners speak English with clarity and confidence. My classes are practical, engaging, and interactive so you can level up one step at a time.",
+      "Hello! I specialize in helping students speak English naturally and confidently with structured feedback, fluency drills, and targeted test preparation.",
+  },
+  2: {
+    major: "B.S. in Communication Studies",
+    expertise: "[PP101] Vowels, [PP202] American T, [DC] Conversation",
+    selfIntro:
+      "I focus on natural American intonation and vowel clarity. Master vowels, consonants, and smooth linking to speak everyday English with effortless ease!",
+  },
+  3: {
+    major: "M.A. in Applied English Linguistics",
+    expertise: "[RW] Reading & Writing, [SC] Social Topics, [TA] Assessment",
+    selfIntro:
+      "Expressing complex thoughts clearly requires logical structure. I coach students in business email writing, essay composition, and insightful discussions.",
+  },
+  4: {
+    major: "B.A. in Secondary Education",
+    expertise: "[SF] Speech Fluency, [SC] Social Conversation, [CS] Counseling",
+    selfIntro:
+      "My classes are relaxing, fun, and highly communicative. You will do 80% of the talking to overcome speaking hesitation and build lasting fluency!",
+  },
+  5: {
+    major: "B.A. in English Communication & Phonetics",
+    expertise: "[PP101] Vowels & Consonants, [LS1] Listening, [EP] Exam Prep",
+    selfIntro:
+      "Accurate pronunciation unlocks listening comprehension. We will break down mouth shapes, tongue positions, and rhythm patterns for clear, authentic English.",
   },
 };
 
-export const getTeacherProfile = (teacher) =>
-  TEACHER_PROFILE_BY_ID[teacher.id] ?? {
-    major: "Education, Language Teaching",
-    expertise: "Conversation, Pronunciation, Fluency & Exam Prep",
-    subjectsTaught: teacher.specialty,
+export const getSubjectCategory = (code) => {
+  for (const cat of SUBJECT_CATEGORIES) {
+    if (cat.codes.includes(code)) return cat;
+  }
+  return null;
+};
+
+export const getSubjectBadgeStyle = (code, isMatch = false) => {
+  if (isMatch) {
+    return "bg-amber-100 text-amber-950 border-amber-400 ring-2 ring-brighture-gold font-extrabold shadow-xs";
+  }
+  const cat = getSubjectCategory(code);
+  if (!cat) return "bg-slate-50 text-slate-700 border-slate-200";
+  if (cat.id === "conversation") {
+    return "bg-sky-50 text-sky-800 border-sky-200/80";
+  }
+  if (cat.id === "pronunciation") {
+    return "bg-amber-50 text-amber-800 border-amber-200/80";
+  }
+  if (cat.id === "specialized") {
+    return "bg-purple-50 text-purple-800 border-purple-200/80";
+  }
+  return "bg-slate-50 text-slate-700 border-slate-200";
+};
+
+/**
+ * Derives teacher profile using `teacher.specialty` as the single source of truth for subjects taught.
+ */
+export const getTeacherProfile = (teacher) => {
+  if (!teacher) return {};
+  const staticProfile = TEACHER_PROFILE_BY_ID[teacher.id] || {};
+  const specialtyCodes = parseSubjectCodes(teacher.specialty);
+  const subjectsTaught = specialtyCodes
+    .map((code) => SUBJECT_LABELS[code] || code)
+    .join(", ");
+
+  return {
+    major: staticProfile.major || "Education & Language Teaching",
+    expertise: staticProfile.expertise || "English Language & Communication",
+    subjectsTaught,
     selfIntro:
-      "Hello! I focus on practical English communication and personalized feedback. We will build your confidence step by step with clear goals for each lesson.",
+      staticProfile.selfIntro ||
+      "Hello! I focus on practical English communication and personalized feedback to help you achieve your goals.",
+    rating: teacher.rating || 4.95,
+    lessonCount: teacher.lessonCount || 500,
   };
+};
 
 // Simple deterministic hash — different primes from startSeed so results are independent.
 const pseudoRand = (a, b, c) => (a * 31 + b * 37 + c * 41) % 100;

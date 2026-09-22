@@ -8,6 +8,7 @@ const messages = {
       analytics: 'Progress & Badges',
       history: 'Lesson History',
       writing: 'Writing Correction',
+      materials: 'Lesson Materials',
       pointsGroup: 'Point Management',
       points: 'Point History',
       purchase: 'Purchase Points',
@@ -15,6 +16,12 @@ const messages = {
       profile: 'Profile',
       logout: 'Logout',
       guide: 'How to navigate'
+    },
+    materials: {
+      subtitle: 'Everything your instructors have shared with you, kept in one place.',
+      count: '{n} items',
+      open: 'Open',
+      empty: 'Your instructors have not shared any materials yet. Anything they send will appear here.',
     },
     guide: {
       step: 'Step {n} of {total}',
@@ -52,6 +59,7 @@ const messages = {
       analytics: '学習分析・バッジ',
       history: 'レッスン履歴',
       writing: 'ライティング添削',
+      materials: 'レッスン教材',
       pointsGroup: 'ポイント管理',
       points: 'ポイント履歴',
       purchase: 'ポイント購入',
@@ -59,6 +67,12 @@ const messages = {
       profile: 'プロフィール',
       logout: 'ログアウト',
       guide: 'サイトの使い方'
+    },
+    materials: {
+      subtitle: '講師から共有された教材をまとめて確認できます。',
+      count: '{n} 件',
+      open: '開く',
+      empty: 'まだ教材は共有されていません。講師が送った教材はここに表示されます。',
     },
     guide: {
       step: '{total} ステップ中 {n} 番目',

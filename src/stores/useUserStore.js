@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { teacherImage, imageForKey } from '@/lib/teacherImages';
 import { findPlan, isSubscription } from '@/lib/plans';
+import { seedMaterials } from '@/lib/lessonMaterials';
 
 export const useUserStore = defineStore('user', () => {
   const profile = ref({
@@ -534,6 +535,22 @@ This is a good start. The only change is the last sentence: when we use "look fo
     return ticket;
   };
 
+  // The same shelf the instructor sees against this student's name — id 21 is
+  // Taro in the instructor portal's lesson log.
+  const STUDENT_ID = 21;
+  const lessonMaterials = ref(seedMaterials()[STUDENT_ID] ?? []);
+
+  /** Newest first, and grouped by subject for the materials page. */
+  const materialsBySubject = computed(() => {
+    const groups = new Map();
+    lessonMaterials.value.forEach((item) => {
+      const key = item.subject || 'General';
+      if (!groups.has(key)) groups.set(key, []);
+      groups.get(key).push(item);
+    });
+    return [...groups.entries()].map(([subject, items]) => ({ subject, items }));
+  });
+
   /** The student's rating of the teacher for one past lesson. */
   const rateLesson = (id, rating, comment = '') => {
     const lesson = pastLessons.value.find((item) => item.id === id);
@@ -579,6 +596,8 @@ This is a good start. The only change is the last sentence: when we use "look fo
     lastPurchase,
     pastLessons,
     rateLesson,
+    lessonMaterials,
+    materialsBySubject,
     writingTickets,
     openWritingCount,
     WRITING_COST,

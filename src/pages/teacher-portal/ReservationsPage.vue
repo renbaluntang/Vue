@@ -24,20 +24,6 @@
 
       <!-- Quick Action / Timezone Selector in Header -->
       <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-        <div class="inline-flex items-center gap-1.5 rounded-2xl border border-slate-200/90 bg-white px-3 py-1.5 shadow-xs text-xs font-semibold text-slate-600">
-          <i class="fa-regular fa-clock text-slate-400"></i>
-          <span class="text-slate-400 hidden sm:inline">Clock:</span>
-          <select
-            v-model="timeZoneMode"
-            aria-label="Timezone display preference"
-            class="bg-transparent font-bold text-slate-800 focus:outline-none cursor-pointer pr-1"
-          >
-            <option value="manila">Manila (PHT UTC+8)</option>
-            <option value="tokyo">Tokyo (JST UTC+9)</option>
-            <option value="student">Student Local Time</option>
-          </select>
-        </div>
-
         <span class="rounded-2xl bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs">
           {{ filteredReservations.length }} of {{ teacher.reservations.length }} shown
         </span>
@@ -330,11 +316,8 @@
                             NEXT
                           </span>
                         </div>
-                        <span class="text-[11px] font-medium text-slate-500">
+                        <span class="text-[11px] font-medium text-slate-500 truncate max-w-[190px]">
                           {{ formatSecondaryTime(row) }}
-                        </span>
-                        <span v-if="timeZoneMode !== 'student'" class="text-[10px] text-slate-400 mt-0.5 truncate max-w-[150px]">
-                          {{ formatStudentTimeShort(row) }}
                         </span>
                       </div>
                     </div>
@@ -713,7 +696,6 @@ const teacher = useTeacherStore();
 
 // --- View Preferences --------------------------------------------------------
 const viewMode = ref('table'); // 'table' | 'grid'
-const timeZoneMode = ref('manila'); // 'manila' | 'tokyo' | 'student'
 const searchQuery = ref('');
 const activeTab = ref('all');
 const selectedStudent = ref(null);
@@ -821,29 +803,15 @@ const formatGroupHeaderDate = (dateKey) => {
 };
 
 // --- Time Formatting Utilities -----------------------------------------------
-const formatPrimaryTime = (row) => {
-  if (timeZoneMode.value === 'tokyo') {
-    return row.rangeTokyo || row.startTokyo;
-  }
-  if (timeZoneMode.value === 'student') {
-    return row.startStudent;
-  }
-  return row.rangeManila || row.startManila;
-};
+/**
+ * The class time, in whichever zone the header picker is set to. This page used
+ * to carry its own Manila/Tokyo/Student selector, which meant the header could
+ * say JST while the table still read PHT — two controls for one question.
+ */
+const formatPrimaryTime = (row) => teacher.localRange(row) || row.rangeManila || row.startManila;
 
-const formatSecondaryTime = (row) => {
-  if (timeZoneMode.value === 'tokyo') {
-    return `Manila: ${row.rangeManila || row.startManila}`;
-  }
-  if (timeZoneMode.value === 'student') {
-    return `Manila: ${row.rangeManila || row.startManila}`;
-  }
-  return `Tokyo: ${row.rangeTokyo || row.startTokyo}`;
-};
-
-const formatStudentTimeShort = (row) => {
-  return `Student: ${row.startStudent}`;
-};
+/** The student's own clock: the one zone the picker cannot stand in for. */
+const formatSecondaryTime = (row) => `Student: ${row.startStudent}`;
 
 // --- Subject & Code Utilities ------------------------------------------------
 const extractSubjectCode = (subject) => {

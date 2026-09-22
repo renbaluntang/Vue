@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia';
 import { ref, computed } from 'vue';
 import { imageForKey } from '@/lib/teacherImages';
+import { seedMaterials } from '@/lib/lessonMaterials';
+import { convertSlotTime, getTimeZoneInfo, normalizeTimeZone } from '@/lib/timezoneUtils';
 
 /**
  * Prototype data for the instructor portal. Shapes follow the legacy teacher
@@ -38,11 +40,60 @@ export const useTeacherStore = defineStore('teacher', () => {
   // instructor who does not offer it — the UI hides it in that case.
   const teachesFreeConversation = computed(() => profile.value.subjects.includes('FC'));
 
-  const usesTokyo = computed(() => profile.value.timezone.includes('Tokyo'));
+  /**
+   * Every reservation is stored in Manila time; every other clock in the portal
+   * is a projection of it. `viewTimezone` — the header picker — decides which
+   * projection is on screen, so the picker means the same thing on every page
+   * rather than only on the schedule board.
+   */
+  const CANONICAL_ZONE = 'Asia/Manila';
+  const viewZoneId = computed(() =>
+    normalizeTimeZone(viewTimezone.value || profile.value.timezone)
+  );
+  const viewZoneAbbr = computed(() => getTimeZoneInfo(viewZoneId.value).abbr);
 
-  /** Start time and range in whichever zone the instructor set on their profile. */
-  const localStart = (row) => (usesTokyo.value ? row.startTokyo : row.startManila);
-  const localRange = (row) => (usesTokyo.value ? row.rangeTokyo : row.rangeManila);
+  const usesTokyo = computed(() => viewZoneId.value === 'Asia/Tokyo');
+
+  const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  /** A far-enough zone moves the calendar date too, not just the clock. */
+  const shiftDateText = (dateText, days) => {
+    if (!days) return dateText;
+    const d = new Date(`${dateText} 12:00:00`);
+    if (Number.isNaN(d.getTime())) return dateText;
+    d.setDate(d.getDate() + days);
+    return `${MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  };
+
+  /** "6:00 PM" -> "18:00". */
+  const to24 = (clock) => {
+    const m = String(clock).trim().match(/^(\d{1,2}):(\d{2})\s*([AP])M$/i);
+    if (!m) return String(clock).trim();
+    let hour = Number(m[1]) % 12;
+    if (m[3].toUpperCase() === 'P') hour += 12;
+    return `${String(hour).padStart(2, '0')}:${m[2]}`;
+  };
+
+  const project = (hhmm) => convertSlotTime(hhmm, CANONICAL_ZONE, viewZoneId.value);
+
+  /** "Sep 2, 2026 18:00" in the viewed zone, date included when it rolls over. */
+  const localStart = (row) => {
+    const raw = row?.startManila ?? '';
+    const parts = raw.match(/^(.*?)\s(\d{1,2}:\d{2})$/);
+    if (!parts) return raw;
+    const converted = project(parts[2]);
+    return `${shiftDateText(parts[1], converted.dayShift)} ${converted.time24}`;
+  };
+
+  /** "6:00 PM – 6:30 PM PHT" in the viewed zone. */
+  const localRange = (row) => {
+    const raw = row?.rangeManila ?? '';
+    const parts = raw.match(/^(\d{1,2}:\d{2}\s*[AP]M)\s*[–-]\s*(\d{1,2}:\d{2}\s*[AP]M)/i);
+    if (!parts) return raw;
+    const from = project(to24(parts[1])).time12;
+    const to = project(to24(parts[2])).time12;
+    return `${from} – ${to} ${viewZoneAbbr.value}`;
+  };
 
   /**
    * A lesson close enough that nothing may stand between the instructor and it.
@@ -52,7 +103,36 @@ export const useTeacherStore = defineStore('teacher', () => {
     reservations.value.find((row) => row.minutesUntil <= 15) ?? null
   );
 
+  /**
+   * Which timezone the schedule is *read* in. The stored availability is always
+   * Manila; this only changes how it is displayed. It lives here rather than on
+   * the Scheduling page because the picker now sits in the portal header, above
+   * the router view.
+   */
+  const viewTimezone = ref('Asia/Manila');
+  const viewTimezones = ref([]);
+  /** Raised by the sidebar Settings menu to open the manage-timezones dialog. */
+  const timezoneSettingsOpen = ref(false);
+
   const googleCalendarLinked = ref(true);
+  /** Which Google account the sync runs as, so "linked" names something. */
+  const googleCalendarAccount = ref('jirvy.delatorre@brighture-edu.com');
+  const googleCalendarSyncedAt = ref('Today, 07:40');
+  /** Raised by the sidebar Settings menu to open the calendar dialog. */
+  const calendarSettingsOpen = ref(false);
+
+  /** Also the relink path: re-authorising is the same call with a fresh grant. */
+  const linkGoogleCalendar = (account) => {
+    googleCalendarLinked.value = true;
+    if (account) googleCalendarAccount.value = account;
+    googleCalendarSyncedAt.value = 'Just now';
+  };
+
+  const unlinkGoogleCalendar = () => {
+    googleCalendarLinked.value = false;
+    googleCalendarSyncedAt.value = '';
+  };
+
 
   const stats = ref({
     lessonsThisMonth: 62,
@@ -326,6 +406,38 @@ Nice to meet you all and I hope we can work together well.`,
     if (task) task.state = 'Complete';
   };
 
+  // Lesson materials hang off the student, not the lesson — the same handout
+  // is the one they are still working through three lessons later.
+  const materialsByStudent = ref(seedMaterials());
+
+  const materialsFor = (studentId) => materialsByStudent.value[studentId] ?? [];
+  const materialCount = (studentId) => materialsFor(studentId).length;
+
+  const addMaterial = (studentId, material) => {
+    const title = (material?.title ?? '').trim();
+    if (!studentId || !title) return null;
+    const entry = {
+      id: `m-${studentId}-${Date.now()}`,
+      title,
+      kind: material.kind || 'link',
+      subject: (material.subject ?? '').trim(),
+      note: (material.note ?? '').trim(),
+      url: (material.url ?? '').trim(),
+      addedOn: 'Just now',
+      addedBy: `${profile.value.firstName} ${profile.value.lastName}`,
+    };
+    if (!materialsByStudent.value[studentId]) materialsByStudent.value[studentId] = [];
+    materialsByStudent.value[studentId].unshift(entry);
+    return entry;
+  };
+
+  const removeMaterial = (studentId, id) => {
+    const list = materialsByStudent.value[studentId];
+    if (!list) return;
+    const at = list.findIndex((item) => item.id === id);
+    if (at !== -1) list.splice(at, 1);
+  };
+
   // Completed lessons, newest first.
   const lessonLog = ref([
     {
@@ -411,9 +523,13 @@ Nice to meet you all and I hope we can work together well.`,
   ]);
 
   /** Manila hours the school actually books, paired with their Tokyo clock. */
+  // Every hour of the day, not a 07:00-20:00 window. The old range was fixed in
+  // Manila hours, so simply viewing the board in another zone slid the whole
+  // day sideways and put early or late hours out of reach entirely — a Tokyo
+  // instructor could not open 07:00 JST because it is 06:00 in Manila.
   const scheduleSlots = ref(
-    Array.from({ length: 14 }, (_, i) => {
-      const manilaHour = 7 + i;
+    Array.from({ length: 24 }, (_, i) => {
+      const manilaHour = i;
       return {
         key: `t${manilaHour}`,
         manila: `${String(manilaHour).padStart(2, '0')}:00`,
@@ -426,29 +542,116 @@ Nice to meet you all and I hope we can work together well.`,
     (() => {
       const seed = {};
       const openByDay = {
-        sun: [], mon: [9, 10, 11, 14, 15, 16], tue: [9, 10, 11, 14, 15, 16],
-        wed: [13, 14, 15, 16, 17], thu: [9, 10, 11, 14, 15, 16],
-        fri: [9, 10, 11, 12], sat: [10, 11],
+        sun: [],
+        mon: [9, 10, 11, 14, 15, 16],
+        tue: [9, 10, 11, 14, 15, 16],
+        wed: [14, 15, 16, 17],
+        thu: [9, 10, 11, 14, 15, 16],
+        fri: [9, 10, 11],
+        sat: [10, 11],
       };
       Object.entries(openByDay).forEach(([day, hours]) => {
-        hours.forEach((hour) => { seed[`${day}-t${hour}`] = true; });
+        hours.forEach((hour) => { seed[`${day}-t${hour}`] = 'open'; });
       });
+
+      // Realistic seed for reserved slots (manager scheduled class, team meeting):
+      seed['wed-t13'] = { status: 'reserved', reason: 'Manager Scheduled Class' };
+      seed['fri-t16'] = { status: 'reserved', reason: 'Team Meeting / Sync' };
+
       return seed;
     })()
   );
 
-  const isOpen = (dayKey, slotKey) => !!availability.value[`${dayKey}-${slotKey}`];
-  const toggleSlot = (dayKey, slotKey) => {
+  const getSlotStatus = (dayKey, slotKey) => {
+    const val = availability.value[`${dayKey}-${slotKey}`];
+    if (!val) return 'closed';
+    if (val === true || val === 'open' || (typeof val === 'object' && val?.status === 'open')) return 'open';
+    if (val === 'reserved' || (typeof val === 'object' && val?.status === 'reserved')) return 'reserved';
+    return 'closed';
+  };
+
+  const isOpen = (dayKey, slotKey) => getSlotStatus(dayKey, slotKey) === 'open';
+  const isReserved = (dayKey, slotKey) => getSlotStatus(dayKey, slotKey) === 'reserved';
+  const isClosed = (dayKey, slotKey) => getSlotStatus(dayKey, slotKey) === 'closed';
+
+  const getSlotReason = (dayKey, slotKey) => {
+    const val = availability.value[`${dayKey}-${slotKey}`];
+    if (typeof val === 'object' && val?.reason) return val.reason;
+    if (val === 'reserved') return 'Reserved';
+    return '';
+  };
+
+  const setSlotStatus = (dayKey, slotKey, status, reason = '') => {
     const id = `${dayKey}-${slotKey}`;
-    availability.value[id] = !availability.value[id];
+    if (status === 'closed') {
+      delete availability.value[id];
+    } else if (status === 'reserved') {
+      availability.value[id] = { status: 'reserved', reason: reason || 'Reserved' };
+    } else {
+      availability.value[id] = 'open';
+    }
   };
+
+  // Cycle slot: closed -> open -> reserved -> closed
+  const cycleSlot = (dayKey, slotKey, defaultReason = 'Personal (Break / Errands)') => {
+    const current = getSlotStatus(dayKey, slotKey);
+    if (current === 'closed') {
+      setSlotStatus(dayKey, slotKey, 'open');
+    } else if (current === 'open') {
+      setSlotStatus(dayKey, slotKey, 'reserved', defaultReason);
+    } else {
+      setSlotStatus(dayKey, slotKey, 'closed');
+    }
+  };
+
+  const toggleSlot = (dayKey, slotKey) => {
+    const current = getSlotStatus(dayKey, slotKey);
+    if (current === 'closed') {
+      setSlotStatus(dayKey, slotKey, 'open');
+    } else {
+      setSlotStatus(dayKey, slotKey, 'closed');
+    }
+  };
+
   const setDay = (dayKey, open) => {
-    scheduleSlots.value.forEach((slot) => { availability.value[`${dayKey}-${slot.key}`] = open; });
+    const status = open ? 'open' : 'closed';
+    scheduleSlots.value.forEach((slot) => {
+      setSlotStatus(dayKey, slot.key, status);
+    });
   };
+
+  const setDayStatus = (dayKey, status, reason = '') => {
+    scheduleSlots.value.forEach((slot) => {
+      setSlotStatus(dayKey, slot.key, status, reason);
+    });
+  };
+
   const setSlotRow = (slotKey, open) => {
-    scheduleDays.value.forEach((day) => { availability.value[`${day.key}-${slotKey}`] = open; });
+    const status = open ? 'open' : 'closed';
+    scheduleDays.value.forEach((day) => {
+      setSlotStatus(day.key, slotKey, status);
+    });
   };
-  const openSlotCount = computed(() => Object.values(availability.value).filter(Boolean).length);
+
+  const setSlotRowStatus = (slotKey, status, reason = '') => {
+    scheduleDays.value.forEach((day) => {
+      setSlotStatus(day.key, slotKey, status, reason);
+    });
+  };
+
+  const openSlotCount = computed(() => {
+    return Object.keys(availability.value).filter((key) => {
+      const val = availability.value[key];
+      return val === true || val === 'open' || (typeof val === 'object' && val?.status === 'open');
+    }).length;
+  });
+
+  const reservedSlotCount = computed(() => {
+    return Object.keys(availability.value).filter((key) => {
+      const val = availability.value[key];
+      return val === 'reserved' || (typeof val === 'object' && val?.status === 'reserved');
+    }).length;
+  });
 
   // Teaching analytics. Figures are consistent with `stats` above so the
   // dashboard and the analytics page never contradict each other.
@@ -614,11 +817,17 @@ Nice to meet you all and I hope we can work together well.`,
 
   return {
     profile, fullName, isAway, toggleAway, teachesFreeConversation, googleCalendarLinked, stats,
-    usesTokyo, localStart, localRange, awaySince, imminentReservation,
+    googleCalendarAccount, googleCalendarSyncedAt, calendarSettingsOpen,
+    linkGoogleCalendar, unlinkGoogleCalendar,
+    usesTokyo, localStart, localRange, viewZoneId, viewZoneAbbr, awaySince, imminentReservation,
+    viewTimezone, viewTimezones, timezoneSettingsOpen,
     reservations, nextReservation, laterReservations, canJoin,
     writingTasks, pendingWritingCount, sendWritingReply, completeWritingTask,
     lessonLog, pendingFeedback, submitFeedback,
-    scheduleDays, scheduleSlots, availability, isOpen, toggleSlot, setDay, setSlotRow, openSlotCount,
+    materialsByStudent, materialsFor, materialCount, addMaterial, removeMaterial,
+    scheduleDays, scheduleSlots, availability, getSlotStatus, isOpen, isReserved, isClosed,
+    getSlotReason, setSlotStatus, cycleSlot, toggleSlot, setDay, setDayStatus, setSlotRow, setSlotRowStatus,
+    openSlotCount, reservedSlotCount,
     weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings,
     analytics,
   };

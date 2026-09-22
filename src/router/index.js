@@ -31,6 +31,11 @@ const routes = [
         component: () => import('../pages/portal/WritingPage.vue'),
       },
       {
+        path: 'materials',
+        name: 'materials',
+        component: () => import('../pages/portal/MaterialsPage.vue'),
+      },
+      {
         path: 'points',
         name: 'points',
         component: () => import('../pages/portal/PointHistoryPage.vue'),

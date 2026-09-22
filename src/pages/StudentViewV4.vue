@@ -790,7 +790,7 @@ const GRID_LAYOUT_OPTIONS = [
         <div class="aspect-video w-full">
           <iframe
             class="h-full w-full"
-            :src="`${TEACHER_INTRO_VIDEO}?autoplay=1`"
+            :src="TEACHER_INTRO_VIDEO"
             :title="`${activeVideoTeacher.name} introduction video`"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowfullscreen

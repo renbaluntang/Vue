@@ -1,16 +1,17 @@
 <template>
   <div class="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-    <!-- Top Welcome & Online Class Quick CTA Header -->
+    <!-- Top-level orientation: concise, dated, and action-led. -->
     <section class="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
-      <div class="space-y-1">
-        <div class="flex items-center gap-2">
-          <img :src="brightureLogo" alt="Brighture" class="h-6 sm:h-7 w-auto" />
+      <div class="space-y-1.5">
+        <img :src="brightureLogo" alt="Brighture" class="h-5 sm:h-6 w-auto" />
+        <div class="flex items-baseline gap-3 flex-wrap">
+          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-950 tracking-tight">
+            Learning overview
+          </h1>
+          <span class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">This week</span>
         </div>
-        <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
-          Welcome back, <span class="text-brighture-bronze">{{ user.profile.firstName }}</span> 👋
-        </h1>
         <p class="text-sm text-slate-500 font-medium">
-          Ready for your next speaking session? Manage your scheduled classes and practice online.
+          {{ user.profile.firstName }}, your next class and weekly progress are ready to review.
         </p>
       </div>
 
@@ -18,7 +19,7 @@
       <div class="grid grid-cols-2 gap-2.5 sm:gap-3 w-full lg:w-auto lg:shrink-0">
         <RouterLink
           to="/booking"
-          class="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-[#FFCD00] text-black font-bold text-[13px] sm:text-sm leading-tight text-center shadow-md hover:bg-[#FFD933] hover:shadow-lg hover:scale-105 active:scale-95 transition-all"
+          class="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-lg bg-[#FFCD00] text-black font-bold text-[13px] sm:text-sm leading-tight text-center hover:bg-[#FFD933] active:scale-[0.98] transition-all"
         >
           <span class="shrink-0">🗓️</span> <span>Book Online Class</span>
         </RouterLink>
@@ -26,7 +27,7 @@
         <button
           data-tour="talk-now"
           @click="showFreeConversationModal = true"
-          class="relative group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3.5 rounded-xl sm:rounded-2xl bg-gradient-to-r from-slate-900 to-slate-800 text-white font-bold text-[13px] sm:text-sm leading-tight text-center shadow-lg shadow-slate-900/20 hover:scale-105 active:scale-95 transition-all"
+          class="relative group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-lg bg-slate-950 text-white font-bold text-[13px] sm:text-sm leading-tight text-center hover:bg-slate-800 active:scale-[0.98] transition-all"
         >
           <span class="absolute -top-2 -right-2 bg-red-600 text-white text-[9px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full shadow-md">
             Instant
@@ -34,6 +35,41 @@
           <span class="shrink-0">⚡</span> <span>Talk Now</span>
         </button>
 
+      </div>
+    </section>
+
+    <!-- The week is the dashboard's one primary metric; the rest is supporting evidence. -->
+    <section aria-label="Learning progress" class="border-y border-slate-200 py-5 sm:py-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,0.6fr))] gap-5 lg:gap-0">
+      <div class="lg:pr-8">
+        <div class="flex items-end justify-between gap-4">
+          <div>
+            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Weekly class goal</p>
+            <p class="mt-1 text-4xl sm:text-5xl font-black tracking-[-0.06em] tabular-nums text-slate-950 leading-none">
+              {{ user.stats.weeklyGoalMet }}<span class="text-slate-300">/{{ user.stats.weeklyGoalTotal }}</span>
+            </p>
+          </div>
+          <p class="max-w-[13rem] text-right text-xs leading-5 font-medium text-slate-500">
+            {{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet }} more class{{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet === 1 ? '' : 'es' }} completes your target for Sep 7–13.
+          </p>
+        </div>
+        <div class="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+          <div class="h-full rounded-full bg-[#FFCD00]" :style="{ width: `${(user.stats.weeklyGoalMet / user.stats.weeklyGoalTotal) * 100}%` }"></div>
+        </div>
+      </div>
+      <div class="lg:border-l lg:border-slate-200 lg:px-6">
+        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Lessons completed</p>
+        <p class="mt-1 text-2xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.totalLessons }}</p>
+        <p class="mt-1 text-xs text-slate-500">all time</p>
+      </div>
+      <div class="lg:border-l lg:border-slate-200 lg:px-6">
+        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Attendance</p>
+        <p class="mt-1 text-2xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.attendanceRate }}%</p>
+        <p class="mt-1 text-xs text-slate-500">last 90 days</p>
+      </div>
+      <div class="lg:border-l lg:border-slate-200 lg:pl-6">
+        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Points available</p>
+        <p class="mt-1 text-2xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.profile.pointsBalance }}</p>
+        <RouterLink to="/points" class="mt-1 inline-block text-xs font-bold text-slate-600 hover:text-slate-950">View point history →</RouterLink>
       </div>
     </section>
 
@@ -472,7 +508,7 @@
     </section>
 
     <!-- QUICK EASY CLASS BOOKING SECTION (WITH EXACT SUBJECTS) -->
-    <section class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-xs space-y-5">
+    <section class="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-5">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
@@ -493,7 +529,7 @@
         <div
           v-for="instructor in quickInstructors"
           :key="instructor.id"
-          class="border border-slate-200/80 rounded-2xl p-4 hover:border-brighture-gold/50 hover:shadow-md transition-all flex flex-col justify-between bg-slate-50/50 group"
+          class="border border-slate-200 rounded-lg p-4 hover:border-slate-400 transition-colors flex flex-col justify-between bg-white group"
         >
           <div class="flex items-start gap-3">
             <!-- CLICKABLE TEACHER PHOTO -->
@@ -505,38 +541,31 @@
               <AppImage
                 :src="instructor.photo"
                 :alt="instructor.name"
-                class="w-12 h-12 rounded-xl border border-slate-200 shadow-2xs group-hover:scale-105 transition"
+                class="w-12 h-12 rounded-lg border border-slate-200 group-hover:scale-105 transition"
               />
             </div>
 
             <div class="min-w-0 flex-1">
-              <div class="flex items-center justify-between">
-                <h3
-                  @click="openTeacherDetails(instructor)"
-                  class="text-sm font-bold text-slate-900 truncate hover:text-brighture-bronze cursor-pointer"
-                >
-                  {{ instructor.name }}
-                </h3>
-                <span class="text-xs text-amber-500 font-bold">★ {{ instructor.rating }}</span>
-              </div>
+              <h3
+                @click="openTeacherDetails(instructor)"
+                class="text-sm font-bold text-slate-900 truncate hover:text-brighture-bronze cursor-pointer"
+              >
+                {{ instructor.name }}
+              </h3>
               <p class="text-[11px] text-slate-500 truncate">{{ instructor.specialty }}</p>
-              <div class="mt-1 flex items-center gap-1">
-                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-                <span class="text-[10px] font-bold text-emerald-700">{{ instructor.nextAvailable }}</span>
-              </div>
             </div>
           </div>
 
           <div class="mt-4 flex gap-2">
             <button
               @click="openTeacherDetails(instructor)"
-              class="flex-1 inline-flex items-center justify-center px-2 py-2 rounded-xl bg-white border border-slate-200 text-slate-700 font-bold text-xs whitespace-nowrap hover:bg-slate-100 transition shadow-2xs"
+              class="flex-1 inline-flex items-center justify-center px-2 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-xs whitespace-nowrap hover:bg-slate-100 transition"
             >
               View Info
             </button>
             <RouterLink
               to="/booking"
-              class="flex-1 inline-flex items-center justify-center px-2 py-2 rounded-xl bg-[#FFCD00] border border-transparent text-black font-bold text-xs whitespace-nowrap hover:bg-[#FFD933] transition shadow-2xs"
+              class="flex-1 inline-flex items-center justify-center px-2 py-2 rounded-lg bg-[#FFCD00] border border-transparent text-black font-bold text-xs whitespace-nowrap hover:bg-[#FFD933] transition"
             >
               Book →
             </RouterLink>
@@ -560,7 +589,7 @@
         <div
           v-for="task in writingTasks"
           :key="task.id"
-          class="bg-white border border-slate-200/80 rounded-3xl p-5 hover:border-brighture-gold/50 hover:shadow-sm transition-all group cursor-pointer flex flex-col justify-between"
+          class="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-400 transition-colors group cursor-pointer flex flex-col justify-between"
           @click="$router.push('/writing')"
         >
           <div>
@@ -588,19 +617,16 @@
          overflowing short screens, and /refer already holds the full details. -->
     <RouterLink
       to="/refer"
-      class="group relative block overflow-hidden rounded-2xl select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-white focus-visible:ring-offset-2 focus-visible:ring-offset-brighture-cream"
-      style="background: linear-gradient(135deg, #7c3aed 0%, #4f46e5 40%, #0ea5e9 100%);"
+      class="group relative block overflow-hidden rounded-xl border border-slate-800 bg-slate-950 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFCD00] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
     >
-      <div class="pointer-events-none absolute -top-8 -right-8 h-40 w-40 rounded-full bg-white/10 blur-2xl"></div>
-      <div class="pointer-events-none absolute -bottom-6 -left-6 h-32 w-32 rounded-full bg-fuchsia-400/20 blur-2xl"></div>
       <div class="relative flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-5 sm:px-8">
         <div class="flex items-center gap-4">
-          <div class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 ring-1 ring-white/20 backdrop-blur-sm">
-            <i class="fa-solid fa-user-plus text-2xl text-white"></i>
+          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10">
+            <i class="fa-solid fa-user-plus text-xl text-[#FFCD00]"></i>
           </div>
           <div>
             <h3 class="text-lg font-extrabold text-white leading-tight">Refer a Friend — Earn 5 Points</h3>
-            <p class="mt-0.5 text-sm text-violet-100">
+            <p class="mt-0.5 text-sm text-slate-300">
               Your friend gets <span class="font-bold text-white">$20 USD off</span> their plan &mdash; you earn <span class="font-bold text-white">5 points</span> once they buy a plan and start learning.
             </p>
           </div>
@@ -608,7 +634,7 @@
         <!-- A span, not a button: the whole banner is already the link, and a
              button inside an anchor is invalid markup. -->
         <span
-          class="shrink-0 flex items-center gap-2 rounded-xl bg-white px-5 py-2.5 text-sm font-extrabold text-violet-700 shadow-lg shadow-violet-900/30 transition group-hover:bg-violet-50 group-hover:scale-105 group-active:scale-95"
+          class="shrink-0 flex items-center gap-2 rounded-lg bg-[#FFCD00] px-5 py-2.5 text-sm font-extrabold text-slate-950 transition group-hover:bg-[#FFD933] group-active:scale-[0.98]"
         >
           <i class="fa-solid fa-share-nodes text-sm"></i>
           Share &amp; Earn

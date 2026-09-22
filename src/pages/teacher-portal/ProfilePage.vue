@@ -117,7 +117,7 @@
         </div>
         <button
           type="button"
-          @click="teacher.googleCalendarLinked = !teacher.googleCalendarLinked"
+          @click="teacher.googleCalendarLinked ? teacher.unlinkGoogleCalendar() : teacher.linkGoogleCalendar()"
           class="shrink-0 rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 active:scale-95"
         >
           {{ teacher.googleCalendarLinked ? 'Disconnect' : 'Connect' }}
