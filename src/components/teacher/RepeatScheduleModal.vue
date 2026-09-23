@@ -188,7 +188,7 @@
                   class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-2xs focus:border-brighture-gold focus:outline-none cursor-pointer"
                 >
                   <option v-for="s in slots" :key="s.key" :value="s.key">
-                    {{ s.manila }}
+                    {{ to12(s.manila) }}
                   </option>
                 </select>
               </div>
@@ -201,7 +201,7 @@
                   class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-2xs focus:border-brighture-gold focus:outline-none cursor-pointer"
                 >
                   <option v-for="s in slots" :key="s.key" :value="s.key">
-                    {{ s.manila }}
+                    {{ to12(s.manila) }}
                   </option>
                 </select>
               </div>
@@ -338,8 +338,16 @@ const tab = ref('copy'); // 'copy' | 'range'
 const sourceDay = ref('mon');
 const targetDays = ref(['mon', 'tue', 'wed', 'thu', 'fri']);
 
-const rangeStart = ref('t9');
-const rangeEnd = ref('t17');
+/** "13:30" -> "1:30 PM". */
+const to12 = (hhmm) => {
+  const [h, m] = String(hhmm).split(':').map(Number);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return m ? `${hour}:${String(m).padStart(2, '0')} ${suffix}` : `${hour} ${suffix}`;
+};
+
+const rangeStart = ref('t0900');
+const rangeEnd = ref('t1700');
 const rangeTargetStatus = ref('open'); // 'open' | 'reserved'
 const rangeReason = ref('Manager Scheduled Class');
 
@@ -409,6 +417,7 @@ const applySchedule = () => {
         const id = `${dayKey}-${slot.key}`;
         const srcVal = sourceSlotsState[slot.key];
         if (srcVal) {
+          teacher.beginWeekEdit();
           teacher.availability[id] = typeof srcVal === 'object' ? { ...srcVal } : srcVal;
         } else {
           delete teacher.availability[id];
@@ -416,15 +425,15 @@ const applySchedule = () => {
       });
     });
   } else if (tab.value === 'range') {
-    const startHour = parseInt(rangeStart.value.replace('t', ''), 10);
-    const endHour = parseInt(rangeEnd.value.replace('t', ''), 10);
-    const minH = Math.min(startHour, endHour);
-    const maxH = Math.max(startHour, endHour);
+    // Slots are keyed by clock time, so a range is compared on minutes rather
+    // than on digits pulled out of the key.
+    const minutesOf = (key) => teacher.scheduleSlots.find((s) => s.key === key)?.minutes ?? 0;
+    const from = Math.min(minutesOf(rangeStart.value), minutesOf(rangeEnd.value));
+    const to = Math.max(minutesOf(rangeStart.value), minutesOf(rangeEnd.value));
 
     targetDays.value.forEach((dayKey) => {
       teacher.scheduleSlots.forEach((slot) => {
-        const h = parseInt(slot.key.replace('t', ''), 10);
-        if (h >= minH && h <= maxH) {
+        if (slot.minutes >= from && slot.minutes <= to) {
           if (rangeTargetStatus.value === 'reserved') {
             teacher.setSlotStatus(dayKey, slot.key, 'reserved', rangeReason.value);
           } else {

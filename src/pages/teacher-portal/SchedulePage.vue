@@ -28,12 +28,12 @@
         <div class="inline-flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-2xs">
           <span class="inline-flex items-center gap-1.5">
             <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-            <strong class="tabular-nums text-slate-900">{{ teacher.openSlotCount }}</strong> open
+            <strong class="tabular-nums text-slate-900">{{ teacher.openHours }}h</strong> open
           </span>
           <span class="h-3 w-px bg-slate-200"></span>
           <span class="inline-flex items-center gap-1.5">
             <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
-            <strong class="tabular-nums text-slate-900">{{ teacher.reservedSlotCount }}</strong> reserved
+            <strong class="tabular-nums text-slate-900">{{ teacher.reservedHours }}h</strong> reserved
           </span>
         </div>
 
@@ -48,14 +48,45 @@
       </div>
     </header>
 
-    <!-- Row reads left to right as: things that change the week, then the one
-         that undoes it, then how to look at it. Only Register is filled — these
-         open a dialog rather than acting, which the ellipsis says. -->
+    <!-- Which week, and how to look at it. The verbs that change it come after. -->
+    <div class="flex flex-wrap items-center justify-between gap-x-4 gap-y-3">
+      <WeekNavigator class="min-w-0" />
+
+      <!-- The grid is faster for "every Tuesday afternoon"; the calendar is
+           faster for "9 to 5 on weekdays". Both write the same states. -->
+      <div class="inline-flex h-9 shrink-0 items-stretch overflow-hidden rounded-xl border border-slate-200 bg-white shadow-2xs">
+        <button
+          type="button"
+          @click="view = 'grid'"
+          :aria-pressed="view === 'grid' ? 'true' : 'false'"
+          class="inline-flex items-center gap-1.5 px-3.5 text-xs transition"
+          :class="view === 'grid' ? 'bg-slate-900 font-bold text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'"
+        >
+          <i class="fa-solid fa-table-cells text-[11px]"></i>
+          <span>Grid</span>
+        </button>
+        <span class="w-px bg-slate-200" aria-hidden="true"></span>
+        <button
+          type="button"
+          @click="view = 'calendar'"
+          :aria-pressed="view === 'calendar' ? 'true' : 'false'"
+          class="inline-flex items-center gap-1.5 px-3.5 text-xs transition"
+          :class="view === 'calendar' ? 'bg-slate-900 font-bold text-white' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-800'"
+        >
+          <i class="fa-regular fa-calendar text-[11px]"></i>
+          <span>Calendar</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- The verbs, on their own line under the week they act on. Every control
+         here is 36px tall and sits on one baseline; the previous row mixed
+         24, 30, 34 and 36 and nothing lined up. -->
     <div class="flex flex-wrap items-center gap-2">
       <button
         type="button"
         @click="isRepeatModalOpen = true"
-        class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 active:scale-95"
+        class="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 active:scale-95"
         title="Copy one day's hours across the days you choose"
       >
         <i class="fa-solid fa-repeat text-xs text-brighture-bronze"></i>
@@ -65,7 +96,7 @@
       <button
         type="button"
         @click="isReserveModalOpen = true"
-        class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 active:scale-95"
+        class="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50 active:scale-95"
         title="Block time for a manager-scheduled class or meeting"
       >
         <i class="fa-solid fa-bookmark text-xs text-indigo-600"></i>
@@ -77,51 +108,28 @@
       <button
         type="button"
         @click="clearAll"
-        class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-500 shadow-2xs transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95"
+        class="inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3.5 text-xs font-bold text-slate-500 shadow-2xs transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-700 active:scale-95"
         title="Close every slot this week"
       >
         <i class="fa-regular fa-trash-can text-[11px]"></i>
         <span>Clear week</span>
       </button>
 
-      <span class="flex-1"></span>
-
-      <!-- The grid is faster for "every Tuesday afternoon"; the calendar is
-           faster for "9 to 5 on weekdays". Both write the same states. -->
-      <div class="inline-flex items-center rounded-xl border border-slate-200/60 bg-slate-100 p-1">
-        <button
-          type="button"
-          @click="view = 'grid'"
-          :aria-pressed="view === 'grid' ? 'true' : 'false'"
-          class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition"
-          :class="view === 'grid' ? 'bg-white font-bold text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'"
-        >
-          <i class="fa-solid fa-table-cells text-[11px]"></i>
-          <span>Grid</span>
-        </button>
-        <button
-          type="button"
-          @click="view = 'calendar'"
-          :aria-pressed="view === 'calendar' ? 'true' : 'false'"
-          class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition"
-          :class="view === 'calendar' ? 'bg-white font-bold text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'"
-        >
-          <i class="fa-regular fa-calendar text-[11px]"></i>
-          <span>Calendar</span>
-        </button>
-      </div>
     </div>
 
     <AvailabilityCalendar
       v-if="view === 'calendar'"
+      class="schedule-board"
       :timezones="addedTimezones"
       :base-timezone="activeTimezone"
     />
 
     <!-- The grid scrolls inside its own box; the page itself never scrolls
          sideways, which is what makes this usable on a phone. -->
-    <div v-show="view === 'grid'" class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-      <div class="overflow-x-auto">
+    <div v-show="view === 'grid'" class="schedule-board flex flex-col overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+      <!-- Matches the calendar's height so switching views does not resize the
+           page, and scrolls inside itself rather than growing it. -->
+      <div class="schedule-grid-scroll min-h-0 flex-1 overflow-auto">
         <!-- table-fixed: with auto layout a single "Manager" label widened
              that whole day column, so the week read as uneven even though every
              slot is the same one hour. Fixed layout splits the row evenly and
@@ -129,7 +137,7 @@
         <table class="w-full min-w-[680px] table-fixed border-collapse text-center">
           <thead>
             <tr class="bg-slate-50">
-              <th class="sticky left-0 z-10 bg-slate-50 px-2 py-2.5 text-center border-r border-slate-200/80 w-24 min-w-24">
+              <th class="sticky left-0 top-0 z-30 bg-slate-50 px-2 py-2.5 text-center border-r border-slate-200/80 w-24 min-w-24">
                 <div class="flex flex-col items-center justify-center leading-tight">
                   <span class="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">ZONE</span>
                   <span class="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-black bg-amber-100 text-amber-900 mt-0.5">
@@ -137,9 +145,13 @@
                   </span>
                 </div>
               </th>
-              <th v-for="day in teacher.scheduleDays" :key="day.key" class="px-2 py-2">
-                <p class="text-xs font-black text-slate-700">{{ day.label }}</p>
-                <p class="text-[10px] text-slate-400">{{ day.date }}</p>
+              <th v-for="day in teacher.scheduleDays" :key="day.key" class="sticky top-0 z-20 bg-slate-50 px-2 py-2">
+                <p class="text-xs font-black" :class="day.isToday ? 'text-brighture-bronze' : 'text-slate-700'">
+                  {{ day.label }}
+                </p>
+                <p class="text-[10px] tabular-nums" :class="day.isToday ? 'font-bold text-brighture-bronze' : 'text-slate-400'">
+                  {{ day.date }}
+                </p>
                 <button
                   type="button"
                   @click="toggleDay(day.key)"
@@ -251,6 +263,7 @@
 
 <script setup>
 import AvailabilityCalendar from '../../components/teacher/AvailabilityCalendar.vue';
+import WeekNavigator from '../../components/teacher/WeekNavigator.vue';
 import RepeatScheduleModal from '../../components/teacher/RepeatScheduleModal.vue';
 import ReserveModal from '../../components/teacher/ReserveModal.vue';
 import { ref, computed, watch } from 'vue';
@@ -339,6 +352,16 @@ const getScheduleSignature = () => {
 
 const savedSnapshot = ref(getScheduleSignature());
 const saved = ref(false);
+/** Whether this week was still following the pattern when it was last saved. */
+const savedFollowedPattern = ref(teacher.weekFollowsPattern);
+
+// A different week is a different sheet: it carries its own saved state, not
+// the outgoing week's.
+watch(() => teacher.activeWeekStart, () => {
+  savedSnapshot.value = getScheduleSignature();
+  savedFollowedPattern.value = teacher.weekFollowsPattern;
+  saved.value = false;
+});
 
 const isDirty = computed(() => getScheduleSignature() !== savedSnapshot.value);
 
@@ -396,19 +419,41 @@ const revert = () => {
     }
   });
 
-  allSlotIds().forEach((id) => {
-    if (restored[id]) {
-      teacher.availability[id] = restored[id];
-    } else {
-      delete teacher.availability[id];
-    }
-  });
+  // Undoing back to a week that followed the pattern means dropping the
+  // exception, not writing the pattern's hours into a copy of it.
+  if (savedFollowedPattern.value) {
+    teacher.followPattern();
+  } else {
+    teacher.beginWeekEdit();
+    allSlotIds().forEach((id) => {
+      if (restored[id]) {
+        teacher.availability[id] = restored[id];
+      } else {
+        delete teacher.availability[id];
+      }
+    });
+  }
   saved.value = false;
 };
 
 const save = () => {
   savedSnapshot.value = getScheduleSignature();
+  savedFollowedPattern.value = teacher.weekFollowsPattern;
   saved.value = true;
 };
 
 </script>
+
+<style scoped>
+/*
+ * Nine hours on screen at a time. Slots are half-hours, so that is eighteen
+ * rows; the board scrolls to reach the rest of the day rather than trying to
+ * fit twenty-four hours into whatever the window happens to be.
+ */
+.schedule-board {
+  --hour-height: 60px;
+  --visible-hours: 9;
+  height: calc(var(--visible-hours) * var(--hour-height) + 5.5rem);
+}
+.schedule-grid-scroll { min-height: 0; }
+</style>

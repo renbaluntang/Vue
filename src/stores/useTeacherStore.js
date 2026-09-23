@@ -512,33 +512,79 @@ Nice to meet you all and I hope we can work together well.`,
 
   // Availability grid. Days are columns, half-hour slots are rows, exactly like
   // the legacy scheduling matrix; `open` is what the instructor offers.
-  const scheduleDays = ref([
-    { key: 'sun', label: 'Sun', date: '09/06' },
-    { key: 'mon', label: 'Mon', date: '09/07' },
-    { key: 'tue', label: 'Tue', date: '09/08' },
-    { key: 'wed', label: 'Wed', date: '09/09' },
-    { key: 'thu', label: 'Thu', date: '09/10' },
-    { key: 'fri', label: 'Fri', date: '09/11' },
-    { key: 'sat', label: 'Sat', date: '09/12' },
-  ]);
+  /**
+   * Week navigation. The schedule is a repeating weekly pattern, and each real
+   * week follows it until the instructor changes that week — at which point the
+   * week keeps its own hours as an exception. That is how rostering usually
+   * works: you set a normal week once, then deal with the weeks that are not
+   * normal.
+   */
+  const DAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const DAY_LABELS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+  /** Midday, so a day's identity never moves under daylight saving. */
+  const atNoon = (value) => {
+    const d = value instanceof Date ? new Date(value) : new Date(`${value}T12:00:00`);
+    d.setHours(12, 0, 0, 0);
+    return d;
+  };
+  const isoDay = (d) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  const weekStartOf = (value) => {
+    const d = atNoon(value);
+    d.setDate(d.getDate() - d.getDay());
+    return isoDay(d);
+  };
+
+  const activeWeekStart = ref(weekStartOf(new Date()));
+  const thisWeekStart = computed(() => weekStartOf(new Date()));
+
+  const scheduleDays = computed(() => {
+    const start = atNoon(activeWeekStart.value);
+    return DAY_KEYS.map((key, i) => {
+      const d = new Date(start);
+      d.setDate(d.getDate() + i);
+      return {
+        key,
+        label: DAY_LABELS[i],
+        date: `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`,
+        iso: isoDay(d),
+        dayOfMonth: d.getDate(),
+        isToday: isoDay(d) === isoDay(new Date()),
+      };
+    });
+  });
 
   /** Manila hours the school actually books, paired with their Tokyo clock. */
   // Every hour of the day, not a 07:00-20:00 window. The old range was fixed in
   // Manila hours, so simply viewing the board in another zone slid the whole
   // day sideways and put early or late hours out of reach entirely — a Tokyo
   // instructor could not open 07:00 JST because it is 06:00 in Manila.
+  /**
+   * Half-hour granularity: lessons are 30 minutes, so an hour-only grid could
+   * not express the shift that starts at half past. Every hour assumption in
+   * the app reads this constant rather than the number 60.
+   */
+  const SLOT_MINUTES = 30;
+  const SLOTS_PER_HOUR = 60 / SLOT_MINUTES;
+  const clockText = (mins) =>
+    `${String(Math.floor(mins / 60) % 24).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+  /** "09:30" -> "t0930": one stable key per slot, minutes included. */
+  const slotKeyFor = (mins) => `t${clockText(mins).replace(':', '')}`;
+
   const scheduleSlots = ref(
-    Array.from({ length: 24 }, (_, i) => {
-      const manilaHour = i;
+    Array.from({ length: (24 * 60) / SLOT_MINUTES }, (_, i) => {
+      const mins = i * SLOT_MINUTES;
       return {
-        key: `t${manilaHour}`,
-        manila: `${String(manilaHour).padStart(2, '0')}:00`,
-        tokyo: `${String((manilaHour + 1) % 24).padStart(2, '0')}:00`,
+        key: slotKeyFor(mins),
+        minutes: mins,
+        manila: clockText(mins),
+        tokyo: clockText(mins + 60),
       };
     })
   );
 
-  const availability = ref(
+  const weekPattern = ref(
     (() => {
       const seed = {};
       const openByDay = {
@@ -550,17 +596,77 @@ Nice to meet you all and I hope we can work together well.`,
         fri: [9, 10, 11],
         sat: [10, 11],
       };
+      // The seed is written in whole hours; each one covers both its halves.
       Object.entries(openByDay).forEach(([day, hours]) => {
-        hours.forEach((hour) => { seed[`${day}-t${hour}`] = 'open'; });
+        hours.forEach((hour) => {
+          for (let i = 0; i < SLOTS_PER_HOUR; i += 1) {
+            seed[`${day}-${slotKeyFor(hour * 60 + i * SLOT_MINUTES)}`] = 'open';
+          }
+        });
       });
 
-      // Realistic seed for reserved slots (manager scheduled class, team meeting):
-      seed['wed-t13'] = { status: 'reserved', reason: 'Manager Scheduled Class' };
-      seed['fri-t16'] = { status: 'reserved', reason: 'Team Meeting / Sync' };
+      const hold = (day, hour, reason) => {
+        for (let i = 0; i < SLOTS_PER_HOUR; i += 1) {
+          seed[`${day}-${slotKeyFor(hour * 60 + i * SLOT_MINUTES)}`] = { status: 'reserved', reason };
+        }
+      };
+      hold('wed', 13, 'Manager Scheduled Class');
+      hold('fri', 16, 'Team Meeting / Sync');
 
       return seed;
     })()
   );
+
+  /** Weeks that have stopped following the pattern, keyed by their Sunday. */
+  const weekOverrides = ref({});
+
+  /**
+   * Everything already reads and writes `availability`, so pointing it at
+   * either the pattern or the active week's exception keeps every caller —
+   * grid, calendar, modals — working unchanged.
+   */
+  const availability = computed(
+    () => weekOverrides.value[activeWeekStart.value] ?? weekPattern.value
+  );
+
+  const weekFollowsPattern = computed(() => !weekOverrides.value[activeWeekStart.value]);
+  const weekHasOwnHours = (iso) => !!weekOverrides.value[iso];
+  const editedWeeks = computed(() => Object.keys(weekOverrides.value));
+
+  const copyMap = (map) =>
+    Object.fromEntries(
+      Object.entries(map).map(([k, v]) => [k, typeof v === 'object' && v ? { ...v } : v])
+    );
+
+  /**
+   * Called before any write. Editing a week that still follows the pattern
+   * forks it rather than quietly rewriting every other week too.
+   */
+  const beginWeekEdit = () => {
+    if (weekOverrides.value[activeWeekStart.value]) return;
+    weekOverrides.value[activeWeekStart.value] = copyMap(weekPattern.value);
+  };
+
+  /** Drop this week's exception and go back to the repeating pattern. */
+  const followPattern = () => {
+    delete weekOverrides.value[activeWeekStart.value];
+  };
+
+  /** Promote this week's hours to the pattern every other week follows. */
+  const applyWeekToPattern = () => {
+    const own = weekOverrides.value[activeWeekStart.value];
+    if (!own) return;
+    weekPattern.value = copyMap(own);
+    delete weekOverrides.value[activeWeekStart.value];
+  };
+
+  const goToWeek = (iso) => { activeWeekStart.value = weekStartOf(iso); };
+  const shiftWeek = (weeks) => {
+    const d = atNoon(activeWeekStart.value);
+    d.setDate(d.getDate() + weeks * 7);
+    activeWeekStart.value = isoDay(d);
+  };
+  const goToThisWeek = () => { activeWeekStart.value = thisWeekStart.value; };
 
   const getSlotStatus = (dayKey, slotKey) => {
     const val = availability.value[`${dayKey}-${slotKey}`];
@@ -582,6 +688,7 @@ Nice to meet you all and I hope we can work together well.`,
   };
 
   const setSlotStatus = (dayKey, slotKey, status, reason = '') => {
+    beginWeekEdit();
     const id = `${dayKey}-${slotKey}`;
     if (status === 'closed') {
       delete availability.value[id];
@@ -638,6 +745,11 @@ Nice to meet you all and I hope we can work together well.`,
       setSlotStatus(day.key, slotKey, status, reason);
     });
   };
+
+  /** Slots are half-hours now, so anything user-facing counts in hours. */
+  const asHours = (slots) => Math.round((slots / SLOTS_PER_HOUR) * 10) / 10;
+  const openHours = computed(() => asHours(openSlotCount.value));
+  const reservedHours = computed(() => asHours(reservedSlotCount.value));
 
   const openSlotCount = computed(() => {
     return Object.keys(availability.value).filter((key) => {
@@ -826,8 +938,11 @@ Nice to meet you all and I hope we can work together well.`,
     lessonLog, pendingFeedback, submitFeedback,
     materialsByStudent, materialsFor, materialCount, addMaterial, removeMaterial,
     scheduleDays, scheduleSlots, availability, getSlotStatus, isOpen, isReserved, isClosed,
+    activeWeekStart, thisWeekStart, weekOverrides, weekFollowsPattern, weekHasOwnHours,
+    editedWeeks, beginWeekEdit, followPattern, applyWeekToPattern,
+    goToWeek, shiftWeek, goToThisWeek, weekStartOf,
     getSlotReason, setSlotStatus, cycleSlot, toggleSlot, setDay, setDayStatus, setSlotRow, setSlotRowStatus,
-    openSlotCount, reservedSlotCount,
+    openSlotCount, reservedSlotCount, openHours, reservedHours, SLOT_MINUTES, SLOTS_PER_HOUR,
     weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings,
     analytics,
   };

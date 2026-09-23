@@ -95,7 +95,7 @@
                   class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-2xs focus:border-indigo-500 focus:outline-none cursor-pointer"
                 >
                   <option v-for="s in slots" :key="s.key" :value="s.key">
-                    {{ s.manila }}
+                    {{ to12(s.manila) }}
                   </option>
                 </select>
               </div>
@@ -106,7 +106,7 @@
                   class="w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-800 shadow-2xs focus:border-indigo-500 focus:outline-none cursor-pointer"
                 >
                   <option v-for="s in slots" :key="s.key" :value="s.key">
-                    {{ s.manila }}
+                    {{ to12(s.manila) }}
                   </option>
                 </select>
               </div>
@@ -133,7 +133,7 @@
               <span>Summary</span>
             </div>
             <p>
-              Will reserve <strong class="text-slate-900">{{ selectedTimeLabel }}</strong> on
+              Will hold <strong class="text-slate-900">{{ selectedTimeLabel }}</strong> on
               <strong class="text-slate-900">{{ selectedDaysLabels.join(', ') || 'no days selected' }}</strong>
               as <em class="font-bold text-indigo-900">"{{ reason.trim() || 'Manager Scheduled Class' }}"</em>.
             </p>
@@ -190,12 +190,28 @@ const emit = defineEmits(['close', 'applied']);
 const teacher = useTeacherStore();
 
 const selectedDays = ref(['mon', 'tue', 'wed', 'thu', 'fri']);
-const rangeStart = ref('t13');
-const rangeEnd = ref('t14');
+const rangeStart = ref('t1300');
+const rangeEnd = ref('t1400');
 const reason = ref('Manager Scheduled Class');
 
 const days = computed(() => teacher.scheduleDays);
 const slots = computed(() => teacher.scheduleSlots);
+
+/** "13:30" -> "1:30 PM"; the label people actually read a roster in. */
+const to12 = (hhmm) => {
+  const [h, m] = String(hhmm).split(':').map(Number);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  const hour = h % 12 || 12;
+  return m ? `${hour}:${String(m).padStart(2, '0')} ${suffix}` : `${hour} ${suffix}`;
+};
+
+/** Slots are keyed by clock time now, so ranges compare on minutes. */
+const slotMinutesOf = (key) => teacher.scheduleSlots.find((s) => s.key === key)?.minutes ?? 0;
+const slotSpan = () => {
+  const a = slotMinutesOf(rangeStart.value);
+  const b = slotMinutesOf(rangeEnd.value);
+  return { from: Math.min(a, b), to: Math.max(a, b) };
+};
 
 const getDayLabel = (dayKey) => {
   const match = days.value.find((d) => d.key === dayKey);
@@ -204,10 +220,16 @@ const getDayLabel = (dayKey) => {
 
 const selectedDaysLabels = computed(() => selectedDays.value.map(getDayLabel));
 
+/**
+ * Reads as the block of time it actually holds. The old summary printed the
+ * slot keys — "t13 – t14" — which named rows in the grid rather than hours in
+ * the day, and stopped at the last slot's start instead of its end.
+ */
 const selectedTimeLabel = computed(() => {
-  const s = slots.value.find((slot) => slot.key === rangeStart.value);
-  const e = slots.value.find((slot) => slot.key === rangeEnd.value);
-  return `${s ? s.manila : rangeStart.value} – ${e ? e.manila : rangeEnd.value}`;
+  const { from, to } = slotSpan();
+  const end = to + (teacher.SLOT_MINUTES ?? 30);
+  const text = (mins) => `${String(Math.floor(mins / 60) % 24).padStart(2, '0')}:${String(mins % 60).padStart(2, '0')}`;
+  return `${to12(text(from))} – ${to12(text(end))}`;
 });
 
 const toggleDay = (dayKey) => {
@@ -225,16 +247,12 @@ const selectAllDays = () => {
 };
 
 const applyReservation = () => {
-  const startHour = parseInt(rangeStart.value.replace('t', ''), 10);
-  const endHour = parseInt(rangeEnd.value.replace('t', ''), 10);
-  const minH = Math.min(startHour, endHour);
-  const maxH = Math.max(startHour, endHour);
+  const { from, to } = slotSpan();
   const appliedReason = reason.value.trim() || 'Manager Scheduled Class';
 
   selectedDays.value.forEach((dayKey) => {
     teacher.scheduleSlots.forEach((slot) => {
-      const h = parseInt(slot.key.replace('t', ''), 10);
-      if (h >= minH && h <= maxH) {
+      if (slot.minutes >= from && slot.minutes <= to) {
         teacher.setSlotStatus(dayKey, slot.key, 'reserved', appliedReason);
       }
     });
@@ -245,15 +263,11 @@ const applyReservation = () => {
 };
 
 const clearReservation = () => {
-  const startHour = parseInt(rangeStart.value.replace('t', ''), 10);
-  const endHour = parseInt(rangeEnd.value.replace('t', ''), 10);
-  const minH = Math.min(startHour, endHour);
-  const maxH = Math.max(startHour, endHour);
+  const { from, to } = slotSpan();
 
   selectedDays.value.forEach((dayKey) => {
     teacher.scheduleSlots.forEach((slot) => {
-      const h = parseInt(slot.key.replace('t', ''), 10);
-      if (h >= minH && h <= maxH && teacher.isReserved(dayKey, slot.key)) {
+      if (slot.minutes >= from && slot.minutes <= to && teacher.isReserved(dayKey, slot.key)) {
         teacher.setSlotStatus(dayKey, slot.key, 'closed');
       }
     });
