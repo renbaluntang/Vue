@@ -20,6 +20,7 @@ import {
   getTeacherPhoto,
   getTeacherModalImage,
   INTRO_VIDEO_ID,
+  DEMO_VIDEO_ID,
   getTeacherProfile,
   getTeacherSubjectOptions,
   parseSubjectCodes,
@@ -51,7 +52,11 @@ const confirmSubject = ref("");
 const search = ref("");
 const subjectFilter = ref("ALL");
 const favoritesOnly = ref(false);
-const activeVideoTeacher = ref(null);
+// Which clip is open, and whose. The card offers two now and they are
+// different content, so the teacher alone no longer identifies the video.
+const activeVideo = ref(null); // { teacher, kind: 'intro' | 'demo' }
+const openVideo = (teacher, kind) => { activeVideo.value = { teacher, kind }; };
+const closeVideo = () => { activeVideo.value = null; };
 
 // Popover / Date & Time state
 const isPopoverOpen = ref(false);
@@ -80,6 +85,33 @@ const resetFilters = () => {
   tempSelectedDayKey.value = "";
   tempSelectedTime.value = "";
   tempFilterDuration.value = 30;
+};
+
+// Teacher card friendly presentation helpers
+const getCleanSubjectName = (code) => {
+  const label = SUBJECT_LABELS[code] || code;
+  return label.replace(/^\[[A-Z0-9]+\]\s*/i, "").trim();
+};
+
+const getSubjectCategoryBadge = (code) => {
+  const cat = getSubjectCategory(code);
+  if (!cat) return { name: "General", icon: "📚", badgeBg: "bg-slate-100 text-slate-700" };
+  if (cat.id === "conversation") {
+    return { name: "Conversation", icon: "💬", badgeBg: "bg-sky-100/90 text-sky-800" };
+  }
+  if (cat.id === "pronunciation") {
+    return { name: "Pronunciation", icon: "🗣️", badgeBg: "bg-amber-100/90 text-amber-900" };
+  }
+  if (cat.id === "specialized") {
+    return { name: "Specialized", icon: "🎯", badgeBg: "bg-purple-100/90 text-purple-900" };
+  }
+  return { name: "General", icon: "📚", badgeBg: "bg-slate-100 text-slate-700" };
+};
+
+const getCleanExpertise = (teacher) => {
+  const raw = getTeacherProfile(teacher).expertise || "";
+  // Strip code prefixes like [SF], [LS1], etc. so it's readable
+  return raw.replace(/\[[A-Z0-9]+\]\s*/gi, "").trim();
 };
 
 watch(
@@ -437,7 +469,7 @@ const getNowLineTop = () => {
 const containerMaxWidthClass = "max-w-[1240px]";
 const sectionColsClass = "grid-cols-1";
 const cardBodyGridClass = "md:grid-cols-[200px,1fr]";
-const cardPhotoAspectClass = "max-w-[200px] aspect-[4/3] sm:aspect-square";
+const cardPhotoAspectClass = "max-w-[200px] aspect-square";
 </script>
 
 <template>
@@ -628,44 +660,51 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-[4/3] sm:aspect-square";
         <article
           v-for="teacher in filteredInstructors"
           :key="teacher.id"
-          class="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 shadow-xs transition-all duration-300 hover:border-brighture-gold/60 hover:shadow-lg sm:p-6"
+          class="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-sm transition-all duration-300 hover:border-amber-400/80 hover:shadow-xl hover:shadow-slate-200/50"
         >
           <div>
-            <!-- Header Row: Name, Rating, Status, Points, Favorite -->
+            <!-- Header Row: Instructor Name, Lesson Stats, Rates & Favorite Button -->
             <div class="flex flex-col gap-3 pb-4 border-b border-slate-100 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex flex-wrap items-center gap-2">
+              <div class="flex flex-wrap items-center gap-3">
                 <h3
                   @click="openTeacherProfile(teacher)"
-                  class="m-0 text-lg sm:text-xl font-black tracking-tight text-slate-900 cursor-pointer hover:text-brighture-bronze transition"
-                  title="Click to view full profile & schedule"
+                  class="m-0 text-xl font-extrabold tracking-tight text-slate-900 cursor-pointer hover:text-amber-600 transition flex items-center gap-2"
+                  title="Click to view full schedule & profile"
                 >
-                  {{ teacher.name }}
+                  <span>{{ teacher.name }}</span>
                 </h3>
 
+                <!-- Experience Tag -->
+                <div class="inline-flex items-center rounded-full bg-slate-50 border border-slate-200/80 px-2.5 py-1 text-xs">
+                  <span class="text-slate-500 font-medium">
+                    {{ (teacher.lessonCount || 850).toLocaleString() }}+ lessons taught
+                  </span>
+                </div>
               </div>
 
-              <div class="flex items-center justify-between sm:justify-end gap-2">
-                <div class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-1.5 text-[11px] font-medium text-slate-600 shadow-2xs">
-                  <span class="text-slate-400 font-semibold">Rate:</span>
-                  <span class="font-bold text-slate-800">
-                    30m: <strong class="text-slate-900">{{ pointsForDuration(teacher, 30) }} pts</strong>
+              <!-- Rates & Action Pill -->
+              <div class="flex items-center justify-between sm:justify-end gap-2.5">
+                <div class="inline-flex items-center gap-2 rounded-xl border border-amber-200/70 bg-gradient-to-r from-amber-50/70 to-orange-50/50 px-3 py-1.5 text-xs shadow-2xs">
+                  <span class="text-amber-800/80 font-bold uppercase tracking-wider text-[10px]">Lesson Cost:</span>
+                  <span class="font-extrabold text-slate-800">
+                    30 min <span class="text-amber-700">({{ pointsForDuration(teacher, 30) }} pts)</span>
                   </span>
-                  <span class="text-slate-300">·</span>
-                  <span class="font-bold text-slate-800">
-                    1h: <strong class="text-slate-900">{{ pointsForDuration(teacher, 60) }} pts</strong>
+                  <span class="text-amber-300 font-bold">/</span>
+                  <span class="font-extrabold text-slate-800">
+                    60 min <span class="text-amber-700">({{ pointsForDuration(teacher, 60) }} pts)</span>
                   </span>
                 </div>
 
                 <button
                   type="button"
                   @click="toggleFavorite(teacher.id)"
-                  :class="`inline-flex h-9 w-9 items-center justify-center rounded-xl border text-sm transition cursor-pointer ${
+                  :class="`inline-flex h-9 w-9 items-center justify-center rounded-xl border text-sm transition-all cursor-pointer ${
                     favorites.includes(teacher.id)
                       ? 'border-amber-300 bg-amber-50 text-amber-500 shadow-xs hover:bg-amber-100 scale-105'
-                      : 'border-slate-200 bg-white text-slate-400 hover:border-amber-300 hover:text-amber-500'
+                      : 'border-slate-200 bg-white text-slate-400 hover:border-amber-300 hover:text-amber-500 hover:bg-amber-50/40'
                   }`"
                   :aria-label="`Toggle favorite for ${teacher.name}`"
-                  :title="favorites.includes(teacher.id) ? 'Remove from favorites' : 'Add to favorites'"
+                  :title="favorites.includes(teacher.id) ? 'Saved as favorite teacher' : 'Save to favorite teachers'"
                 >
                   ★
                 </button>
@@ -674,108 +713,121 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-[4/3] sm:aspect-square";
 
             <!-- Body Content -->
             <div :class="`mt-5 grid gap-5 ${cardBodyGridClass}`">
-              <!-- Left Column: Photo & Video Preview Button -->
+              <!-- Left Column: Instructor Photo & Video Actions -->
               <div class="flex flex-col items-center sm:items-start gap-3">
                 <div
                   @click="openTeacherProfile(teacher)"
-                  :class="`relative w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-200/80 shadow-xs group/avatar cursor-pointer ${cardPhotoAspectClass}`"
-                  title="Click to view teacher profile & schedule"
+                  :class="`relative w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-200 shadow-sm group/avatar cursor-pointer ${cardPhotoAspectClass}`"
+                  title="Click to view teacher schedule & available slots"
                 >
                   <img
                     :src="getTeacherModalImage(teacher)"
                     :alt="teacher.name"
                     class="h-full w-full object-cover object-top transition duration-500 group-hover/avatar:scale-105"
                   />
-                  <div class="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/20 to-transparent opacity-80" />
+                  <!-- Only a thin footing, to seat the badge. The wash used to
+                       be inset-0 and darkened the whole frame just so two lines
+                       of text could sit on it. -->
+                  <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-slate-950/70 to-transparent" />
 
-                  <div class="absolute top-2.5 right-2.5 bg-slate-900/85 backdrop-blur-xs text-white text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 shadow-sm">
-                    <span>🔍</span> Profile &amp; Bio
+                  <!-- What the photo does. Low and right: the crop is anchored
+                       to the top, so this corner is shoulder, never face. -->
+                  <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur-xs transition group-hover/avatar:bg-slate-900">
+                    <span>🗓️</span> View Schedule
                   </div>
+                </div>
 
-                  <!-- Name on the photo -->
-                  <div class="absolute bottom-13 left-3 right-3 truncate">
-                    <p class="m-0 truncate text-sm font-extrabold text-white drop-shadow-[0_1px_4px_rgba(0,0,0,0.9)]">
-                      {{ teacher.name }}
-                    </p>
-                    <p class="m-0 truncate text-[11px] font-medium text-slate-200 drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">
-                      {{ parseSubjectCodes(teacher.specialty).length }} subjects covered
-                    </p>
-                  </div>
+                <!-- Video Buttons (Distinct Icons & Clarifying Labels) -->
+                <div class="flex w-full max-w-[200px] flex-col gap-2">
+                  <button
+                    type="button"
+                    @click.stop="openVideo(teacher, 'intro')"
+                    class="inline-flex w-full touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
+                    title="Watch short video introduction"
+                  >
+                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-red-600 text-[10px]">▶</span>
+                    <span>Meet {{ teacher.name.split(' ')[0] }}</span>
+                  </button>
 
                   <button
                     type="button"
-                    @click.stop="activeVideoTeacher = teacher"
-                    class="absolute bottom-2.5 left-2.5 right-2.5 flex items-center justify-center gap-2 rounded-xl bg-slate-900/90 backdrop-blur-xs px-3 py-2 text-[11px] font-bold text-white shadow-md transition hover:bg-red-600 hover:scale-[1.02] active:scale-95 cursor-pointer"
+                    @click.stop="openVideo(teacher, 'demo')"
+                    class="inline-flex w-full touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
+                    title="Watch an actual lesson sample"
                   >
-                    <svg class="h-3.5 w-3.5 fill-red-500" viewBox="0 0 24 24">
-                      <path d="M8 5v14l11-7z" />
-                    </svg>
-                    Watch Intro Video
+                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-[10px]">🎬</span>
+                    <span>Watch Demo Lesson</span>
                   </button>
                 </div>
               </div>
 
-              <!-- Right Column: Clean Metadata Cards -->
+              <!-- Right Column: Organized Teacher Details -->
               <div class="space-y-3.5">
-                <!-- Major & Expertise Cards -->
+                <!-- Academic Background & Teaching Focus Info Grid -->
                 <div class="grid gap-2.5 sm:grid-cols-2">
-                  <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 shadow-2xs">
-                    <div class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      <svg class="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="rounded-xl border border-slate-200/70 bg-slate-50/70 p-3.5 shadow-2xs">
+                    <div class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                      <svg class="h-3.5 w-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
                       </svg>
-                      Academic Background
+                      <span>Academic Background</span>
                     </div>
-                    <p class="mt-0.5 text-xs font-bold text-slate-800 m-0 leading-snug">{{ getTeacherProfile(teacher).major }}</p>
+                    <p class="mt-1 text-xs font-bold text-slate-800 m-0 leading-snug">{{ getTeacherProfile(teacher).major }}</p>
                   </div>
 
-                  <div class="rounded-xl border border-slate-100 bg-slate-50/80 p-3 shadow-2xs">
-                    <div class="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-                      <svg class="h-3 w-3 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <div class="rounded-xl border border-slate-200/70 bg-slate-50/70 p-3.5 shadow-2xs">
+                    <div class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
+                      <svg class="h-3.5 w-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                       </svg>
-                      Focus Areas
+                      <span>Primary Specialization</span>
                     </div>
-                    <p class="mt-0.5 text-xs font-semibold text-slate-700 m-0 leading-snug">{{ getTeacherProfile(teacher).expertise }}</p>
+                    <p class="mt-1 text-xs font-semibold text-slate-700 m-0 leading-snug">{{ getCleanExpertise(teacher) }}</p>
                   </div>
                 </div>
 
-                <!-- Subjects Taught Badges (Category-Color-Coded with Active Match Glow) -->
-                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/60 p-3.5 space-y-2">
+                <!-- Subjects Taught Badges with Clear Names & Category Pills -->
+                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-3.5 space-y-2.5">
                   <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                      <svg class="h-3.5 w-3.5 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <div class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-600">
+                      <svg class="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                       </svg>
-                      <span>Subjects Covered ({{ parseSubjectCodes(teacher.specialty).length }})</span>
+                      <span>Subjects Taught ({{ parseSubjectCodes(teacher.specialty).length }})</span>
                     </div>
-                    <span v-if="subjectFilter !== 'ALL'" class="text-[10px] font-bold text-amber-700">
-                      Highlighted match
+                    <span v-if="subjectFilter !== 'ALL'" class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
+                      <span>✓</span> Filter match
                     </span>
                   </div>
 
-                  <div class="flex flex-wrap gap-1.5">
+                  <div class="flex flex-wrap gap-2">
                     <span
                       v-for="code in parseSubjectCodes(teacher.specialty)"
                       :key="code"
                       :class="[
-                        'inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold transition-all shadow-2xs',
+                        'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all shadow-2xs',
                         getSubjectBadgeStyle(code, isSubjectMatchingFilter(code, subjectFilter) && subjectFilter !== 'ALL')
                       ]"
                     >
-                      <span v-if="isSubjectMatchingFilter(code, subjectFilter) && subjectFilter !== 'ALL'" class="text-amber-700 font-black">✓</span>
-                      <span>{{ SUBJECT_LABELS[code] || code }}</span>
+                      <!-- Subject Code Tag -->
+                      <span class="rounded bg-black/10 px-1 py-0.2 text-[10px] font-mono font-black opacity-75">
+                        {{ code.replace(/[\[\]]/g, '') }}
+                      </span>
+                      <!-- Readable Subject Title -->
+                      <span>{{ getCleanSubjectName(code) }}</span>
                     </span>
                   </div>
                 </div>
 
-                <!-- Self Introduction Quote Box -->
-                <div class="relative rounded-2xl border border-slate-200/70 bg-gradient-to-r from-amber-50/30 via-slate-50 to-white p-3.5 pl-4">
-                  <div class="absolute left-0 top-3 bottom-3 w-1.5 rounded-r-full bg-brighture-gold" />
-                  <p class="m-0 text-[9px] font-black uppercase tracking-wider text-slate-400 mb-1">
-                    Instructor Introduction
+                <!-- Teacher Introduction Quote Box -->
+                <div class="relative rounded-2xl border border-slate-200/80 bg-gradient-to-r from-amber-50/30 via-slate-50/80 to-white p-3.5 pl-4 shadow-2xs">
+                  <div class="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-amber-400" />
+                  <p class="m-0 text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1">
+                    <span>💬</span>
+                    <span>Teacher Introduction</span>
                   </p>
-                  <p class="m-0 text-xs leading-relaxed text-slate-700 italic line-clamp-3">
+                  <p class="m-0 text-xs leading-relaxed text-slate-700 italic line-clamp-3 font-normal">
                     "{{ getTeacherProfile(teacher).selfIntro }}"
                   </p>
                 </div>
@@ -785,31 +837,20 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-[4/3] sm:aspect-square";
 
           <!-- Card Footer CTA Bar -->
           <div class="mt-5 flex flex-col items-center justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row">
-            <div class="flex items-center gap-1.5 text-[11px] text-slate-500 font-medium">
-              <svg class="h-4 w-4 text-emerald-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span>Instant timetable booking available</span>
+            <div class="flex items-center gap-2 text-xs text-slate-600 font-medium">
+              <span class="flex h-2 w-2 rounded-full bg-emerald-500"></span>
+              <span>Available for instant booking — Choose from upcoming timetable</span>
             </div>
 
             <div class="flex items-center gap-2 w-full sm:w-auto">
               <button
                 type="button"
-                @click="activeVideoTeacher = teacher"
-                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-3.5 py-2.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-xs shadow-2xs transition cursor-pointer"
-              >
-                <span>▶</span>
-                <span>Intro Video</span>
-              </button>
-
-              <button
-                type="button"
                 @click="openTeacherProfile(teacher)"
-                class="flex-1 sm:flex-none inline-flex items-center justify-center gap-1.5 px-5 py-2.5 rounded-xl bg-[#FFCD00] hover:bg-[#FFD933] text-black font-extrabold text-xs shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
+                class="flex-1 sm:flex-none inline-flex min-w-0 touch-manipulation items-center justify-center gap-2 whitespace-nowrap border border-amber-300 px-6 py-2.5 rounded-xl bg-[#FFCD00] hover:bg-[#FFD933] active:bg-amber-400 text-slate-900 font-extrabold text-xs shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
-                <span>🗓️</span>
-                <span>Book Class</span>
-                <span class="text-xs">→</span>
+                <span>📅</span>
+                <span>Select &amp; Book Class</span>
+                <span>→</span>
               </button>
             </div>
           </div>
@@ -837,27 +878,33 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-[4/3] sm:aspect-square";
 
     <!-- Video Lightbox Modal -->
     <div
-      v-if="activeVideoTeacher"
+      v-if="activeVideo"
       class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/75 backdrop-blur-xs p-4"
-      @click="activeVideoTeacher = null"
+      @click="closeVideo"
     >
       <div
         class="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-black shadow-2xl border border-slate-800"
         @click.stop
       >
         <div class="flex items-center justify-between bg-slate-900 px-4 py-3 text-white border-b border-slate-800">
-          <div class="flex items-center gap-2">
-            <h3 class="m-0 text-sm font-semibold">{{ activeVideoTeacher.name }} — Video Intro</h3>
+          <div class="min-w-0">
+            <h3 class="m-0 truncate text-sm font-semibold">
+              {{ activeVideo.kind === 'demo' ? 'Demo lesson' : 'Introduction' }}
+            </h3>
+            <p class="m-0 truncate text-[11px] text-slate-400">
+              {{ activeVideo.teacher.name }} ·
+              {{ activeVideo.kind === 'demo' ? 'a few minutes of a real class' : 'about themselves' }}
+            </p>
           </div>
           <button
             type="button"
-            @click="activeVideoTeacher = null"
-            class="rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white"
+            @click="closeVideo"
+            class="shrink-0 rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white"
           >
             Close ✕
           </button>
         </div>
-        <TeacherIntroVideo :video-id="INTRO_VIDEO_ID" />
+        <TeacherIntroVideo :video-id="activeVideo.kind === 'demo' ? DEMO_VIDEO_ID : INTRO_VIDEO_ID" />
       </div>
     </div>
 

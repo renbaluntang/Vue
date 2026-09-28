@@ -394,51 +394,57 @@
             picker-class="hidden md:block"
           />
 
-          <!-- One button, because the second segment was unreachable: going
-               Away raises the full-screen overlay, and the only way back is its
-               own "Set to Available". The overlay is also what makes a single
-               click safe here — it states plainly what just stopped, so the
-               pick is never silent. The action is spelled out beside the state
-               rather than left to a tooltip. -->
-          <button
-            v-if="teacher.teachesFreeConversation"
-            type="button"
-            @click="setAway(!teacher.isAway)"
-            :aria-pressed="teacher.isAway ? 'true' : 'false'"
-            :aria-label="teacher.isAway ? 'Set yourself to Available' : 'Set yourself to Away'"
-            :title="teacher.isAway
-              ? 'Come back: students can book Free Conversation with you again.'
-              : 'Pause new Free Conversation reservations. Lessons already booked are unaffected.'"
-            class="group inline-flex items-center gap-2 rounded-full border py-1.5 pl-2.5 pr-2.5 text-xs font-bold transition active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold sm:pl-3"
-            :class="teacher.isAway
-              ? 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
-              : 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50'"
-          >
-            <span
-              v-if="!teacher.isAway"
-              class="h-2 w-2 shrink-0 rounded-full bg-emerald-500 animate-pulse"
-            ></span>
-            <i v-else class="fa-solid fa-moon shrink-0 text-[11px] text-amber-500"></i>
-
-            <span>{{ teacher.isAway ? 'Away' : 'Available' }}</span>
-
-            <span
-              v-if="!teacher.isAway"
-              class="hidden rounded-full bg-emerald-100 px-1.5 py-0.5 text-[9px] font-black leading-none text-emerald-700 sm:inline"
-              title="Free Conversation"
-            >
-              FC
-            </span>
-
-            <span
-              class="border-l pl-2 text-[10px] font-black uppercase tracking-wide transition-colors"
+          <!-- The state is the label and the chevron is the whole affordance:
+               both settings live in the menu, so nothing is spelled out on the
+               button and no click changes anything by itself. -->
+          <div v-if="teacher.teachesFreeConversation" class="relative">
+            <button
+              type="button"
+              @click="isStatusMenuOpen = !isStatusMenuOpen"
+              aria-haspopup="menu"
+              :aria-expanded="isStatusMenuOpen ? 'true' : 'false'"
+              :aria-label="`Free Conversation: ${teacher.isAway ? 'Away' : 'Open'}`"
+              class="inline-flex items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-2.5 text-xs font-bold transition active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
               :class="teacher.isAway
-                ? 'border-amber-300/70 text-amber-700 group-hover:text-amber-900'
-                : 'border-slate-200 text-slate-400 group-hover:text-slate-700'"
+                ? 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
+                : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'"
             >
-              {{ teacher.isAway ? 'Resume' : 'Set away' }}
-            </span>
-          </button>
+              <span>{{ teacher.isAway ? 'Away' : 'Open' }}</span>
+              <i
+                class="fa-solid fa-chevron-down text-[9px] opacity-70 transition-transform duration-200"
+                :class="isStatusMenuOpen ? 'rotate-180' : ''"
+              ></i>
+            </button>
+
+            <div v-if="isStatusMenuOpen" class="fixed inset-0 z-40" @click="isStatusMenuOpen = false"></div>
+
+            <div
+              v-if="isStatusMenuOpen"
+              role="menu"
+              class="absolute right-0 top-full z-50 mt-2 w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
+            >
+              <!-- Says what the setting governs, which the two-letter badge on
+                   the button used to have to carry. -->
+              <p class="px-3 pb-1 pt-0.5 text-[10px] font-black uppercase tracking-wide text-slate-400">
+                Free Conversation
+              </p>
+              <button
+                v-for="option in statusOptions"
+                :key="option.label"
+                type="button"
+                role="menuitemradio"
+                :aria-checked="teacher.isAway === option.away ? 'true' : 'false'"
+                @click="setAway(option.away); isStatusMenuOpen = false"
+                class="flex w-full items-center rounded-xl px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink"
+              >
+                <span>{{ option.label }}</span>
+                <i
+                  v-if="teacher.isAway === option.away"
+                  class="fa-solid fa-check ml-auto text-[10px] text-emerald-600"
+                ></i>
+              </button>
+            </div>
+          </div>
 
         </div>
       </header>
@@ -693,6 +699,11 @@ const showAway = computed(() => teacher.isAway && teacher.teachesFreeConversatio
 const setAway = (away) => {
   if (teacher.isAway !== away) teacher.toggleAway();
 };
+const isStatusMenuOpen = ref(false);
+const statusOptions = [
+  { away: false, label: 'Open' },
+  { away: true, label: 'Away' },
+];
 const isSettingsSheetOpen = ref(false);
 
 const activeZoneAbbr = computed(
@@ -706,6 +717,7 @@ watch(() => route.path, () => {
   isUserMenuOpen.value = false;
   isSettingsSheetOpen.value = false;
   isMobileMenuOpen.value = false;
+  isStatusMenuOpen.value = false;
 });
 </script>
 

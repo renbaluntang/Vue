@@ -52,10 +52,47 @@
                 >
                   <i class="fa-solid fa-check text-[9px]"></i> Open for Booking
                 </span>
-                <span v-if="picked.reason && picked.status === 'reserved'" class="ml-1.5 text-[11px] font-semibold text-slate-500">
-                  {{ picked.reason }}
-                </span>
+                <template v-if="picked.status === 'reserved' && !editingReason">
+                  <span class="ml-1.5 text-[11px] font-semibold text-slate-500">{{ picked.reason || 'Reserved' }}</span>
+                  <!-- Why a block is held was the one thing about it that
+                       could be set but never changed afterwards. -->
+                  <button
+                    v-if="canEditPicked"
+                    type="button"
+                    @click="startReasonEdit"
+                    class="ml-1 inline-flex h-5 w-5 items-center justify-center rounded-md align-middle text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                    title="Edit reason"
+                    aria-label="Edit reason"
+                  >
+                    <i class="fa-solid fa-pen text-[9px]"></i>
+                  </button>
+                </template>
               </p>
+
+              <div v-if="editingReason" class="mt-1.5 flex items-center gap-1.5">
+                <input
+                  ref="reasonInput"
+                  v-model="reasonDraft"
+                  type="text"
+                  placeholder="What is this time held for?"
+                  class="min-w-0 flex-1 rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-semibold text-slate-800 focus:border-indigo-400 focus:outline-none"
+                  @keyup.enter="saveReason"
+                />
+                <button
+                  type="button"
+                  @click="saveReason"
+                  class="shrink-0 rounded-lg bg-indigo-600 px-2.5 py-1 text-[11px] font-bold text-white transition hover:bg-indigo-700 active:scale-95"
+                >
+                  Save
+                </button>
+                <button
+                  type="button"
+                  @click="editingReason = false"
+                  class="shrink-0 rounded-lg px-1.5 py-1 text-[11px] font-semibold text-slate-500 transition hover:text-slate-800"
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
             <button
               type="button"
@@ -86,11 +123,18 @@
                   :key="hour.key"
                   class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 transition hover:bg-slate-50"
                 >
-                  <span class="flex items-center gap-2 text-xs font-bold tabular-nums text-slate-700">
+                  <span
+                    class="flex items-center gap-2 text-xs font-bold tabular-nums"
+                    :class="hour.past ? 'text-slate-400' : 'text-slate-700'"
+                  >
                     <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="hour.reserved ? 'bg-indigo-500' : 'bg-emerald-500'"></span>
                     {{ hour.label }}
                   </span>
+                  <!-- An hour that has gone keeps its place in the list so the
+                       block still reads whole, but it has no × to press. -->
+                  <span v-if="hour.past" class="shrink-0 pr-1 text-[10px] font-bold text-slate-400">done</span>
                   <button
+                    v-else
                     type="button"
                     @click="removeHour(hour.key)"
                     class="flex h-6 w-6 shrink-0 cursor-pointer items-center justify-center rounded-md text-slate-400 transition hover:bg-rose-50 hover:text-rose-600"
@@ -245,7 +289,6 @@ const toMinutes = (hhmm) => {
   const [h, m] = String(hhmm).split(':').map(Number);
   return h * 60 + (m || 0);
 };
-const hourLabel = (h) => `${String(h % 24).padStart(2, '0')}:00`;
 
 /** Minutes in one grid slot — 30, not 60. */
 const slotMinutes = () => teacher.SLOT_MINUTES ?? 30;
@@ -452,6 +495,11 @@ const writeFace = (el, ev, start, end) => {
     if (el.dataset[name] !== value) el.dataset[name] = value;
   };
   set('status', reserved ? 'reserved' : 'open');
+  // Marked here rather than on the cell underneath: a run that starts before
+  // now but ends after it is mostly still ahead, and greying the whole thing
+  // said the opposite.
+  if (ev && isSpentBlock(ev)) set('spent', 'true');
+  else delete el.dataset.spent;
   // The library prints this into its own ::before when it is non-empty; the
   // reason is rendered from data-note now, so leaving it would double it up.
   set('description', '');
@@ -509,6 +557,8 @@ const pullFromCalendar = () => {
     applying = false;
     restampLabels();
     syncCalendarTimeLabels();
+    markPastCells();
+    syncNowLine();
   });
 };
 
@@ -583,6 +633,20 @@ const cellAt = (e) => {
 };
 
 const onHostPointerDown = (e) => {
+  // Hours that have begun are not offers any more. The store refuses them too,
+  // but stopping here is what keeps a drag from appearing to work and then
+  // silently doing nothing.
+  const gone = pastTarget(e);
+  if (gone === 'cell') { e.preventDefault(); picked.value = null; return; }
+  if (gone === 'block') {
+    // Readable, not draggable. preventDefault kills the click, so the press is
+    // recorded and pointerup opens the panel as it does everywhere else.
+    e.preventDefault();
+    swallowClick = false;
+    pressAt = { x: e.clientX, y: e.clientY, onItem: true, item: e.target.closest('.lm-schedule-item') };
+    return;
+  }
+
   // Cleared here rather than by the click it was meant to swallow: a drag that
   // called preventDefault produces no click at all, and the flag would then be
   // spent on the next genuine one.
@@ -950,6 +1014,19 @@ const onHostPointerUp = (e) => {
 };
 
 const DAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const MONTH_NAMES = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+/**
+ * The date under the weekday. The number alone is enough most of the time, so
+ * the month is only named where it changes — which is the week that runs from
+ * one month into the next, and the reason the date is here at all.
+ */
+const dayDateLabel = (day, index) => {
+  const [, month, dayOfMonth] = day.iso.split('-').map(Number);
+  const previous = teacher.scheduleDays[index - 1];
+  const startsNewMonth = !previous || Number(previous.iso.split('-')[1]) !== month;
+  return startsNewMonth ? `${MONTH_NAMES[month - 1]} ${dayOfMonth}` : String(dayOfMonth);
+};
 
 const openPanel = (item) => {
   const ev = item ? findEvent(item) : null;
@@ -1003,9 +1080,55 @@ const pickedHours = computed(() => {
       key: slot.key,
       label: rangeLabel(toDisplay(slot.manila), toDisplay(nextHourText(slot.manila))),
       reserved: teacher.isReserved(pick.dayKey, slot.key),
+      past: teacher.isPastSlot(pick.dayKey, slot.key),
     }))
     .filter((hour) => teacher.isOpen(pick.dayKey, hour.key) || hour.reserved);
 });
+
+/**
+ * Change the whole block's status. Lost with a batch of other functions to a
+ * scripted deletion earlier and never put back, so the panel's two status
+ * buttons have been throwing on click ever since. Hours that have already
+ * begun are refused by the store, so a block spanning now changes only from
+ * here forward.
+ */
+const setPickedStatus = (status, reason = '') => {
+  const pick = picked.value;
+  if (!pick?.dayKey) return;
+  // Snapshot first: the list is derived from the grid it is about to write to.
+  const keys = pickedHours.value.filter((hour) => !hour.past).map((hour) => hour.key);
+  keys.forEach((key) => teacher.setSlotStatus(pick.dayKey, key, status, reason));
+  picked.value = { ...pick, status, reason: status === 'reserved' ? reason : '' };
+};
+
+/* ---- Editing why a block is held --------------------------------------- */
+
+const editingReason = ref(false);
+const reasonDraft = ref('');
+const reasonInput = ref(null);
+
+/** Nothing about an hour that has gone can change, the reason included. */
+const canEditPicked = computed(() => pickedHours.value.some((hour) => !hour.past));
+
+const startReasonEdit = () => {
+  reasonDraft.value = picked.value?.reason || '';
+  editingReason.value = true;
+  nextTick(() => reasonInput.value?.focus());
+};
+
+const saveReason = () => {
+  const pick = picked.value;
+  if (!pick?.dayKey) return;
+  const next = reasonDraft.value.trim() || 'Reserved';
+  const keys = pickedHours.value.filter((hour) => !hour.past).map((hour) => hour.key);
+  keys.forEach((key) => teacher.setSlotStatus(pick.dayKey, key, 'reserved', next));
+  picked.value = { ...pick, reason: next };
+  editingReason.value = false;
+};
+
+// Opening another block closes the editor with it; leaving it open would put
+// one block's half-typed reason over the next one.
+watch(picked, () => { editingReason.value = false; });
 
 /** Close one hour. The popover stays put unless it just emptied itself. */
 const removeHour = (slotKey) => {
@@ -1046,7 +1169,102 @@ const scrollToFirstOpen = () => {
   if (row) scroller.scrollTop = row.offsetTop;
 };
 
-const onKeydown = (e) => { if (e.key === 'Escape') picked.value = null; };
+/**
+ * Hours that have already begun are shaded and refuse the pointer. The wash
+ * goes on the cells rather than as one overlay because the library rebuilds
+ * its table often and an absolutely positioned sheet would have to be
+ * re-measured every time; a data attribute survives on whatever is there.
+ */
+const markPastCells = () => {
+  if (!host.value) return;
+  const rows = gridRows();
+  rows.forEach((row, rowIndex) => {
+    const slot = teacher.scheduleSlots[rowIndex];
+    if (!slot) return;
+    [...row.children].slice(1).forEach((cell, column) => {
+      const day = teacher.scheduleDays[column];
+      const past = !!day && teacher.isPastSlot(day.key, slot.key);
+      if (past) cell.dataset.past = 'true';
+      else delete cell.dataset.past;
+      if (day?.isToday) cell.dataset.today = 'true';
+      else delete cell.dataset.today;
+    });
+  });
+};
+
+/**
+ * What, if anything, under the pointer has already gone. `'cell'` is an empty
+ * hour: nothing may be drawn there. `'block'` is a run that has begun — it can
+ * still be opened and read, and its remaining hours closed one at a time from
+ * the panel, but it may not be dragged, because a move would have to rewrite
+ * the hours that have already happened.
+ */
+const pastTarget = (e) => {
+  const item = e.target?.closest?.('.lm-schedule-item');
+  if (item) {
+    const ev = findEvent(item);
+    const day = teacher.scheduleDays[Number(ev?.weekday ?? -1)];
+    const start = teacher.scheduleSlots.find((sl) => sl.manila === (ev?.start ?? item.dataset.start));
+    return day && start && teacher.isPastSlot(day.key, start.key) ? 'block' : null;
+  }
+  const cell = e.target?.closest?.('td');
+  return cell?.dataset.past === 'true' ? 'cell' : null;
+};
+
+/** Whether a whole run is behind us, which is what greys it out. */
+const isSpentBlock = (ev) => {
+  const day = teacher.scheduleDays[Number(ev?.weekday ?? -1)];
+  if (!day || !ev?.end) return false;
+  const last = teacher.scheduleSlots
+    .filter((sl) => sl.minutes >= toMinutes(ev.start) && sl.minutes < toMinutes(ev.end))
+    .pop();
+  return !!last && teacher.isPastSlot(day.key, last.key);
+};
+
+/**
+ * The line at the current time, drawn across today's column alone. Running it
+ * over the whole week read as a rule under every day at once, when the one
+ * day it says anything about is this one. Only drawn when the week on screen
+ * contains today; positioned off the grid's own rows, which are canonical
+ * Manila, so it stays right whichever zone the labels are showing.
+ */
+const syncNowLine = () => {
+  const scroller = host.value?.querySelector('.lm-schedule');
+  if (!scroller) return;
+
+  let line = scroller.querySelector('.cjs-now');
+  const todayIndex = teacher.scheduleDays.findIndex((d) => d.isToday);
+  if (todayIndex === -1) {
+    line?.remove();
+    return;
+  }
+
+  const rows = gridRows();
+  const row = rows[Math.floor(teacher.manilaNow.minutes / slotMinutes())];
+  const column = rows[0]?.children[todayIndex + 1]; // column 0 is the gutter
+  if (!row || !column) { line?.remove(); return; }
+
+  if (!line) {
+    line = document.createElement('div');
+    line.className = 'cjs-now';
+    line.setAttribute('aria-hidden', 'true');
+    line.innerHTML = '<span class="cjs-now-dot"></span>';
+    scroller.appendChild(line);
+  }
+
+  const intoRow = (teacher.manilaNow.minutes % slotMinutes()) / slotMinutes();
+  line.style.top = `${row.offsetTop + intoRow * row.offsetHeight}px`;
+  line.style.left = `${column.offsetLeft}px`;
+  line.style.width = `${column.offsetWidth}px`;
+};
+
+const onKeydown = (e) => {
+  if (e.key !== 'Escape') return;
+  // One step at a time: the first Escape abandons the edit, the second closes
+  // the panel. Otherwise a mistyped reason takes the whole panel with it.
+  if (editingReason.value) { editingReason.value = false; return; }
+  picked.value = null;
+};
 
 const syncCalendarTimeLabels = () => {
   if (!host.value) return;
@@ -1067,6 +1285,23 @@ const syncCalendarTimeLabels = () => {
   dayCells.forEach((cell, index) => {
     const day = teacher.scheduleDays[index];
     if (!day) return;
+    // The library marks a weekday as today from the browser's own clock, which
+    // stays put when you page to another week and is a day out for a viewer
+    // east of Manila. This follows the week on screen instead.
+    if (day.isToday) cell.dataset.cjsToday = 'true';
+    else delete cell.dataset.cjsToday;
+
+    // Inserted ahead of the totals badge so the cell reads weekday, date,
+    // hours from top to bottom whichever of the two was created first.
+    let dateEl = cell.querySelector('.cjs-day-date');
+    if (!dateEl) {
+      dateEl = document.createElement('span');
+      dateEl.className = 'cjs-day-date';
+      const existingBadge = cell.querySelector('.cjs-day-total');
+      if (existingBadge) cell.insertBefore(dateEl, existingBadge);
+      else cell.appendChild(dateEl);
+    }
+    dateEl.textContent = dayDateLabel(day, index);
     const per = teacher.SLOTS_PER_HOUR ?? 2;
     const round = (n) => Math.round((n / per) * 10) / 10;
     const openH = round(teacher.scheduleSlots.filter((slot) => teacher.isOpen(day.key, slot.key)).length);
@@ -1155,6 +1390,8 @@ onMounted(() => {
     if (!host.value) return;
     projectItemLabels();
     if (!host.value.querySelector('.cjs-day-total')) syncCalendarTimeLabels();
+    markPastCells();
+    syncNowLine();
   });
   // data-start/data-end change on every step of a drag or resize. The
   // attributes we write back are deliberately not in the filter, so relabelling
@@ -1177,9 +1414,21 @@ onMounted(() => {
   nextTick(() => {
     restampLabels();
     syncCalendarTimeLabels();
+    markPastCells();
+    syncNowLine();
     scrollToFirstOpen();
   });
 });
+
+// The clock moves on its own, so the shading and the line have to move with
+// it — nothing else would redraw them between edits.
+watch(
+  () => [teacher.manilaNow.minutes, teacher.activeWeekStart],
+  // The header carries today's mark, so it has to be redrawn here too —
+  // leaving it out left the gold on whichever weekday was today when the board
+  // was first drawn, on every week you paged to afterwards.
+  () => { nextTick(() => { syncCalendarTimeLabels(); markPastCells(); syncNowLine(); }); }
+);
 
 // Watch primaryZone to update side time labels and indicator
 watch(
@@ -1188,6 +1437,8 @@ watch(
     nextTick(() => {
       restampLabels();
       syncCalendarTimeLabels();
+    markPastCells();
+    syncNowLine();
     });
   }
 );
@@ -1199,7 +1450,7 @@ watch(
   () => {
     if (!applying) {
       pushToCalendar();
-      nextTick(() => { syncCalendarTimeLabels(); });
+      nextTick(() => { syncCalendarTimeLabels(); markPastCells(); syncNowLine(); });
     }
   },
   { deep: true }
@@ -1326,6 +1577,27 @@ onBeforeUnmount(() => {
   display: table-cell !important;
   vertical-align: middle !important;
   text-align: center !important;
+}
+
+/* The date, under the weekday. The header had room for it once its padding
+   came down — it was 20px top and bottom, which is a lot of air above a board
+   that is trying to show nine hours. */
+.availability-calendar :deep(.lm-schedule thead td) {
+  padding-top: 10px !important;
+  padding-bottom: 10px !important;
+}
+.availability-calendar :deep(.cjs-day-date) {
+  display: block;
+  margin-top: 3px;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1.1;
+  color: #64748b;
+  font-variant-numeric: tabular-nums;
+}
+.availability-calendar :deep(.lm-schedule thead td[data-cjs-today='true'] .cjs-day-date) {
+  color: #8A6600;
+  font-weight: 800;
 }
 
 /* The day's open hours, under the weekday name. The header cell is otherwise
@@ -1457,6 +1729,66 @@ onBeforeUnmount(() => {
   color: #94a3b8 !important;
   white-space: nowrap !important;
   font-variant-numeric: tabular-nums !important;
+}
+
+/* The library tints a header from the browser's own weekday and never lets
+   go of it, so paging to November still showed a grey Monday column that meant
+   nothing. Its tint is dropped; the mark below is the one that follows the
+   week on screen. Same specificity, so this has to come first. */
+.availability-calendar :deep(.lm-schedule thead td[data-selected='true']) {
+  background-color: transparent;
+}
+
+/* Today. The name is what carries it, so the name is what changes. */
+.availability-calendar :deep(.lm-schedule thead td[data-cjs-today='true'])::before {
+  color: #8A6600;
+}
+.availability-calendar :deep(.lm-schedule thead td[data-cjs-today='true']) {
+  background-color: #FDF9EF;
+  box-shadow: inset 0 -2px 0 #FFCD00;
+}
+.availability-calendar :deep(.lm-schedule tbody td[data-today='true']) {
+  background-color: rgb(253 249 239 / 0.5);
+}
+
+/* Hours that have begun. Greyed rather than hidden — the week still has to
+   read as a whole — and unclickable, so the board never offers an edit the
+   store will refuse. */
+/* No pointer-events rule: a block that began before now still has to be
+   clickable, so the refusal is made in the gesture layer, which can tell an
+   empty hour from a run that is still partly ahead. */
+.availability-calendar :deep(.lm-schedule tbody td[data-past='true']) {
+  background-color: rgb(241 245 249 / 0.75);
+  background-image: none;
+  cursor: default;
+}
+.availability-calendar :deep(.lm-schedule-item[data-spent='true']) {
+  opacity: 0.5;
+  box-shadow: none;
+  cursor: default;
+}
+
+/* Now, drawn across the days like the bookmark in a wall calendar. */
+.availability-calendar :deep(.lm-schedule .cjs-now) {
+  position: absolute;
+  z-index: 2;
+  height: 0;
+  border-top: 2px solid #E11D48;
+  pointer-events: none;
+}
+.availability-calendar :deep(.lm-schedule .cjs-now-dot) {
+  position: absolute;
+  top: -5px;
+  left: -4px;
+  height: 8px;
+  width: 8px;
+  border-radius: 9999px;
+  background-color: #E11D48;
+}
+
+/* The scroller has to be the line's frame of reference. */
+.availability-calendar :deep(.lm-schedule) {
+  position: relative;
 }
 
 /* The first label has no line above it to straddle. */

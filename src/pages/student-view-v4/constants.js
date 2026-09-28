@@ -243,6 +243,13 @@ export const getTeacherModalImage = (teacher) => getTeacherPhoto(teacher);
 // back. nocookie defers YouTube's tracking cookies until playback starts.
 export const INTRO_VIDEO_ID = "lGGJPOQzdW0";
 
+// A demo lesson is different content from the self-introduction: the intro is
+// the instructor talking about themselves, the demo is them actually teaching,
+// which is what a student is really deciding on. No demo clips have been shot
+// yet, so this stands in — swap it for a real id (or a per-teacher lookup) and
+// nothing else has to change.
+export const DEMO_VIDEO_ID = INTRO_VIDEO_ID;
+
 export const TEACHER_INTRO_VIDEO =
   `https://www.youtube-nocookie.com/embed/${INTRO_VIDEO_ID}` +
   "?autoplay=1" +

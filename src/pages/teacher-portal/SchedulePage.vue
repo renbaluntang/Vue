@@ -22,10 +22,8 @@
       </div>
 
       <div class="flex shrink-0 items-center gap-2">
-        <!-- Counts, not controls: one readout, in the same two colours the
-             board uses, so "open" never means emerald in one place and amber
-             in another. -->
-        <div class="inline-flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-600 shadow-2xs">
+        <!-- Counts readout with subtle status dot/saved state -->
+        <div class="inline-flex items-center gap-2.5 rounded-2xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-slate-600 shadow-2xs">
           <span class="inline-flex items-center gap-1.5">
             <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
             <strong class="tabular-nums text-slate-900">{{ teacher.openHours }}h</strong> open
@@ -35,16 +33,11 @@
             <span class="h-2 w-2 rounded-full bg-indigo-500"></span>
             <strong class="tabular-nums text-slate-900">{{ teacher.reservedHours }}h</strong> reserved
           </span>
+          <template v-if="saved && !isDirty">
+            <span class="h-3 w-px bg-slate-200"></span>
+            <span class="text-[11px] font-bold text-emerald-600">✓ Up to date</span>
+          </template>
         </div>
-
-        <button
-          type="button"
-          @click="save"
-          :disabled="!isDirty"
-          class="rounded-2xl bg-brighture-gold px-5 py-2.5 text-sm font-extrabold text-brighture-ink shadow-sm transition hover:bg-brighture-gold-deep active:scale-95 disabled:opacity-40"
-        >
-          {{ saved ? '✓ Registered' : 'Register' }}
-        </button>
       </div>
     </header>
 
@@ -115,6 +108,25 @@
         <span>Clear week</span>
       </button>
 
+      <!-- The right of this row is empty, and it is the one place that is
+           under the view switch and over the top of the sidebar at once. The
+           bar is the same height as the buttons beside it, so arriving and
+           leaving moves nothing else on the page. -->
+      <Transition
+        enter-active-class="transition duration-200 ease-out"
+        enter-from-class="translate-y-1 opacity-0 scale-95"
+        leave-active-class="transition duration-150 ease-in"
+        leave-to-class="translate-y-1 opacity-0 scale-95"
+      >
+        <ScheduleChangesBar
+          v-if="isDirty"
+          data-unsaved-bar
+          class="ml-auto"
+          :amount="changedLabel"
+          @revert="revert"
+          @register="save"
+        />
+      </Transition>
     </div>
 
     <AvailabilityCalendar
@@ -184,14 +196,20 @@
                   </span>
                 </button>
               </th>
-              <td v-for="day in teacher.scheduleDays" :key="day.key" class="p-1">
+              <td
+                v-for="day in teacher.scheduleDays"
+                :key="day.key"
+                class="p-1"
+                :class="day.isToday ? 'bg-brighture-cream/50' : ''"
+              >
                 <button
                   type="button"
                   @click="onCellClick(day.key, slot.key)"
                   @contextmenu.prevent="onCellCycle(day.key, slot.key)"
+                  :disabled="teacher.isPastSlot(day.key, slot.key)"
                   :aria-pressed="teacher.isOpen(day.key, slot.key) || teacher.isReserved(day.key, slot.key)"
                   :title="cellTitle(day.key, slot.key, slot)"
-                  class="relative group flex h-8 w-full min-w-0 cursor-pointer items-center justify-center overflow-hidden rounded-lg border px-1 text-[11px] font-black transition active:scale-95"
+                  class="relative group flex h-8 w-full min-w-0 items-center justify-center overflow-hidden rounded-lg border px-1 text-[11px] font-black transition enabled:cursor-pointer enabled:active:scale-95 disabled:cursor-default disabled:opacity-45"
                   :class="cellClass(day.key, slot.key)"
                 >
                   <span v-if="teacher.isOpen(day.key, slot.key)">✓</span>
@@ -218,33 +236,6 @@
       </p>
     </div>
 
-    <Transition
-      enter-active-class="transition duration-200 ease-out" enter-from-class="translate-y-12 opacity-0"
-      leave-active-class="transition duration-150 ease-in" leave-to-class="translate-y-12 opacity-0"
-    >
-      <div
-        v-if="isDirty"
-        data-unsaved-bar
-        class="fixed bottom-20 left-1/2 z-40 flex w-[calc(100%-2rem)] max-w-xl -translate-x-1/2 items-center justify-between gap-4 rounded-2xl border border-slate-700 bg-slate-900 px-5 py-3.5 text-white shadow-2xl lg:bottom-6"
-      >
-        <p class="min-w-0 truncate text-xs font-semibold text-slate-200 sm:text-sm">
-          You have unregistered schedule changes.
-        </p>
-        <div class="flex shrink-0 items-center gap-2">
-          <button type="button" @click="revert" class="rounded-xl px-3.5 py-1.5 text-xs font-semibold text-slate-400 transition hover:text-white">
-            Revert
-          </button>
-          <button
-            type="button"
-            @click="save"
-            class="rounded-xl bg-brighture-gold px-5 py-2 text-xs font-extrabold text-slate-950 shadow-md transition hover:bg-brighture-gold-deep active:scale-95"
-          >
-            Register
-          </button>
-        </div>
-      </div>
-    </Transition>
-
     <!-- Repeat Schedule Modal (e.g. Mon to Fri) -->
     <RepeatScheduleModal
       :is-open="isRepeatModalOpen"
@@ -266,6 +257,7 @@ import AvailabilityCalendar from '../../components/teacher/AvailabilityCalendar.
 import WeekNavigator from '../../components/teacher/WeekNavigator.vue';
 import RepeatScheduleModal from '../../components/teacher/RepeatScheduleModal.vue';
 import ReserveModal from '../../components/teacher/ReserveModal.vue';
+import ScheduleChangesBar from '../../components/teacher/ScheduleChangesBar.vue';
 import { ref, computed, watch } from 'vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
 import {
@@ -325,6 +317,9 @@ const cellShortReason = (dayKey, slotKey) => {
 const cellTitle = (dayKey, slotKey, slot) => {
   const status = teacher.getSlotStatus(dayKey, slotKey);
   const time = activeSlotTime(slot);
+  if (teacher.isPastSlot(dayKey, slotKey)) {
+    return `${time} • This hour has already started and can no longer be changed.`;
+  }
   if (status === 'open') return `${time} • Open (Available to students). Click to close.`;
   if (status === 'reserved') return `${time} • Reserved: ${teacher.getSlotReason(dayKey, slotKey)}. Click to manage reservation.`;
   return `${time} • Closed. Click to open for booking.`;
@@ -364,6 +359,32 @@ watch(() => teacher.activeWeekStart, () => {
 });
 
 const isDirty = computed(() => getScheduleSignature() !== savedSnapshot.value);
+
+/** A signature read back as {slot id -> its state}, for comparing two of them. */
+const signatureMap = (signature) => {
+  const map = new Map();
+  signature.split(';').filter(Boolean).forEach((part) => {
+    const at = part.indexOf(':');
+    map.set(part.slice(0, at), part.slice(at + 1));
+  });
+  return map;
+};
+
+/**
+ * How much of the week differs from what was last registered. "Something
+ * changed" leaves the instructor to find out what they are about to commit by
+ * hunting for it; an amount is the one fact the bar can give them for free.
+ */
+const changedLabel = computed(() => {
+  const now = signatureMap(getScheduleSignature());
+  const was = signatureMap(savedSnapshot.value);
+  let slots = 0;
+  new Set([...now.keys(), ...was.keys()]).forEach((id) => {
+    if (now.get(id) !== was.get(id)) slots += 1;
+  });
+  const hours = Math.round((slots * (teacher.SLOT_MINUTES ?? 30)) / 6) / 10;
+  return `${hours}h`;
+});
 
 // The calendar writes straight to the store without going through the grid's
 // handlers, so "have we saved this?" has to be derived, not hand-flagged.

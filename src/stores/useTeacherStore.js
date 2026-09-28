@@ -536,6 +536,30 @@ Nice to meet you all and I hope we can work together well.`,
     return isoDay(d);
   };
 
+  /**
+   * Now, read on the canonical clock rather than the viewer's. Availability is
+   * stored in Manila, so "today" and "already passed" have to be Manila's — a
+   * viewer in Tokyo is an hour ahead and would otherwise cross into tomorrow,
+   * and grey out an hour the instructor can still teach.
+   */
+  const nowTick = ref(Date.now());
+  setInterval(() => { nowTick.value = Date.now(); }, 30000);
+
+  const manilaNow = computed(() => {
+    const parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: CANONICAL_ZONE,
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit', hour12: false,
+    }).formatToParts(new Date(nowTick.value));
+    const at = (type) => parts.find((part) => part.type === type)?.value ?? '00';
+    // Some locales render midnight as hour 24.
+    const hour = at('hour') === '24' ? 0 : Number(at('hour'));
+    return {
+      iso: `${at('year')}-${at('month')}-${at('day')}`,
+      minutes: hour * 60 + Number(at('minute')),
+    };
+  });
+
   const activeWeekStart = ref(weekStartOf(new Date()));
   const thisWeekStart = computed(() => weekStartOf(new Date()));
 
@@ -550,7 +574,7 @@ Nice to meet you all and I hope we can work together well.`,
         date: `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`,
         iso: isoDay(d),
         dayOfMonth: d.getDate(),
-        isToday: isoDay(d) === isoDay(new Date()),
+        isToday: isoDay(d) === manilaNow.value.iso,
       };
     });
   });
@@ -652,6 +676,21 @@ Nice to meet you all and I hope we can work together well.`,
     delete weekOverrides.value[activeWeekStart.value];
   };
 
+  /**
+   * Write straight into the repeating pattern. Going via the week and then
+   * promoting it would carry today's holes into every week that follows —
+   * hours that have already passed cannot be set on this week, so they would
+   * come out missing from the template too. The week's own edits are kept as
+   * the base, then its exception is dropped: it now says what the pattern
+   * says, so it no longer needs a copy of its own.
+   */
+  const writePattern = (mutate) => {
+    const next = copyMap(weekOverrides.value[activeWeekStart.value] ?? weekPattern.value);
+    mutate(next);
+    weekPattern.value = next;
+    delete weekOverrides.value[activeWeekStart.value];
+  };
+
   /** Promote this week's hours to the pattern every other week follows. */
   const applyWeekToPattern = () => {
     const own = weekOverrides.value[activeWeekStart.value];
@@ -687,7 +726,23 @@ Nice to meet you all and I hope we can work together well.`,
     return '';
   };
 
+  /**
+   * Whether a slot has already begun. Hours that have started are not offers
+   * any more — a student cannot book into one — so nothing may change them.
+   * ISO dates compare correctly as strings, which is why they are built that
+   * way.
+   */
+  const isPastSlot = (dayKey, slotKey) => {
+    const day = scheduleDays.value.find((d) => d.key === dayKey);
+    const slot = scheduleSlots.value.find((sl) => sl.key === slotKey);
+    if (!day || !slot) return false;
+    if (day.iso !== manilaNow.value.iso) return day.iso < manilaNow.value.iso;
+    return slot.minutes <= manilaNow.value.minutes;
+  };
+
+  /** Every edit in the portal lands here, so the rule is enforced once. */
   const setSlotStatus = (dayKey, slotKey, status, reason = '') => {
+    if (isPastSlot(dayKey, slotKey)) return;
     beginWeekEdit();
     const id = `${dayKey}-${slotKey}`;
     if (status === 'closed') {
@@ -939,8 +994,9 @@ Nice to meet you all and I hope we can work together well.`,
     materialsByStudent, materialsFor, materialCount, addMaterial, removeMaterial,
     scheduleDays, scheduleSlots, availability, getSlotStatus, isOpen, isReserved, isClosed,
     activeWeekStart, thisWeekStart, weekOverrides, weekFollowsPattern, weekHasOwnHours,
-    editedWeeks, beginWeekEdit, followPattern, applyWeekToPattern,
+    editedWeeks, beginWeekEdit, followPattern, applyWeekToPattern, writePattern,
     goToWeek, shiftWeek, goToThisWeek, weekStartOf,
+    manilaNow, isPastSlot,
     getSlotReason, setSlotStatus, cycleSlot, toggleSlot, setDay, setDayStatus, setSlotRow, setSlotRowStatus,
     openSlotCount, reservedSlotCount, openHours, reservedHours, SLOT_MINUTES, SLOTS_PER_HOUR,
     weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings,
