@@ -204,12 +204,14 @@
               >
                 <button
                   type="button"
+                  @mousedown="onCellMouseDown(day.key, slot.key, $event)"
+                  @mouseenter="onCellMouseEnter(day.key, slot.key)"
                   @click="onCellClick(day.key, slot.key)"
                   @contextmenu.prevent="onCellCycle(day.key, slot.key)"
                   :disabled="teacher.isPastSlot(day.key, slot.key)"
                   :aria-pressed="teacher.isOpen(day.key, slot.key) || teacher.isReserved(day.key, slot.key)"
                   :title="cellTitle(day.key, slot.key, slot)"
-                  class="relative group flex h-8 w-full min-w-0 items-center justify-center overflow-hidden rounded-lg border px-1 text-[11px] font-black transition enabled:cursor-pointer enabled:active:scale-95 disabled:cursor-default disabled:opacity-45"
+                  class="relative group flex h-8 w-full min-w-0 items-center justify-center overflow-hidden rounded-lg border px-1 text-[11px] font-black transition-all select-none enabled:cursor-pointer enabled:active:scale-95 disabled:cursor-default disabled:opacity-45"
                   :class="cellClass(day.key, slot.key)"
                 >
                   <span v-if="teacher.isOpen(day.key, slot.key)">✓</span>
@@ -258,7 +260,7 @@ import WeekNavigator from '../../components/teacher/WeekNavigator.vue';
 import RepeatScheduleModal from '../../components/teacher/RepeatScheduleModal.vue';
 import ReserveModal from '../../components/teacher/ReserveModal.vue';
 import ScheduleChangesBar from '../../components/teacher/ScheduleChangesBar.vue';
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
 import {
   getTimeZoneInfo,
@@ -297,12 +299,12 @@ const activeSlotTime = (slot) => {
 // Cell styling and display helpers
 const cellClass = (dayKey, slotKey) => {
   if (teacher.isReserved(dayKey, slotKey)) {
-    return 'border-transparent bg-indigo-500 text-white shadow-sm';
+    return 'border-transparent bg-indigo-500 text-white shadow-sm hover:bg-indigo-600 hover:shadow-md hover:ring-2 hover:ring-indigo-300 hover:scale-[1.03] transition-all';
   }
   if (teacher.isOpen(dayKey, slotKey)) {
-    return 'border-transparent bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm';
+    return 'border-transparent bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm hover:brightness-105 hover:shadow-md hover:ring-2 hover:ring-brighture-gold/80 hover:scale-[1.03] transition-all';
   }
-  return 'border-slate-200 bg-slate-50 hover:border-brighture-gold/50 hover:bg-brighture-cream';
+  return 'border-slate-200 bg-slate-50 hover:border-brighture-gold hover:bg-brighture-cream hover:shadow-xs hover:scale-[1.02] transition-all';
 };
 
 const cellShortReason = (dayKey, slotKey) => {
@@ -392,7 +394,50 @@ watch(isDirty, (dirty) => { if (dirty) saved.value = false; });
 
 const touch = () => { saved.value = false; };
 
+const isGridDragging = ref(false);
+const gridDragMode = ref(null);
+const gridDraggedKeys = ref(new Set());
+
+const onCellMouseDown = (dayKey, slotKey, e) => {
+  if (e.button !== 0 || teacher.isPastSlot(dayKey, slotKey)) return;
+  isGridDragging.value = true;
+  gridDraggedKeys.value.clear();
+  const current = teacher.getSlotStatus(dayKey, slotKey);
+  gridDragMode.value = current === 'open' ? 'closed' : 'open';
+  gridDraggedKeys.value.add(`${dayKey}-${slotKey}`);
+};
+
+const onCellMouseEnter = (dayKey, slotKey) => {
+  if (!isGridDragging.value || teacher.isPastSlot(dayKey, slotKey)) return;
+  const key = `${dayKey}-${slotKey}`;
+  if (!gridDraggedKeys.value.has(key)) {
+    gridDraggedKeys.value.add(key);
+    teacher.setSlotStatus(dayKey, slotKey, gridDragMode.value);
+    touch();
+  }
+};
+
+const onGridMouseUp = () => {
+  if (isGridDragging.value) {
+    isGridDragging.value = false;
+    touch();
+  }
+};
+
+onMounted(() => {
+  window.addEventListener('mouseup', onGridMouseUp);
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener('mouseup', onGridMouseUp);
+});
+
 const onCellClick = (dayKey, slotKey) => {
+  if (gridDraggedKeys.value.size > 1) {
+    gridDraggedKeys.value.clear();
+    return;
+  }
+  gridDraggedKeys.value.clear();
   const current = teacher.getSlotStatus(dayKey, slotKey);
   if (current === 'open') {
     teacher.setSlotStatus(dayKey, slotKey, 'closed');
@@ -405,7 +450,7 @@ const onCellClick = (dayKey, slotKey) => {
 };
 
 const onCellCycle = (dayKey, slotKey) => {
-  teacher.cycleSlot(dayKey, slotKey, 'Manager Scheduled Class');
+  teacher.cycleSlot(dayKey, slotKey);
   touch();
 };
 

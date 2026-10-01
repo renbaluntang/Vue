@@ -634,7 +634,7 @@ Nice to meet you all and I hope we can work together well.`,
           seed[`${day}-${slotKeyFor(hour * 60 + i * SLOT_MINUTES)}`] = { status: 'reserved', reason };
         }
       };
-      hold('wed', 13, 'Manager Scheduled Class');
+      hold('wed', 13, 'Demo Lesson');
       hold('fri', 16, 'Team Meeting / Sync');
 
       return seed;
@@ -707,13 +707,15 @@ Nice to meet you all and I hope we can work together well.`,
   };
   const goToThisWeek = () => { activeWeekStart.value = thisWeekStart.value; };
 
-  const getSlotStatus = (dayKey, slotKey) => {
-    const val = availability.value[`${dayKey}-${slotKey}`];
+  const readStatus = (map, dayKey, slotKey) => {
+    const val = map[`${dayKey}-${slotKey}`];
     if (!val) return 'closed';
     if (val === true || val === 'open' || (typeof val === 'object' && val?.status === 'open')) return 'open';
     if (val === 'reserved' || (typeof val === 'object' && val?.status === 'reserved')) return 'reserved';
     return 'closed';
   };
+
+  const getSlotStatus = (dayKey, slotKey) => readStatus(availability.value, dayKey, slotKey);
 
   const isOpen = (dayKey, slotKey) => getSlotStatus(dayKey, slotKey) === 'open';
   const isReserved = (dayKey, slotKey) => getSlotStatus(dayKey, slotKey) === 'reserved';
@@ -740,6 +742,65 @@ Nice to meet you all and I hope we can work together well.`,
     return slot.minutes <= manilaNow.value.minutes;
   };
 
+  /**
+   * Free Conversation, as it stands this minute.
+   *
+   * The header carries this, so it must read the hours *this* week has rather
+   * than the week the schedule page happens to be showing — `availability`
+   * follows `activeWeekStart`, which moves as the instructor pages through the
+   * calendar, and the badge would otherwise report another week's Tuesday.
+   *
+   * `live` is the honest question a student's request meets: not "is the
+   * instructor willing" but "is this half hour open, right now". Away answers
+   * it on its own; an open hour that has not come round yet does not.
+   */
+  const thisWeekHours = computed(
+    () => weekOverrides.value[thisWeekStart.value] ?? weekPattern.value
+  );
+
+  const freeConversationNow = computed(() => {
+    const now = manilaNow.value;
+    const hours = thisWeekHours.value;
+    const dayIndex = new Date(`${now.iso}T12:00:00`).getDay();
+    const slotStart = Math.floor(now.minutes / SLOT_MINUTES) * SLOT_MINUTES;
+    const openAt = (dayOffset, minutes) =>
+      readStatus(hours, DAY_KEYS[(dayIndex + dayOffset) % 7], slotKeyFor(minutes)) === 'open';
+
+    const inOpenHour = openAt(0, slotStart);
+
+    // How much of the current run is left, so the badge can say until when.
+    let endsAt = slotStart;
+    if (inOpenHour) {
+      while (endsAt + SLOT_MINUTES < 24 * 60 && openAt(0, endsAt + SLOT_MINUTES)) {
+        endsAt += SLOT_MINUTES;
+      }
+      endsAt += SLOT_MINUTES;
+    }
+
+    // Otherwise, the next hour that opens — a week is far enough to look.
+    let next = null;
+    for (let offset = 0; offset < 7 && !next; offset += 1) {
+      const from = offset === 0 ? slotStart + SLOT_MINUTES : 0;
+      for (let mins = from; mins < 24 * 60; mins += SLOT_MINUTES) {
+        if (openAt(offset, mins)) {
+          next = { dayOffset: offset, minutes: mins };
+          break;
+        }
+      }
+    }
+
+    return {
+      away: isAway.value,
+      live: !isAway.value && inOpenHour,
+      /** Set only while live: the minute the current open run ends. */
+      endsAt: inOpenHour ? endsAt : null,
+      /** Set only when not live: when the next open hour begins. */
+      next,
+      /** True when the hours exist but the instructor turned them off. */
+      pausedInOpenHour: isAway.value && inOpenHour,
+    };
+  });
+
   /** Every edit in the portal lands here, so the rule is enforced once. */
   const setSlotStatus = (dayKey, slotKey, status, reason = '') => {
     if (isPastSlot(dayKey, slotKey)) return;
@@ -755,7 +816,9 @@ Nice to meet you all and I hope we can work together well.`,
   };
 
   // Cycle slot: closed -> open -> reserved -> closed
-  const cycleSlot = (dayKey, slotKey, defaultReason = 'Personal (Break / Errands)') => {
+  // No sample note by default: cycling a slot says it is held, not why.
+  // `setSlotStatus` labels an unexplained hold "Reserved".
+  const cycleSlot = (dayKey, slotKey, defaultReason = '') => {
     const current = getSlotStatus(dayKey, slotKey);
     if (current === 'closed') {
       setSlotStatus(dayKey, slotKey, 'open');
@@ -996,7 +1059,7 @@ Nice to meet you all and I hope we can work together well.`,
     activeWeekStart, thisWeekStart, weekOverrides, weekFollowsPattern, weekHasOwnHours,
     editedWeeks, beginWeekEdit, followPattern, applyWeekToPattern, writePattern,
     goToWeek, shiftWeek, goToThisWeek, weekStartOf,
-    manilaNow, isPastSlot,
+    manilaNow, isPastSlot, freeConversationNow,
     getSlotReason, setSlotStatus, cycleSlot, toggleSlot, setDay, setDayStatus, setSlotRow, setSlotRowStatus,
     openSlotCount, reservedSlotCount, openHours, reservedHours, SLOT_MINUTES, SLOTS_PER_HOUR,
     weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings,

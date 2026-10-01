@@ -350,7 +350,12 @@
         </a>
       </div>
 
-      <header class="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-10 sticky top-0">
+      <!-- backdrop-blur makes this header its own stacking context, so the menus
+           inside it can never rise above whatever z-index the header itself
+           carries. At z-10 a page could out-rank it and slice its dropdowns in
+           half; z-30 puts it above page chrome and still below the modals and
+           drawers (z-40/50) that are meant to cover it. -->
+      <header class="h-16 bg-white/90 backdrop-blur-md border-b border-slate-200/80 flex items-center justify-between px-4 sm:px-6 flex-shrink-0 z-30 sticky top-0">
         <div class="flex items-center gap-2 sm:gap-3 min-w-0 flex-1">
           <button
             @click="isMobileMenuOpen = true"
@@ -394,22 +399,37 @@
             picker-class="hidden md:block"
           />
 
-          <!-- The state is the label and the chevron is the whole affordance:
-               both settings live in the menu, so nothing is spelled out on the
-               button and no click changes anything by itself. -->
+          <!-- Willing and available are different questions, and the button used
+               to answer only the first. "Open" says the instructor accepts Free
+               Conversation; it said nothing about whether this half hour is one
+               a student can walk into. The dot answers that — filled and
+               breathing while a request would actually land, hollow while the
+               hours are simply set for later. -->
           <div v-if="teacher.teachesFreeConversation" class="relative">
             <button
               type="button"
               @click="isStatusMenuOpen = !isStatusMenuOpen"
               aria-haspopup="menu"
               :aria-expanded="isStatusMenuOpen ? 'true' : 'false'"
-              :aria-label="`Free Conversation: ${teacher.isAway ? 'Away' : 'Open'}`"
-              class="inline-flex items-center gap-1.5 rounded-full border py-1.5 pl-3 pr-2.5 text-xs font-bold transition active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+              :aria-label="`Free Conversation: ${fcStatus.label}. ${fcStatus.detail}`"
+              class="inline-flex items-center gap-1.5 rounded-full border py-1.5 pl-2.5 pr-2.5 text-xs font-bold transition active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
               :class="teacher.isAway
                 ? 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
                 : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'"
             >
-              <span>{{ teacher.isAway ? 'Away' : 'Open' }}</span>
+              <span class="relative flex h-2 w-2 shrink-0" aria-hidden="true">
+                <span
+                  v-if="fcStatus.live"
+                  class="fc-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-70"
+                ></span>
+                <span
+                  class="relative inline-flex h-2 w-2 rounded-full border"
+                  :class="fcStatus.live
+                    ? 'border-emerald-600 bg-emerald-600'
+                    : (teacher.isAway ? 'border-amber-500 bg-amber-200' : 'border-emerald-500 bg-white')"
+                ></span>
+              </span>
+              <span>{{ fcStatus.label }}</span>
               <i
                 class="fa-solid fa-chevron-down text-[9px] opacity-70 transition-transform duration-200"
                 :class="isStatusMenuOpen ? 'rotate-180' : ''"
@@ -421,12 +441,17 @@
             <div
               v-if="isStatusMenuOpen"
               role="menu"
-              class="absolute right-0 top-full z-50 mt-2 w-44 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
+              class="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
             >
               <!-- Says what the setting governs, which the two-letter badge on
-                   the button used to have to carry. -->
-              <p class="px-3 pb-1 pt-0.5 text-[10px] font-black uppercase tracking-wide text-slate-400">
+                   the button used to have to carry, and then where the dot's
+                   state comes from — a badge that cannot be questioned is a
+                   badge that gets ignored. -->
+              <p class="px-3 pt-0.5 text-[10px] font-black uppercase tracking-wide text-slate-400">
                 Free Conversation
+              </p>
+              <p class="px-3 pb-2 pt-0.5 text-[11px] font-semibold text-slate-500">
+                {{ fcStatus.detail }}
               </p>
               <button
                 v-for="option in statusOptions"
@@ -628,6 +653,7 @@ const navItems = [
   { path: '/', label: 'Dashboard', shortLabel: 'Home', icon: 'fa-solid fa-chart-pie' },
   { path: '/reservations', label: 'Reservations', shortLabel: 'Lessons', icon: 'fa-solid fa-calendar-check' },
   { path: '/schedule', label: 'Scheduling', shortLabel: 'Schedule', icon: 'fa-solid fa-table-cells' },
+  { path: '/calendar', label: 'Calendar', shortLabel: 'Calendar', icon: 'fa-regular fa-calendar-days' },
   { path: '/lessons', label: 'Lesson Log', shortLabel: 'Log', icon: 'fa-solid fa-clock-rotate-left', badge: 'feedback' },
   { path: '/writing', label: 'Writing', shortLabel: 'Writing', icon: 'fa-solid fa-pen-nib', badge: 'writing' },
   { path: '/analytics', label: 'Analytics', shortLabel: 'Stats', icon: 'fa-solid fa-chart-line' },
@@ -704,6 +730,52 @@ const statusOptions = [
   { away: false, label: 'Open' },
   { away: true, label: 'Away' },
 ];
+
+const clock12 = (mins) => {
+  const h = Math.floor(mins / 60) % 24;
+  const m = mins % 60;
+  const hour = h % 12 === 0 ? 12 : h % 12;
+  return `${hour}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
+};
+
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/**
+ * Three states, because there are three. Willing and open right now is not the
+ * same as willing and open at two o'clock, and the old badge showed both as
+ * "Open". The detail line always names the next thing that changes, so the dot
+ * is never the only thing to go on.
+ */
+const fcStatus = computed(() => {
+  const fc = teacher.freeConversationNow;
+  const nextLabel = () => {
+    if (!fc.next) return 'No open hours this week';
+    const { dayOffset, minutes } = fc.next;
+    if (dayOffset === 0) return `Next open at ${clock12(minutes)}`;
+    const today = new Date(`${teacher.manilaNow.iso}T12:00:00`).getDay();
+    return `Next open ${WEEKDAYS[(today + dayOffset) % 7]} ${clock12(minutes)}`;
+  };
+
+  if (fc.away) {
+    return {
+      live: false,
+      label: 'Away',
+      detail: fc.pausedInOpenHour
+        ? 'Paused during an open hour — no new requests'
+        : 'Paused — no new requests',
+    };
+  }
+
+  if (fc.live) {
+    return {
+      live: true,
+      label: 'Live now',
+      detail: `Taking requests until ${clock12(fc.endsAt)}`,
+    };
+  }
+
+  return { live: false, label: 'Open', detail: nextLabel() };
+});
 const isSettingsSheetOpen = ref(false);
 
 const activeZoneAbbr = computed(
@@ -722,6 +794,23 @@ watch(() => route.path, () => {
 </script>
 
 <style scoped>
+/* The dot breathes only while a request would actually land now — it is the
+   one moving thing in the header, so it has to mean something. Anyone who has
+   asked for less motion gets the filled dot without the pulse, which carries
+   the same state. */
+.fc-ping {
+  animation: fc-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@keyframes fc-ping {
+  0% { transform: scale(1); opacity: 0.7; }
+  70%, 100% { transform: scale(2.4); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fc-ping { animation: none; opacity: 0; }
+}
+
 /* Landscape is a height problem: a phone at 844x390 has less vertical room than
    the narrowest portrait phone. Trade the decorative half of the header for
    list space so the nav and the Settings row below it stay reachable. */

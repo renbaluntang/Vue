@@ -121,7 +121,7 @@
             <input
               type="text"
               v-model="reason"
-              placeholder="e.g. Manager Scheduled Class, Demo Lesson, Team Meeting..."
+              placeholder="e.g. Demo Lesson, Team Meeting, Training..."
               class="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-bold text-slate-800 shadow-2xs focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 focus:outline-none"
             />
           </div>
@@ -135,7 +135,7 @@
             <p>
               Will hold <strong class="text-slate-900">{{ selectedTimeLabel }}</strong> on
               <strong class="text-slate-900">{{ selectedDaysLabels.join(', ') || 'no days selected' }}</strong>
-              as <em class="font-bold text-indigo-900">"{{ reason.trim() || 'Manager Scheduled Class' }}"</em>.
+              as <em class="font-bold text-indigo-900">"{{ reason.trim() || 'Reserved' }}"</em>.
             </p>
           </div>
         </div>
@@ -183,16 +183,46 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  initialDays: {
+    type: Array,
+    default: () => ['mon', 'tue', 'wed', 'thu', 'fri'],
+  },
+  initialStart: {
+    type: String,
+    default: 't1300',
+  },
+  initialEnd: {
+    type: String,
+    default: 't1400',
+  },
+  initialReason: {
+    type: String,
+    default: 'Reserved',
+  },
 });
 
 const emit = defineEmits(['close', 'applied']);
 
 const teacher = useTeacherStore();
 
-const selectedDays = ref(['mon', 'tue', 'wed', 'thu', 'fri']);
-const rangeStart = ref('t1300');
-const rangeEnd = ref('t1400');
-const reason = ref('Manager Scheduled Class');
+const selectedDays = ref([...props.initialDays]);
+const rangeStart = ref(props.initialStart);
+const rangeEnd = ref(props.initialEnd);
+const reason = ref(props.initialReason);
+
+watch(
+  () => props.isOpen,
+  (open) => {
+    if (open) {
+      if (props.initialDays && props.initialDays.length) {
+        selectedDays.value = [...props.initialDays];
+      }
+      if (props.initialStart) rangeStart.value = props.initialStart;
+      if (props.initialEnd) rangeEnd.value = props.initialEnd;
+      if (props.initialReason) reason.value = props.initialReason;
+    }
+  }
+);
 
 const days = computed(() => teacher.scheduleDays);
 const slots = computed(() => teacher.scheduleSlots);
@@ -248,7 +278,7 @@ const selectAllDays = () => {
 
 const applyReservation = () => {
   const { from, to } = slotSpan();
-  const appliedReason = reason.value.trim() || 'Manager Scheduled Class';
+  const appliedReason = reason.value.trim() || 'Reserved';
 
   selectedDays.value.forEach((dayKey) => {
     teacher.scheduleSlots.forEach((slot) => {

@@ -22,7 +22,7 @@
       <aside
         class="fixed inset-x-0 bottom-0 z-50 max-h-[76vh] flex-col overflow-y-auto rounded-t-2xl border-t border-slate-200 bg-white shadow-2xl
                xl:static xl:z-auto xl:max-h-none xl:w-[19rem] xl:shrink-0 xl:rounded-none xl:border-l xl:border-t-0 xl:shadow-none"
-        :class="picked ? 'flex' : 'hidden xl:flex'"
+        :class="picked || selection ? 'flex' : 'hidden xl:flex'"
         aria-label="Availability block"
       >
         <template v-if="picked">
@@ -152,7 +152,7 @@
             <button
               v-if="picked.status === 'open'"
               type="button"
-              @click="setPickedStatus('reserved', 'Manager Scheduled Class')"
+              @click="setPickedStatus('reserved')"
               class="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50/80 px-3 py-2 text-xs font-bold text-indigo-900 transition hover:bg-indigo-100 active:scale-95"
             >
               <i class="fa-solid fa-bookmark text-[10px] text-indigo-600"></i>
@@ -182,6 +182,71 @@
           </div>
         </template>
 
+        <!-- A swept range. The same panel, because it answers the same
+             question — this is what you have got hold of, here is what can be
+             done with it — and a second floating thing would cover the board. -->
+        <template v-else-if="selection && selectionSummary">
+          <div class="flex items-start justify-between gap-2 border-b border-slate-100 px-4 py-3">
+            <div class="min-w-0">
+              <p class="text-[11px] font-bold text-slate-500">{{ selectionSummary.dayLabel }}</p>
+              <p class="mt-0.5 flex items-baseline gap-2">
+                <span class="text-lg font-extrabold leading-tight tracking-tight tabular-nums text-slate-900">
+                  {{ selectionSummary.hours }}h
+                </span>
+                <span class="shrink-0 rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-bold text-slate-700">
+                  {{ selectionSummary.count }} slots
+                </span>
+              </p>
+              <p class="mt-1 flex flex-wrap items-center gap-x-2 text-[11px] font-semibold text-slate-500">
+                <span v-if="selectionSummary.open" class="inline-flex items-center gap-1">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>{{ selectionSummary.open }} open
+                </span>
+                <span v-if="selectionSummary.reserved" class="inline-flex items-center gap-1">
+                  <span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>{{ selectionSummary.reserved }} reserved
+                </span>
+                <span v-if="selectionSummary.closed" class="inline-flex items-center gap-1">
+                  <span class="h-1.5 w-1.5 rounded-full bg-slate-300"></span>{{ selectionSummary.closed }} closed
+                </span>
+              </p>
+            </div>
+            <button
+              type="button"
+              @click="clearSelection"
+              class="-mr-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Clear selection"
+            >
+              <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+          </div>
+
+          <div class="space-y-1.5 px-4 py-3">
+            <button
+              type="button"
+              @click="applyToSelection('open')"
+              class="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-800 transition hover:bg-emerald-100 active:scale-95"
+            >
+              <i class="fa-solid fa-check text-[10px]"></i>
+              Open for booking
+            </button>
+            <button
+              type="button"
+              @click="applyToSelection('reserved')"
+              class="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg border border-indigo-200 bg-indigo-50/80 px-3 py-2 text-xs font-bold text-indigo-900 transition hover:bg-indigo-100 active:scale-95"
+            >
+              <i class="fa-solid fa-bookmark text-[10px] text-indigo-600"></i>
+              Reserve
+            </button>
+            <button
+              type="button"
+              @click="applyToSelection('closed')"
+              class="flex w-full cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-100 hover:text-rose-700 active:scale-95"
+            >
+              <i class="fa-regular fa-trash-can text-[11px]"></i>
+              Close
+            </button>
+          </div>
+        </template>
+
         <!-- At rest the panel carries the legend, so the board keeps the strip
              it used to spend on one. An empty panel would be worse than none. -->
         <div v-else class="hidden flex-col gap-4 px-4 py-4 xl:flex">
@@ -196,8 +261,8 @@
             </p>
           </div>
           <p class="border-t border-slate-100 pt-3 text-[11px] leading-relaxed text-slate-500">
-            Click any half hour to open it. Drag an edge to change a block's
-            length, or select it to change its status.
+            Click a half hour to open it, or drag across several to take them
+            all at once. Drag a block's edge to change its length.
           </p>
         </div>
       </aside>
@@ -616,21 +681,298 @@ const bottomEdgeOf = (e) => {
 };
 
 /** Which day column and which slot row the pointer is over. */
-const cellAt = (e) => {
-  const cell = e.target?.closest?.('td');
-  const row = e.target?.closest?.('tbody tr');
-  if (!cell || !row) return null;
+const cellIndexFromPoint = (clientX, clientY) => {
+  // 1. Direct hit-test from elements under pointer
+  const elements = document.elementsFromPoint(clientX, clientY);
+  for (const el of elements) {
+    if (el.tagName === 'TD' && el.closest?.('.lm-schedule tbody')) {
+      const row = el.closest('tr');
+      if (row) {
+        const col = [...row.children].indexOf(el) - 1;
+        const rowIndex = gridRows().indexOf(row);
+        if (col >= 0 && rowIndex >= 0 && teacher.scheduleDays[col] && teacher.scheduleSlots[rowIndex]) {
+          return { col, row: rowIndex, cell: el };
+        }
+      }
+    }
+  }
 
-  const columnIndex = [...row.children].indexOf(cell) - 1; // column 0 is the gutter
-  const day = teacher.scheduleDays[columnIndex];
-  if (!day) return null;
+  // 2. Geometric fallback by coordinates
+  const rows = gridRows();
+  if (!rows.length) return null;
 
-  // One row per slot, in order, so the row's position is the slot. Matching on
-  // the hour label instead would miss every row that is a half hour, because
-  // the library only prints a label on the hour.
-  const slot = teacher.scheduleSlots[gridRows().indexOf(row)];
-  return slot ? { day, slot } : null;
+  // Find column
+  const firstRowCells = [...rows[0].children].slice(1);
+  if (!firstRowCells.length) return null;
+  let targetCol = null;
+  if (clientX < firstRowCells[0].getBoundingClientRect().left) {
+    targetCol = 0;
+  } else if (clientX >= firstRowCells[firstRowCells.length - 1].getBoundingClientRect().right) {
+    targetCol = firstRowCells.length - 1;
+  } else {
+    for (let c = 0; c < firstRowCells.length; c++) {
+      const r = firstRowCells[c].getBoundingClientRect();
+      if (clientX >= r.left && clientX < r.right) {
+        targetCol = c;
+        break;
+      }
+    }
+  }
+
+  // Find row
+  let targetRow = null;
+  const firstRowRect = rows[0].getBoundingClientRect();
+  const lastRowRect = rows[rows.length - 1].getBoundingClientRect();
+  if (clientY < firstRowRect.top) {
+    targetRow = 0;
+  } else if (clientY >= lastRowRect.bottom) {
+    targetRow = rows.length - 1;
+  } else {
+    for (let r = 0; r < rows.length; r++) {
+      const rect = rows[r].getBoundingClientRect();
+      if (clientY >= rect.top && clientY < rect.bottom) {
+        targetRow = r;
+        break;
+      }
+    }
+  }
+
+  if (targetCol !== null && targetRow !== null && teacher.scheduleDays[targetCol] && teacher.scheduleSlots[targetRow]) {
+    const cell = rows[targetRow]?.children[targetCol + 1] || null;
+    return { col: targetCol, row: targetRow, cell };
+  }
+
+  return null;
 };
+
+/** Which day column and which slot row the pointer is over. */
+const cellAt = (e) => {
+  const at = cellIndexFromPoint(e.clientX, e.clientY);
+  if (!at) return null;
+  const day = teacher.scheduleDays[at.col];
+  const slot = teacher.scheduleSlots[at.row];
+  return day && slot ? { day, slot } : null;
+};
+
+/** The same hit test as cellAt, but as row/column numbers. */
+const cellIndexAt = (e) => cellIndexFromPoint(e.clientX, e.clientY);
+
+/* ---- Sweeping out a range of slots -------------------------------------- */
+
+/** The rectangle being swept, in grid coordinates, while the pointer is down. */
+let sweep = null;
+/** The rectangle it left behind, which the panel then acts on. */
+const selection = ref(null);
+
+const sweepBounds = (a, b) => ({
+  col1: Math.min(a.col, b.col), col2: Math.max(a.col, b.col),
+  row1: Math.min(a.row, b.row), row2: Math.max(a.row, b.row),
+});
+
+/** Every slot inside the rectangle that is still allowed to change. */
+const slotsIn = (box) => {
+  const out = [];
+  for (let col = box.col1; col <= box.col2; col += 1) {
+    const day = teacher.scheduleDays[col];
+    if (!day) continue;
+    for (let row = box.row1; row <= box.row2; row += 1) {
+      const slot = teacher.scheduleSlots[row];
+      if (slot && !teacher.isPastSlot(day.key, slot.key)) out.push({ day, slot });
+    }
+  }
+  return out;
+};
+
+/** Render the selection overlay on top of open/reserved/empty slots. */
+const renderSelectionOverlay = (box) => {
+  const scroller = host.value?.querySelector('.lm-schedule');
+  if (!scroller) return;
+
+  let overlay = scroller.querySelector('.cjs-selection-overlay');
+  if (!box) {
+    overlay?.remove();
+    return;
+  }
+
+  const rows = gridRows();
+  if (!rows.length || !rows[box.row1] || !rows[box.row2]) {
+    overlay?.remove();
+    return;
+  }
+
+  const topRow = rows[box.row1];
+  const bottomRow = rows[box.row2];
+  const top = topRow.offsetTop;
+  const height = (bottomRow.offsetTop + bottomRow.offsetHeight) - top;
+
+  const firstDayCell = topRow.children[box.col1 + 1];
+  const lastDayCell = topRow.children[box.col2 + 1];
+  if (!firstDayCell || !lastDayCell) {
+    overlay?.remove();
+    return;
+  }
+
+  const left = firstDayCell.offsetLeft;
+  const width = (lastDayCell.offsetLeft + lastDayCell.offsetWidth) - left;
+
+  if (!overlay) {
+    overlay = document.createElement('div');
+    overlay.className = 'cjs-selection-overlay';
+    overlay.setAttribute('aria-hidden', 'true');
+    scroller.appendChild(overlay);
+  }
+
+  overlay.style.top = `${top}px`;
+  overlay.style.left = `${left}px`;
+  overlay.style.width = `${width}px`;
+  overlay.style.height = `${height}px`;
+};
+
+/** Slot hover indicator for real-time visual feedback on every slot */
+const updateSlotHover = (clientX, clientY) => {
+  const scroller = host.value?.querySelector('.lm-schedule');
+  if (!scroller) return;
+
+  let hoverEl = scroller.querySelector('.cjs-slot-hover');
+  if (sweep || topDrag) {
+    hoverEl?.remove();
+    return;
+  }
+
+  const at = cellIndexFromPoint(clientX, clientY);
+  if (!at) {
+    hoverEl?.remove();
+    return;
+  }
+
+  const day = teacher.scheduleDays[at.col];
+  const slot = teacher.scheduleSlots[at.row];
+  if (!day || !slot || teacher.isPastSlot(day.key, slot.key)) {
+    hoverEl?.remove();
+    return;
+  }
+
+  const rows = gridRows();
+  const row = rows[at.row];
+  const cell = row?.children[at.col + 1];
+  if (!row || !cell) {
+    hoverEl?.remove();
+    return;
+  }
+
+  if (!hoverEl) {
+    hoverEl = document.createElement('div');
+    hoverEl.className = 'cjs-slot-hover';
+    hoverEl.setAttribute('aria-hidden', 'true');
+    scroller.appendChild(hoverEl);
+  }
+
+  hoverEl.style.top = `${row.offsetTop}px`;
+  hoverEl.style.left = `${cell.offsetLeft}px`;
+  hoverEl.style.width = `${cell.offsetWidth}px`;
+  hoverEl.style.height = `${row.offsetHeight}px`;
+};
+
+const hideSlotHover = () => {
+  const scroller = host.value?.querySelector('.lm-schedule');
+  scroller?.querySelector('.cjs-slot-hover')?.remove();
+};
+
+/**
+ * Where each block sits on the grid, counted in rows and columns rather than
+ * measured in pixels. A block lives in the cell it starts in and is as tall as
+ * it needs to be, so its extent has to be worked out; doing it in grid units
+ * keeps this off the layout path, which a sweep walks on every pointer move.
+ */
+const blockSpans = () => {
+  const rows = gridRows();
+  const rowH = slotHeight();
+  const out = [];
+  for (const el of host.value?.querySelectorAll('.lm-schedule-item') ?? []) {
+    const td = el.closest('td');
+    const tr = td?.closest('tr');
+    if (!td || !tr) continue;
+    const col = [...tr.children].indexOf(td) - 1;
+    const row0 = rows.indexOf(tr);
+    if (col < 0 || row0 < 0) continue;
+    const span = Math.max(1, Math.round(el.offsetHeight / rowH));
+    out.push({ el, col, row0, row1: row0 + span - 1 });
+  }
+  return out;
+};
+
+/** Paint the sweep straight onto the cells and update the overlay. */
+const paintSweep = (box) => {
+  const rows = gridRows();
+  const spans = blockSpans();
+
+  const covered = new Set();
+  spans.forEach(({ col, row0, row1 }) => {
+    for (let r = row0; r <= row1; r += 1) covered.add(`${col}:${r}`);
+  });
+
+  rows.forEach((row, rowIndex) => {
+    [...row.children].slice(1).forEach((cell, col) => {
+      const inside = box
+        && col >= box.col1 && col <= box.col2
+        && rowIndex >= box.row1 && rowIndex <= box.row2
+        && cell.dataset.past !== 'true';
+      // Never tint under a block. A block is narrower than the cell it sits
+      // in, so a fill behind it came out as a rim of amber down its sides —
+      // the slot looked like it had a panel behind it rather than like it had
+      // been chosen. Blocks carry the selection themselves, below.
+      if (inside && !covered.has(`${col}:${rowIndex}`)) cell.dataset.sel = 'true';
+      else delete cell.dataset.sel;
+    });
+  });
+
+  // A block reads as selected only when the sweep holds all of it. Part of a
+  // block is a real thing to select — the slots are what get applied, not the
+  // block — but a ring round the whole of it would claim more than was taken,
+  // and the overlay already draws the true edge across it.
+  spans.forEach(({ el, col, row0, row1 }) => {
+    const whole = box
+      && col >= box.col1 && col <= box.col2
+      && row0 >= box.row1 && row1 <= box.row2;
+    if (whole) el.dataset.sel = 'true';
+    else delete el.dataset.sel;
+  });
+
+  renderSelectionOverlay(box);
+};
+
+const clearSelection = () => {
+  selection.value = null;
+  paintSweep(null);
+};
+
+/** Apply one status to everything swept, then let go of the selection. */
+const applyToSelection = (status, reason = '') => {
+  const sel = selection.value;
+  if (!sel) return;
+  sel.slots.forEach(({ day, slot }) => teacher.setSlotStatus(day.key, slot.key, status, reason));
+  clearSelection();
+};
+
+const selectionSummary = computed(() => {
+  const sel = selection.value;
+  if (!sel) return null;
+  const per = teacher.SLOTS_PER_HOUR ?? 2;
+  const hours = Math.round((sel.slots.length / per) * 10) / 10;
+  const days = [...new Set(sel.slots.map((s) => s.day.key))];
+  const open = sel.slots.filter(({ day, slot }) => teacher.isOpen(day.key, slot.key)).length;
+  const reserved = sel.slots.filter(({ day, slot }) => teacher.isReserved(day.key, slot.key)).length;
+  return {
+    count: sel.slots.length,
+    hours,
+    open,
+    reserved,
+    closed: sel.slots.length - open - reserved,
+    dayLabel: days.length === 1
+      ? (teacher.scheduleDays.find((d) => d.key === days[0])?.label ?? '')
+      : `${days.length} days`,
+  };
+});
 
 const onHostPointerDown = (e) => {
   // Hours that have begun are not offers any more. The store refuses them too,
@@ -647,31 +989,16 @@ const onHostPointerDown = (e) => {
     return;
   }
 
-  // Cleared here rather than by the click it was meant to swallow: a drag that
-  // called preventDefault produces no click at all, and the flag would then be
-  // spent on the next genuine one.
   swallowClick = false;
 
   const item = e.target?.closest?.('.lm-schedule-item');
   const edge = topEdgeOf(e);
-
-  pressAt = {
-    x: e.clientX,
-    y: e.clientY,
-    // Where the gesture began is the only reliable signal: by the time it ends
-    // the library has dropped a provisional block under the cursor, and the
-    // pointer may have left the board altogether.
-    onItem: !!item,
-    item,
-  };
+  const lower = !edge ? bottomEdgeOf(e) : null;
 
   // The library offers no top edge, so that one is ours; the bottom is taken
   // as well so the two ends of a block answer to the same code, scroll the
   // board the same way, and cannot drift apart again.
-  const lower = !edge ? bottomEdgeOf(e) : null;
   if (lower) {
-    // Claim the gesture whatever happens next, before the lookup that might
-    // fail — otherwise a miss handed the edge back to the library mid-drag.
     e.preventDefault();
     const ev = findEvent(lower.item);
     if (ev) {
@@ -695,60 +1022,56 @@ const onHostPointerDown = (e) => {
     return;
   }
 
-  // Anywhere that is not a resize edge picks the block up.
-  if (item && !edge) {
-    // The library has a move of its own — it reparents the block into the row
-    // under the pointer — and it has to be shut out, or the block travels our
-    // offset plus its own and runs at twice the speed of the cursor. It only
-    // showed up once rows became half hours: at hour rows a half-hour step
-    // never crossed a row boundary, so the library's move was a no-op.
-    e.preventDefault();
-    const ev = findEvent(item);
-    const column = item.closest('td');
-    if (ev && column) {
+  if (edge) {
+    const ev = findEvent(edge.item);
+    if (ev) {
       const startMin = toMinutes(ev.start);
       const endMin = toMinutes(ev.end || ev.start);
-      moveDrag = {
+      topDrag = {
         ev,
-        el: item,
+        el: edge.item,
+        edge: 'top',
         startMin,
         endMin,
-        weekday: Number(ev.weekday),
         newStartMin: startMin,
-        newWeekday: Number(ev.weekday),
         rowH: slotHeight(),
-        colW: column.getBoundingClientRect().width,
-        pressX: e.clientX,
         pressY: e.clientY,
         pressScroll: scrollerEl()?.scrollTop ?? 0,
-        active: false,
+        baseTop: edge.item.offsetTop,
+        baseHeight: edge.item.offsetHeight,
       };
+      picked.value = null;
     }
+    e.preventDefault();
     return;
   }
 
-  if (!edge) return;
-  const ev = findEvent(edge.item);
-  if (!ev) return;
-
-  const startMin = toMinutes(ev.start);
-  const endMin = toMinutes(ev.end || ev.start);
-  topDrag = {
-    ev,
-    el: edge.item,
-    edge: 'top',
-    startMin,
-    endMin,
-    newStartMin: startMin,
-    rowH: slotHeight(),
-    pressY: e.clientY,
-    pressScroll: scrollerEl()?.scrollTop ?? 0,
-    baseTop: edge.item.offsetTop,
-    baseHeight: edge.item.offsetHeight,
-  };
-  picked.value = null;
-  // Suppresses the compatibility mouse events the library listens on.
-  e.preventDefault();
+  // Any other click (whether on empty grid or on an open / reserved slot) starts
+  // a potential sweep selection. If the user drags, slots are selected. If the
+  // user simply clicks without moving, pointerup opens the block panel or toggles the slot.
+  const at = cellIndexFromPoint(e.clientX, e.clientY);
+  if (at) {
+    const day = teacher.scheduleDays[at.col];
+    const slot = teacher.scheduleSlots[at.row];
+    if (day && slot && teacher.isPastSlot(day.key, slot.key)) {
+      e.preventDefault();
+      picked.value = null;
+      return;
+    }
+    e.preventDefault();
+    clearSelection();
+    picked.value = null;
+    sweep = { from: at, to: at, active: false, x: e.clientX, y: e.clientY };
+    pressAt = {
+      x: e.clientX,
+      y: e.clientY,
+      onItem: !!item,
+      item,
+      cellAt: at,
+    };
+    hideSlotHover();
+    return;
+  }
 };
 
 const scrollerEl = () => host.value?.querySelector('.lm-schedule');
@@ -830,7 +1153,7 @@ const stopAutoScroll = () => {
 const stepAutoScroll = () => {
   autoScrollFrame = null;
   const box = scrollerEl();
-  const dragging = (moveDrag && moveDrag.active) || topDrag;
+  const dragging = (moveDrag && moveDrag.active) || topDrag || (sweep && sweep.active);
   if (!box || !dragging || !lastPointer) return;
 
   const rect = box.getBoundingClientRect();
@@ -854,8 +1177,8 @@ const stepAutoScroll = () => {
     const before = box.scrollTop;
     box.scrollTop = Math.max(0, Math.min(box.scrollHeight - box.clientHeight, before + speed));
     if (box.scrollTop !== before) {
-      if (moveDrag) applyMovePreview();
-      else applyTopPreview();
+      if (sweep) paintSweep(sweepBounds(sweep.from, sweep.to));
+      else if (topDrag) applyTopPreview();
     }
   }
   autoScrollFrame = requestAnimationFrame(stepAutoScroll);
@@ -868,37 +1191,36 @@ const startAutoScroll = () => {
 const onHostPointerMove = (e) => {
   lastPointer = { x: e.clientX, y: e.clientY };
 
-  if (moveDrag) {
-    // A press only becomes a drag once it travels; below that it is still a
-    // click, and clicking a block opens the panel.
-    if (!moveDrag.active) {
-      const moved = Math.hypot(e.clientX - moveDrag.pressX, e.clientY - moveDrag.pressY);
-      if (moved <= DRAG_SLOP) return;
-      moveDrag.active = true;
+  if (sweep) {
+    if (!sweep.active) {
+      if (Math.hypot(e.clientX - sweep.x, e.clientY - sweep.y) <= DRAG_SLOP) return;
+      sweep.active = true;
+      hideSlotHover();
     }
     e.preventDefault();
-    applyMovePreview();
+    const at = cellIndexAt(e);
+    if (at) sweep.to = at;
+    paintSweep(sweepBounds(sweep.from, sweep.to));
     startAutoScroll();
     return;
   }
 
-  if (!topDrag) {
-    // Name all three zones ourselves. Giving the block a default `grab` cursor
-    // masked the library's inline resize cursor on the lower edge, so the two
-    // edges have to be set here rather than left half to the library.
-    const item = e.target?.closest?.('.lm-schedule-item');
-    if (item) {
-      const box = item.getBoundingClientRect();
-      const nearTop = e.clientY - box.top <= EDGE_GRAB;
-      const nearBottom = box.bottom - e.clientY <= EDGE_GRAB;
-      item.style.cursor = nearTop || nearBottom ? 'ns-resize' : '';
-    }
+  if (topDrag) {
+    e.preventDefault();
+    applyTopPreview();
+    startAutoScroll();
     return;
   }
 
-  e.preventDefault();
-  applyTopPreview();
-  startAutoScroll();
+  // Not dragging: update cursor and slot hover indicator
+  const item = e.target?.closest?.('.lm-schedule-item');
+  if (item) {
+    const box = item.getBoundingClientRect();
+    const nearTop = e.clientY - box.top <= EDGE_GRAB;
+    const nearBottom = box.bottom - e.clientY <= EDGE_GRAB;
+    item.style.cursor = nearTop || nearBottom ? 'ns-resize' : 'crosshair';
+  }
+  updateSlotHover(e.clientX, e.clientY);
 };
 
 const finishTopDrag = () => {
@@ -987,9 +1309,33 @@ const finishMoveDrag = () => {
   return true;
 };
 
+/** Hand the swept rectangle to the panel, or drop it if nothing was swept. */
+const finishSweep = () => {
+  const run = sweep;
+  if (!run) return false;
+  sweep = null;
+  if (!run.active) { paintSweep(null); return false; }
+
+  // A sweep that starts and ends on different cells still produces a click on
+  // their common ancestor, even though the pointerdown was claimed — and that
+  // click lands on the board, which means "nothing is selected any more".
+  swallowClick = true;
+
+  const box = sweepBounds(run.from, run.to);
+  const slots = slotsIn(box);
+  if (!slots.length) { clearSelection(); return true; }
+  selection.value = { box, slots };
+  paintSweep(box);
+  pressAt = null;
+  return true;
+};
+
 const onHostPointerUp = (e) => {
   stopAutoScroll();
-  if (finishMoveDrag()) return;
+  if (finishSweep()) {
+    hideSlotHover();
+    return;
+  }
   if (finishTopDrag()) return;
 
   const press = pressAt;
@@ -1000,8 +1346,7 @@ const onHostPointerUp = (e) => {
   if (moved) return;
 
   // A press on a block opens the panel, and it has to happen here: claiming
-  // the gesture on pointerdown — which is what keeps the library's own move
-  // out of it — suppresses the compatibility events, and click is one of them.
+  // the gesture on pointerdown suppresses the compatibility events.
   if (press.onItem) {
     openPanel(press.item);
     return;
@@ -1029,6 +1374,7 @@ const dayDateLabel = (day, index) => {
 };
 
 const openPanel = (item) => {
+  clearSelection();
   const ev = item ? findEvent(item) : null;
   if (!ev) { picked.value = null; return; }
 
@@ -1263,6 +1609,7 @@ const onKeydown = (e) => {
   // One step at a time: the first Escape abandons the edit, the second closes
   // the panel. Otherwise a mistyped reason takes the whole panel with it.
   if (editingReason.value) { editingReason.value = false; return; }
+  if (selection.value) { clearSelection(); return; }
   picked.value = null;
 };
 
@@ -1405,6 +1752,7 @@ onMounted(() => {
 
   host.value.addEventListener('pointerdown', onHostPointerDown);
   host.value.addEventListener('pointermove', onHostPointerMove);
+  host.value.addEventListener('pointerleave', hideSlotHover);
   // On window, not the host: a resize that runs past the board's edge still has
   // to end somewhere.
   window.addEventListener('pointerup', onHostPointerUp);
@@ -1458,10 +1806,12 @@ watch(
 
 onBeforeUnmount(() => {
   stopAutoScroll();
+  hideSlotHover();
   headObserver?.disconnect();
   headObserver = null;
   host.value?.removeEventListener('pointerdown', onHostPointerDown);
   host.value?.removeEventListener('pointermove', onHostPointerMove);
+  host.value?.removeEventListener('pointerleave', hideSlotHover);
   window.removeEventListener('pointerup', onHostPointerUp);
   host.value?.removeEventListener('click', onHostClick);
   document.removeEventListener('keydown', onKeydown);
@@ -1493,10 +1843,10 @@ onBeforeUnmount(() => {
   border: 1px solid rgb(6 40 30 / 0.14);
   border-radius: 8px;
   box-shadow: 0 1px 2px rgb(6 40 30 / 0.12);
-  /* A block can be picked up anywhere, so the whole face says so. The library
-     sets its own resize cursor inline on the lower edge, and the top edge is
-     set inline too, so both still win over this. */
-  cursor: grab;
+  /* The plain arrow. The grab hand said "pick me up" on every block all the
+     time, which is one gesture out of several and not the usual one. The
+     resize edges still set ns-resize inline, so that affordance survives. */
+  cursor: default;
   transition: box-shadow 0.12s ease, filter 0.12s ease;
 
   /* One line by default. A flex line is broken on the items' natural widths,
@@ -1536,7 +1886,6 @@ onBeforeUnmount(() => {
    block carried past the top of the board should slide under the day names,
    not cover them. */
 .availability-calendar :deep(.lm-schedule-item[data-dragging='true']) {
-  cursor: grabbing;
   z-index: 3;
   opacity: 0.92;
   box-shadow: 0 10px 22px rgb(6 40 30 / 0.3);
@@ -1748,7 +2097,7 @@ onBeforeUnmount(() => {
   box-shadow: inset 0 -2px 0 #FFCD00;
 }
 .availability-calendar :deep(.lm-schedule tbody td[data-today='true']) {
-  background-color: rgb(253 249 239 / 0.5);
+  background-color: #FEFCF7;
 }
 
 /* Hours that have begun. Greyed rather than hidden — the week still has to
@@ -1758,14 +2107,87 @@ onBeforeUnmount(() => {
    clickable, so the refusal is made in the gesture layer, which can tell an
    empty hour from a run that is still partly ahead. */
 .availability-calendar :deep(.lm-schedule tbody td[data-past='true']) {
-  background-color: rgb(241 245 249 / 0.75);
+  background-color: #F5F8FB;
   background-image: none;
   cursor: default;
+}
+
+/* The half-hour rows carry a 1px transparent border purely for spacing. Under
+   border-collapse a cell's background is not painted beneath a collapsed
+   border, so on any cell with a colour of its own that 1px was the table
+   showing through — a pale rule every half hour, down the shaded columns only.
+   Colouring it to match the cell fixed that at 1x and 2x but not at 1.5x,
+   where a 1px edge lands on a half device pixel and rasterises a shade off.
+   `hidden` wins every conflict in the collapsing model and takes the edge out
+   of the layout, so there is no longer an edge to mismatch. */
+.availability-calendar :deep(.lm-schedule tbody tr:not(.lm-schedule-hour) > td) {
+  border-top-style: hidden;
 }
 .availability-calendar :deep(.lm-schedule-item[data-spent='true']) {
   opacity: 0.5;
   box-shadow: none;
   cursor: default;
+}
+
+/* Hovering a slot says it can be acted on — the blocks have said so since the
+   beginning, the empty hours between them never did. */
+.availability-calendar :deep(.lm-schedule tbody td:not([data-past='true'])) {
+  cursor: crosshair;
+}
+.availability-calendar :deep(.lm-schedule tbody td:not([data-past='true']):hover) {
+  background-color: #F1F5F9;
+  box-shadow: inset 0 0 0 1.5px #CBD5E1;
+}
+.availability-calendar :deep(.lm-schedule tbody td[data-today='true']:not([data-past='true']):hover) {
+  background-color: #FEF9EE;
+  box-shadow: inset 0 0 0 1.5px #FDE68A;
+}
+
+/* Bare hours inside the run. Only the ones with nothing on them are painted —
+   `paintSweep` leaves the cells under a block alone — so this fill never
+   appears around the edge of a slot. */
+.availability-calendar :deep(.lm-schedule tbody td[data-sel='true']),
+.availability-calendar :deep(.lm-schedule tbody td[data-sel='true']:hover) {
+  background-color: #FEF3C7;
+  box-shadow: none;
+}
+
+/* The run's own edge, drawn over the blocks rather than behind them.
+   It used to be an opaque amber panel sitting at z-index 0, under everything,
+   which is why a selected slot showed as a yellow surround instead of a chosen
+   slot: the block covered the middle and left the fill showing down its sides.
+   Hollow and on top, it outlines what was taken and nothing else, and it marks
+   the true edge when a sweep ends part way through a block. */
+.availability-calendar :deep(.cjs-selection-overlay) {
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+  border-radius: 10px;
+  background-color: transparent;
+  border: 2px solid #F59E0B;
+  box-shadow: 0 0 0 3px rgb(245 158 11 / 0.18);
+  box-sizing: border-box;
+}
+
+/* A slot the sweep holds whole. The ring is drawn inside the block, not around
+   it: when a sweep is exactly one block the overlay's edge lands in the same
+   place, and two rings a hair apart read as one thick smudged border. Inset,
+   the outer edge stays the overlay's alone and the slot still reads as taken. */
+.availability-calendar :deep(.lm-schedule-item[data-sel='true']) {
+  box-shadow: inset 0 0 0 2px #F59E0B, 0 6px 18px rgb(245 158 11 / 0.3);
+}
+
+/* Slot hover indicator that highlights whichever 30-min slot is hovered */
+.availability-calendar :deep(.cjs-slot-hover) {
+  position: absolute;
+  pointer-events: none;
+  z-index: 3;
+  border-radius: 6px;
+  background-color: rgba(255, 255, 255, 0.26);
+  border: 1.5px solid rgba(255, 255, 255, 0.88);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14), inset 0 0 0 1px rgba(0, 0, 0, 0.06);
+  box-sizing: border-box;
+  transition: opacity 0.06s ease;
 }
 
 /* Now, drawn across the days like the bookmark in a wall calendar. */
