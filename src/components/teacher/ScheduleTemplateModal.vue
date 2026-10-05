@@ -329,7 +329,7 @@
              here would appear not to reach it. Saying so, and offering to put
              those weeks back, is what makes "every week" true. -->
         <label
-          v-if="editedWeekCount && isDirty"
+          v-if="editedWeekCount && repeatSpan === 'always'"
           class="flex shrink-0 cursor-pointer items-start gap-2.5 border-t border-amber-200 bg-amber-50 px-6 py-2.5 text-[11px] text-amber-900"
         >
           <input type="checkbox" v-model="replaceEditedWeeks" class="mt-0.5 h-3.5 w-3.5 accent-amber-600 cursor-pointer" />
@@ -344,7 +344,7 @@
 
         <!-- Footer -->
         <div class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 px-6 py-3">
-          <span></span>
+          <p class="min-w-0 truncate text-[11px] text-slate-400">{{ primaryAction.hint }}</p>
 
           <div class="flex items-center gap-2">
             <!-- Nothing to save until something changes, so the button is not
@@ -358,12 +358,13 @@
               {{ isDirty ? 'Cancel' : 'Close' }}
             </button>
             <button
-              v-if="isDirty"
               type="button"
-              @click="save"
-              class="cursor-pointer rounded-full bg-brighture-gold px-5 py-1.5 text-xs font-extrabold text-brighture-ink shadow-xs transition hover:bg-brighture-gold-deep active:scale-95"
+              :disabled="!primaryAction.enabled"
+              :title="primaryAction.hint"
+              @click="runPrimary"
+              class="cursor-pointer rounded-full bg-brighture-gold px-5 py-1.5 text-xs font-extrabold text-brighture-ink shadow-xs transition hover:bg-brighture-gold-deep active:scale-95 disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-400 disabled:shadow-none"
             >
-              Save template
+              {{ primaryAction.label }}
             </button>
           </div>
         </div>
@@ -649,10 +650,9 @@ const summary = computed(() => {
  * here as well as refused by the store, so the count the instructor reads is
  * the count that gets written.
  */
-const spanDates = computed(() => {
+const datesForSpan = (dayKeys) => {
   if (repeatSpan.value === 'always') return [];
-  const r = rect.value;
-  if (!r || !selectedDayKeys.value.length) return [];
+  if (!dayKeys.length) return [];
   const weekStart = new Date(`${teacher.thisWeekStart}T12:00:00`);
   const todayIso = teacher.manilaNow.iso;
   const weeks = repeatSpan.value === 'weeks' ? clampInt(repeatWeeks.value, 1, 52) : 52;
@@ -665,7 +665,7 @@ const spanDates = computed(() => {
     const base = plusDays(weekStart, w * 7);
     let any = false;
     for (let i = 0; i < DAYS.length; i += 1) {
-      if (!selectedDayKeys.value.includes(DAYS[i].key)) continue;
+      if (!dayKeys.includes(DAYS[i].key)) continue;
       const d = plusDays(base, i);
       const iso = isoOf(d);
       if (until && iso > until) return out;
@@ -677,7 +677,12 @@ const spanDates = computed(() => {
     if (until && !any && isoOf(base) > until) return out;
   }
   return out;
-});
+};
+
+const spanDates = computed(() => (rect.value ? datesForSpan(selectedDayKeys.value) : []));
+
+/** Every date the span covers, for laying the whole template onto the weeks. */
+const applyDates = computed(() => datesForSpan(DAYS.map((d) => d.key)));
 
 const spanNote = computed(() => {
   if (repeatSpan.value === 'always') return 'These hours repeat every week, with no end.';
@@ -840,11 +845,64 @@ const close = () => {
 const editedWeekCount = computed(() => teacher.upcomingEditedWeeks.length);
 const replaceEditedWeeks = ref(true);
 
-const save = () => {
-  teacher.setPattern(draft.value);
-  if (replaceEditedWeeks.value) teacher.resetWeeksToPattern();
-  // Dated runs are written after the weeks are put back under the template,
-  // so a bounded run sits on top of it rather than being wiped by it.
+/**
+ * What the footer button will do, which depends on the span.
+ *
+ * "Every week" edits the template itself. A bounded span cannot be held in the
+ * template at all, so it is laid onto the weeks as dated hours — and that is a
+ * real action whether or not the template was touched, which is why the button
+ * is no longer hidden when nothing has changed.
+ */
+const primaryAction = computed(() => {
+  if (repeatSpan.value !== 'always') {
+    const n = applyDates.value.length;
+    return {
+      key: 'apply',
+      label: n ? `Apply to ${n} ${n === 1 ? 'date' : 'dates'}` : 'Apply to calendar',
+      enabled: n > 0,
+      hint: n
+        ? `The whole template written onto those ${n} ${n === 1 ? 'date' : 'dates'}.`
+        : 'Pick an end that reaches past today.',
+    };
+  }
+  if (isDirty.value) return { key: 'save', label: 'Save template', enabled: true, hint: '' };
+  return {
+    key: 'republish',
+    label: 'Apply to every week',
+    enabled: true,
+    hint: 'Puts every upcoming week back under this template.',
+  };
+});
+
+/** Lay the template's hours onto each date the span covers. */
+const applyToCalendar = () => {
+  applyDates.value.forEach(({ weekStartIso, dayKey }) => {
+    for (let sl = 0; sl < 48; sl += 1) {
+      const slotKey = teacher.scheduleSlots[sl]?.key;
+      if (!slotKey) continue;
+      const status = statusOf(dayKey, sl);
+      const v = draft.value[keyOf(dayKey, sl)];
+      const reason = status === 'reserved' && typeof v === 'object' && v ? v.reason || '' : '';
+      teacher.setSlotStatusOn(weekStartIso, dayKey, slotKey, status, reason);
+    }
+  });
+};
+
+const runPrimary = () => {
+  const action = primaryAction.value;
+  if (!action.enabled) return;
+  if (action.key === 'apply') {
+    if (isDirty.value) teacher.setPattern(draft.value);
+    applyToCalendar();
+    writePendingOps();
+    emit('saved');
+    emit('close');
+    return;
+  }
+  save();
+};
+
+const writePendingOps = () => {
   pendingOps.value.forEach((op) => {
     op.dates.forEach(({ weekStartIso, dayKey }) => {
       for (let s = op.s0; s <= op.s1; s += 1) {
@@ -853,6 +911,14 @@ const save = () => {
       }
     });
   });
+};
+
+const save = () => {
+  teacher.setPattern(draft.value);
+  if (replaceEditedWeeks.value) teacher.resetWeeksToPattern();
+  // Dated runs are written after the weeks are put back under the template,
+  // so a bounded run sits on top of it rather than being wiped by it.
+  writePendingOps();
   emit('saved');
   emit('close');
 };

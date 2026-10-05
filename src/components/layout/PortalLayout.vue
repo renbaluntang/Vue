@@ -534,17 +534,21 @@
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
       <!-- UPCOMING ONLINE CLASS FLOATING NOTIFICATION / HEADER BAR (Shown on subpages, merged into Hero on Dashboard) -->
       <div
-        v-if="user.nextUpcomingClass && !isDashboardRoute"
-        class="bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white px-3 sm:px-6 py-1.5 text-xs font-semibold flex flex-nowrap items-center gap-2 sm:gap-3 shadow-md flex-shrink-0 z-30"
+        v-if="user.nextUpcomingClass && !isDashboardRoute && !nextClassDismissed"
+        class="px-3 sm:px-6 py-1.5 text-xs font-semibold flex flex-nowrap items-center gap-2 sm:gap-3 shadow-md flex-shrink-0 z-30 transition-colors duration-500"
+        :class="nextClassTone.bar"
       >
         <!-- Stays one line at every width: the label and class share a single
              truncating row so the Join button can never wrap underneath it. -->
         <p class="min-w-0 flex-1 truncate leading-5">
-          <strong class="text-[11px] font-extrabold uppercase tracking-wide text-slate-300">
-            <span class="hidden sm:inline">Next class in </span>{{ user.nextUpcomingClass.minutesUntil }}m
+          <strong
+            class="text-[11px] font-extrabold uppercase tracking-wide"
+            :class="[nextClassTone.lead, nextClassTone.urgent ? 'animate-pulse motion-reduce:animate-none' : '']"
+          >
+            <span class="hidden sm:inline">{{ nextClassTone.urgent ? 'Starting in ' : 'Next class in ' }}</span>{{ user.nextUpcomingClass.minutesUntil }}m
           </strong>
-          <span class="mx-1.5 text-slate-600">&middot;</span>
-          <span class="text-slate-200">
+          <span class="mx-1.5" :class="nextClassTone.dot">&middot;</span>
+          <span :class="nextClassTone.body">
             {{ user.nextUpcomingClass.subject }} with <strong>{{ user.nextUpcomingClass.teacherName }}</strong> at {{ user.nextUpcomingClass.time }}
           </span>
         </p>
@@ -552,12 +556,26 @@
         <a
           :href="user.nextUpcomingClass.meetLink"
           target="_blank"
-          class="shrink-0 inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] sm:text-xs shadow-xs transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+          class="shrink-0 inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg font-black text-[11px] sm:text-xs shadow-xs transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+          :class="nextClassTone.join"
         >
           <span>📹</span>
           <span class="hidden sm:inline">Join Online Class</span>
           <span class="sm:hidden">Join</span>
         </a>
+
+        <!-- The bar sits above every page and cannot be scrolled away, so it
+             needs a way out. It comes back on the next page load, since the
+             class itself has not gone anywhere. -->
+        <button
+          type="button"
+          @click="nextClassDismissed = true"
+          aria-label="Hide the next class reminder"
+          class="shrink-0 flex h-6 w-6 cursor-pointer items-center justify-center rounded-md transition"
+          :class="nextClassTone.close"
+        >
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
       </div>
 
       <!-- Top Sticky Header with Refined Points Capsule and Language Selector -->
@@ -967,6 +985,56 @@ watch(
   },
   { immediate: true }
 );
+
+/** Hidden for this visit only — the class is still happening. */
+const nextClassDismissed = ref(false);
+
+/**
+ * The bar warms up as the class approaches.
+ *
+ * A reminder that looks identical at half an hour out and at two minutes out is
+ * not a reminder, it is furniture — so the whole strip carries the urgency
+ * rather than leaving it to a number most people have stopped reading.
+ */
+const nextClassTone = computed(() => {
+  const mins = user.nextUpcomingClass?.minutesUntil ?? 999;
+
+  if (mins <= 5) {
+    return {
+      urgent: true,
+      // rose-700 rather than rose-600: the lighter red left body text at 4.2:1,
+      // just under AA, where this carries white at about 6.3:1.
+      bar: 'bg-rose-700 text-white',
+      lead: 'text-rose-50',
+      dot: 'text-rose-300',
+      body: 'text-white',
+      join: 'bg-white text-rose-700 hover:bg-rose-50',
+      close: 'text-rose-200 hover:bg-rose-800 hover:text-white',
+    };
+  }
+
+  if (mins <= 15) {
+    return {
+      urgent: false,
+      bar: 'bg-amber-400 text-slate-900',
+      lead: 'text-amber-900',
+      dot: 'text-amber-700',
+      body: 'text-slate-900',
+      join: 'bg-slate-900 text-white hover:bg-slate-800',
+      close: 'text-amber-800 hover:bg-amber-500 hover:text-slate-900',
+    };
+  }
+
+  return {
+    urgent: false,
+    bar: 'bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 text-white',
+    lead: 'text-slate-300',
+    dot: 'text-slate-600',
+    body: 'text-slate-200',
+    join: 'bg-emerald-500 text-slate-950 hover:bg-emerald-400',
+    close: 'text-slate-400 hover:bg-slate-800 hover:text-white',
+  };
+});
 
 const isDashboardRoute = computed(() => {
   return route.path === '/' || route.path === '' || route.path === '/student-portal' || route.path === '/student-portal/';

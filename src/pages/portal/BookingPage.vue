@@ -58,6 +58,27 @@ const activeVideo = ref(null); // { teacher, kind: 'intro' | 'demo' }
 const openVideo = (teacher, kind) => { activeVideo.value = { teacher, kind }; };
 const closeVideo = () => { activeVideo.value = null; };
 
+const videoTabs = [
+  { kind: 'intro', icon: '▶', label: (t) => `Get to know ${t.name.split(' ')[0]}` },
+  { kind: 'demo', icon: '🎬', label: (t) => `See ${t.name.split(' ')[0]} teach` },
+];
+
+/** The same subject names the card shows, read off the same field. */
+const videoSubjects = (teacher) => {
+  const names = parseSubjectCodes(teacher.specialty)
+    .map((code) => (SUBJECT_LABELS[code] || code).replace(/^\[[^\]]+\]\s*/, ''));
+  if (!names.length) return 'English';
+  if (names.length <= 2) return names.join(' and ');
+  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+};
+
+/** Straight from watching to picking a time, without going back to the card. */
+const bookFromVideo = () => {
+  const teacher = activeVideo.value?.teacher;
+  closeVideo();
+  if (teacher) openTeacherProfile(teacher);
+};
+
 // Popover / Date & Time state
 const isPopoverOpen = ref(false);
 
@@ -743,20 +764,20 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                     type="button"
                     @click.stop="openVideo(teacher, 'intro')"
                     class="inline-flex w-full touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
-                    title="Watch short video introduction"
+                    title="A short video about them"
                   >
                     <span class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-red-600 text-[10px]">▶</span>
-                    <span>Meet {{ teacher.name.split(' ')[0] }}</span>
+                    <span>Get to know {{ teacher.name.split(' ')[0] }}</span>
                   </button>
 
                   <button
                     type="button"
                     @click.stop="openVideo(teacher, 'demo')"
                     class="inline-flex w-full touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
-                    title="Watch an actual lesson sample"
+                    title="A few minutes of a real class"
                   >
                     <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-[10px]">🎬</span>
-                    <span>Watch Demo Lesson</span>
+                    <span>See {{ teacher.name.split(' ')[0] }} teach</span>
                   </button>
                 </div>
               </div>
@@ -886,25 +907,62 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
         class="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-black shadow-2xl border border-slate-800"
         @click.stop
       >
-        <div class="flex items-center justify-between bg-slate-900 px-4 py-3 text-white border-b border-slate-800">
-          <div class="min-w-0">
-            <h3 class="m-0 truncate text-sm font-semibold">
-              {{ activeVideo.kind === 'demo' ? 'Demo lesson' : 'Introduction' }}
-            </h3>
-            <p class="m-0 truncate text-[11px] text-slate-400">
-              {{ activeVideo.teacher.name }} ·
-              {{ activeVideo.kind === 'demo' ? 'a few minutes of a real class' : 'about themselves' }}
-            </p>
+        <div class="flex items-center justify-between gap-3 bg-slate-900 px-4 py-3 text-white border-b border-slate-800">
+          <!-- Both videos answer different questions about the same teacher, so
+               they belong on one switch rather than behind two separate trips
+               out to the card and back. -->
+          <div
+            role="tablist"
+            :aria-label="`Videos from ${activeVideo.teacher.name}`"
+            class="flex min-w-0 items-center gap-1 rounded-full bg-slate-800/80 p-1"
+          >
+            <button
+              v-for="tab in videoTabs"
+              :key="tab.kind"
+              type="button"
+              role="tab"
+              :aria-selected="activeVideo.kind === tab.kind ? 'true' : 'false'"
+              @click="activeVideo = { ...activeVideo, kind: tab.kind }"
+              class="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold transition"
+              :class="activeVideo.kind === tab.kind
+                ? 'bg-white text-slate-900 shadow-sm'
+                : 'text-slate-300 hover:text-white'"
+            >
+              <span>{{ tab.icon }}</span>
+              {{ tab.label(activeVideo.teacher) }}
+            </button>
           </div>
+
           <button
             type="button"
             @click="closeVideo"
-            class="shrink-0 rounded-lg bg-slate-800 px-2.5 py-1 text-xs font-semibold text-slate-300 hover:bg-slate-700 hover:text-white"
+            aria-label="Close video"
+            class="shrink-0 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-700 hover:text-white"
           >
             Close ✕
           </button>
         </div>
+
         <TeacherIntroVideo :video-id="activeVideo.kind === 'demo' ? DEMO_VIDEO_ID : INTRO_VIDEO_ID" />
+
+        <!-- The point of watching. Booking sat two screens away, so the moment
+             of "yes, them" had nowhere to go. -->
+        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 bg-slate-900 px-4 py-3">
+          <p class="min-w-0 text-xs text-slate-400">
+            {{ activeVideo.kind === 'demo'
+              ? `This is what a class with ${activeVideo.teacher.name.split(' ')[0]} looks like.`
+              : `${activeVideo.teacher.name.split(' ')[0]} teaches ${videoSubjects(activeVideo.teacher)}.` }}
+          </p>
+          <button
+            type="button"
+            @click="bookFromVideo"
+            class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-amber-300 bg-[#FFCD00] px-5 py-2 text-xs font-extrabold text-slate-900 shadow-md transition hover:bg-[#FFD933] hover:shadow-lg active:scale-95"
+          >
+            <span>📅</span>
+            Book a class with {{ activeVideo.teacher.name.split(' ')[0] }}
+            <span>→</span>
+          </button>
+        </div>
       </div>
     </div>
 
