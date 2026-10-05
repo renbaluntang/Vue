@@ -563,6 +563,22 @@ Nice to meet you all and I hope we can work together well.`,
   const activeWeekStart = ref(weekStartOf(new Date()));
   const thisWeekStart = computed(() => weekStartOf(new Date()));
 
+  /**
+   * How far ahead the repeating pattern reaches. It is a boundary on what is
+   * already published, not on what may be done: past it a week starts blank
+   * rather than echoing this week's hours, but any date from today onward can
+   * still be opened or held, and once a week is given its own hours it keeps
+   * and shows them.
+   */
+  const PUBLISHED_WEEKS = 2;
+  const publishedUntilIso = computed(() => {
+    const d = atNoon(thisWeekStart.value);
+    d.setDate(d.getDate() + PUBLISHED_WEEKS * 7 - 1);
+    return isoDay(d);
+  });
+  const isPublishedDate = (iso) => !!iso && iso <= publishedUntilIso.value;
+  const activeWeekPublished = computed(() => isPublishedDate(activeWeekStart.value));
+
   const scheduleDays = computed(() => {
     const start = atNoon(activeWeekStart.value);
     return DAY_KEYS.map((key, i) => {
@@ -649,9 +665,11 @@ Nice to meet you all and I hope we can work together well.`,
    * either the pattern or the active week's exception keeps every caller —
    * grid, calendar, modals — working unchanged.
    */
-  const availability = computed(
-    () => weekOverrides.value[activeWeekStart.value] ?? weekPattern.value
-  );
+  const availability = computed(() => {
+    const own = weekOverrides.value[activeWeekStart.value];
+    if (own) return own;
+    return activeWeekPublished.value ? weekPattern.value : {};
+  });
 
   const weekFollowsPattern = computed(() => !weekOverrides.value[activeWeekStart.value]);
   const weekHasOwnHours = (iso) => !!weekOverrides.value[iso];
@@ -668,7 +686,12 @@ Nice to meet you all and I hope we can work together well.`,
    */
   const beginWeekEdit = () => {
     if (weekOverrides.value[activeWeekStart.value]) return;
-    weekOverrides.value[activeWeekStart.value] = copyMap(weekPattern.value);
+    // A week beyond the published horizon starts from nothing, not from the
+    // pattern — otherwise the first edit there would drag in a whole week of
+    // hours that were never shown.
+    weekOverrides.value[activeWeekStart.value] = activeWeekPublished.value
+      ? copyMap(weekPattern.value)
+      : {};
   };
 
   /** Drop this week's exception and go back to the repeating pattern. */
@@ -689,6 +712,34 @@ Nice to meet you all and I hope we can work together well.`,
     mutate(next);
     weekPattern.value = next;
     delete weekOverrides.value[activeWeekStart.value];
+  };
+
+  /**
+   * The template, handed out as a copy and taken back whole.
+   *
+   * The editor works on the copy so Cancel can mean cancel: this map is the
+   * shape every unedited week takes, so a stray change reaches weeks nobody is
+   * looking at.
+   */
+  const clonePattern = () => copyMap(weekPattern.value);
+  const setPattern = (map) => { weekPattern.value = copyMap(map); };
+
+  /**
+   * Put weeks back under the template's authority.
+   *
+   * A week that was edited on its own stops following the pattern, so a later
+   * change to the template appears not to reach it. Dropping those exceptions
+   * is what makes "applies every week" true. Weeks already behind us keep
+   * theirs — they are a record of what was taught, not a plan.
+   */
+  const upcomingEditedWeeks = computed(() =>
+    Object.keys(weekOverrides.value).filter((iso) => iso >= thisWeekStart.value)
+  );
+
+  const resetWeeksToPattern = () => {
+    const next = { ...weekOverrides.value };
+    upcomingEditedWeeks.value.forEach((iso) => { delete next[iso]; });
+    weekOverrides.value = next;
   };
 
   /** Promote this week's hours to the pattern every other week follows. */
@@ -814,6 +865,35 @@ Nice to meet you all and I hope we can work together well.`,
       availability.value[id] = 'open';
     }
   };
+
+  /**
+   * Write into a week other than the one on screen.
+   *
+   * Every write goes through `setSlotStatus`, which resolves "has this hour
+   * begun?" through `scheduleDays` — and that follows `activeWeekStart`. So the
+   * honest way to write into another week is to stand in it: move the pointer,
+   * write, move back. Doing the arithmetic separately would mean a second copy
+   * of the past-hour rule, and two copies drift.
+   *
+   * Returns how many slots actually changed, so a caller can tell the
+   * instructor what it managed rather than what it attempted.
+   */
+  const withWeek = (weekStartIso, fn) => {
+    const here = activeWeekStart.value;
+    activeWeekStart.value = weekStartOf(weekStartIso);
+    try {
+      return fn();
+    } finally {
+      activeWeekStart.value = here;
+    }
+  };
+
+  const setSlotStatusOn = (weekStartIso, dayKey, slotKey, status, reason = '') =>
+    withWeek(weekStartIso, () => {
+      if (isPastSlot(dayKey, slotKey)) return 0;
+      setSlotStatus(dayKey, slotKey, status, reason);
+      return 1;
+    });
 
   // Cycle slot: closed -> open -> reserved -> closed
   // No sample note by default: cycling a slot says it is held, not why.
@@ -1058,8 +1138,11 @@ Nice to meet you all and I hope we can work together well.`,
     scheduleDays, scheduleSlots, availability, getSlotStatus, isOpen, isReserved, isClosed,
     activeWeekStart, thisWeekStart, weekOverrides, weekFollowsPattern, weekHasOwnHours,
     editedWeeks, beginWeekEdit, followPattern, applyWeekToPattern, writePattern,
+    withWeek, setSlotStatusOn,
     goToWeek, shiftWeek, goToThisWeek, weekStartOf,
     manilaNow, isPastSlot, freeConversationNow,
+    PUBLISHED_WEEKS, publishedUntilIso, isPublishedDate, activeWeekPublished,
+    clonePattern, setPattern, upcomingEditedWeeks, resetWeeksToPattern,
     getSlotReason, setSlotStatus, cycleSlot, toggleSlot, setDay, setDayStatus, setSlotRow, setSlotRowStatus,
     openSlotCount, reservedSlotCount, openHours, reservedHours, SLOT_MINUTES, SLOTS_PER_HOUR,
     weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings,

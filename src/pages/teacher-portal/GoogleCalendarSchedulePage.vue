@@ -75,52 +75,6 @@
           </span>
         </div>
 
-        <!-- Google Calendar View Mode Selector -->
-        <div class="relative">
-          <button
-            type="button"
-            @click="isViewMenuOpen = !isViewMenuOpen"
-            class="flex items-center gap-2 px-3 py-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 text-xs font-bold text-slate-700 shadow-2xs transition cursor-pointer"
-          >
-            <span>{{ viewModeLabels[currentView] }}</span>
-            <i class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition" :class="{ 'rotate-180': isViewMenuOpen }"></i>
-          </button>
-
-          <div
-            v-if="isViewMenuOpen"
-            class="fixed inset-0 z-30"
-            @click="isViewMenuOpen = false"
-          ></div>
-
-          <div
-            v-if="isViewMenuOpen"
-            class="absolute right-0 top-full mt-1.5 z-40 w-36 rounded-xl border border-slate-200 bg-white p-1 shadow-xl ring-1 ring-black/5 text-xs font-bold"
-          >
-            <button
-              v-for="(label, mode) in viewModeLabels"
-              :key="mode"
-              type="button"
-              @click="currentView = mode; isViewMenuOpen = false"
-              class="w-full flex items-center justify-between px-3 py-2 rounded-lg text-left transition hover:bg-slate-100 cursor-pointer"
-              :class="currentView === mode ? 'text-blue-600 font-black bg-blue-50/60' : 'text-slate-700'"
-            >
-              <span>{{ label }}</span>
-              <i v-if="currentView === mode" class="fa-solid fa-check text-[10px]"></i>
-            </button>
-          </div>
-        </div>
-
-        <!-- "+ Create" Button -->
-        <button
-          type="button"
-          @click="openCreateModal()"
-          class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white hover:bg-slate-50 text-slate-800 text-xs font-bold shadow-md hover:shadow-lg border border-slate-200/80 transition-all active:scale-95 cursor-pointer"
-        >
-          <svg class="w-4 h-4 text-blue-600" viewBox="0 0 24 24" fill="currentColor">
-            <path d="M19 13h-6v6h-2v-6H5v-2h6V5h2v6h6v2z"/>
-          </svg>
-          <span class="hidden sm:inline">Create</span>
-        </button>
       </div>
     </header>
 
@@ -129,15 +83,18 @@
       <!-- Left Mini Calendar Sidebar -->
       <aside class="hidden xl:flex w-64 flex-col border-r border-slate-200 p-4 shrink-0 overflow-y-auto space-y-5">
         <!-- Floating + Create Action Button -->
+        <!-- A template is edited the same way hours are: by sweeping the board.
+             The form this used to open asked for the same thing in a worse
+             place, and nothing it produced could be seen until it was saved. -->
         <button
           type="button"
-          @click="openCreateModal()"
+          @click="isTemplateOpen = true"
           class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-black text-sm shadow-md hover:shadow-lg border border-slate-200 transition-all active:scale-98 group cursor-pointer"
         >
-          <div class="w-6 h-6 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-xs shadow-xs group-hover:rotate-90 transition-transform">
+          <div class="w-6 h-6 shrink-0 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-xs shadow-xs group-hover:rotate-90 transition-transform">
             <i class="fa-solid fa-plus"></i>
           </div>
-          <span>Create Schedule</span>
+          <span>Create Schedule Template</span>
         </button>
 
         <!-- Mini Month Calendar Picker -->
@@ -201,9 +158,18 @@
       </aside>
 
       <!-- Center Grid View: Week / Day / Month -->
-      <main class="flex-1 flex flex-col min-w-0 bg-white overflow-hidden relative">
+      <main class="flex-1 flex flex-col min-w-0 bg-white overflow-hidden relative pr-2">
         <!-- Week / Day View Header -->
-        <div v-if="currentView === 'week' || currentView === 'day'" class="border-b border-slate-200 bg-white flex shrink-0 z-10">
+        <!-- The header sits outside the scrolling grid, so a scrollbar takes
+             width from the grid and not from here — every column boundary below
+             then drifts left, a little at the first day and the full bar's width
+             by the last. The same width is reserved here so the two rule sets
+             stay on the same vertical lines. It is 0 where scrollbars overlay. -->
+        <div
+          v-if="currentView === 'week' || currentView === 'day'"
+          class="border-b border-slate-200 bg-white flex shrink-0 z-10"
+          :style="{ paddingRight: `${gridScrollbarWidth}px` }"
+        >
           <div class="w-16 sm:w-20 shrink-0 border-r border-slate-200 p-2 text-right">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">{{ activeZoneInfo.abbr }}</span>
           </div>
@@ -212,7 +178,7 @@
             <div
               v-for="day in viewDays"
               :key="day.iso"
-              class="p-2 sm:p-3 text-center border-r border-slate-200/80 last:border-r-0 transition"
+              class="p-2 sm:p-3 text-center border-r border-slate-200 transition"
               :class="day.isToday ? 'bg-blue-50/40' : ''"
             >
               <p class="text-[11px] font-bold uppercase tracking-wider" :class="day.isToday ? 'text-blue-600 font-black' : 'text-slate-500'">
@@ -241,7 +207,14 @@
               :key="hour"
               class="h-16 relative border-b border-transparent"
             >
-              <span class="absolute -top-2.5 right-2 text-[10px] sm:text-[11px] font-bold text-slate-400 tabular-nums">
+              <!-- Every label straddles the rule it names. Midnight has no rule
+                   above it to straddle, so the half of it that hung over the top
+                   of the board was simply cut off; it sits just below the edge
+                   instead. -->
+              <span
+                class="absolute right-2 text-[10px] sm:text-[11px] font-bold text-slate-400 tabular-nums"
+                :class="hour === 0 ? 'top-0.5' : '-top-2.5'"
+              >
                 {{ formatHourLabel(hour) }}
               </span>
             </div>
@@ -258,11 +231,14 @@
             class="flex-1 grid relative h-[1536px]"
             :style="{ gridTemplateColumns: `repeat(${viewDays.length}, minmax(0, 1fr))` }"
           >
-            <!-- The grid, drawn once. Every day column shares these lines, so an
-                 hour reads straight across the week instead of restarting at
-                 each column edge. The hour rule is the darker of the two; the
-                 half hour is a hint, not a division. -->
-            <div class="absolute inset-0 pointer-events-none flex flex-col">
+            <!-- The grid, drawn once, and drawn on top.
+                 Every day column shares these lines, so an hour reads straight
+                 across the week instead of restarting at each column edge. They
+                 sit at z-5 — above the past-hours shade, below the blocks —
+                 because when they were under it a rule crossing a spent morning
+                 came out several shades lighter than the same rule in the
+                 header, and the two stopped reading as one line. -->
+            <div class="absolute inset-0 z-[5] pointer-events-none flex flex-col">
               <div
                 v-for="hour in hoursOfDay"
                 :key="`line-${hour}`"
@@ -270,6 +246,19 @@
               >
                 <div class="absolute top-8 inset-x-0 border-b border-slate-100"></div>
               </div>
+            </div>
+
+            <!-- The day separators, on the same layer and from the same grid
+                 template as the header's, so the two cannot drift apart. -->
+            <div
+              class="absolute inset-0 z-[5] pointer-events-none grid"
+              :style="{ gridTemplateColumns: `repeat(${viewDays.length}, minmax(0, 1fr))` }"
+            >
+              <div
+                v-for="day in viewDays"
+                :key="`col-rule-${day.iso}`"
+                class="border-r border-slate-200"
+              ></div>
             </div>
 
             <!-- Day Columns & Interactive Slots -->
@@ -280,13 +269,25 @@
               @mousedown="handleColMouseDown($event)"
               @mousemove="handleColMouseMove(day, $event)"
               @mouseleave="hoveredSlot = null"
-              class="relative border-r border-slate-200/80 last:border-r-0 h-[1536px] cursor-crosshair select-none"
-              :class="day.isToday ? 'bg-blue-50/15' : ''"
+              class="relative h-[1536px] select-none"
+              :class="[
+                day.isToday ? 'bg-blue-50/15' : '',
+                spentSlots(day) >= 48 ? 'cursor-default' : 'cursor-crosshair',
+              ]"
             >
+              <!-- Hours that have already begun. Shaded rather than left bare,
+                   because an empty morning and a morning that has gone are not
+                   the same thing, and only one of them can still be changed. -->
+              <div
+                v-if="spentSlots(day) > 0"
+                class="absolute inset-x-0 top-0 z-0 pointer-events-none bg-slate-100/55"
+                :style="{ height: `${spentSlots(day) * 32}px` }"
+              ></div>
+
               <!-- Real-time Slot Hover Indicator -->
               <div
                 v-if="hoveredSlot && hoveredSlot.dayKey === day.dayKey && !isDragging"
-                class="absolute inset-x-1 rounded-md pointer-events-none z-15 border border-indigo-400/80 bg-indigo-50/50 shadow-2xs transition-all duration-75"
+                class="absolute inset-x-1 rounded-md pointer-events-none z-[6] border border-indigo-400/80 bg-indigo-50/50 shadow-2xs transition-all duration-75"
                 :style="{
                   top: `${hoveredSlot.slotIndex * 32}px`,
                   height: '32px',
@@ -307,7 +308,11 @@
               <template v-for="event in getEventsForDay(day)" :key="event.id">
                 <div
                   @click.stop="onEventClick(event)"
-                  class="absolute inset-x-1 rounded-lg px-2 py-1 overflow-hidden shadow-xs hover:shadow-md hover:ring-2 hover:ring-indigo-400/80 hover:brightness-105 transition-all z-10 text-xs border cursor-pointer"
+                  :data-locked="event.canDelete ? null : 'true'"
+                  class="absolute inset-x-1 rounded-lg px-2 py-1 overflow-hidden shadow-xs transition-all z-10 text-xs border"
+                  :class="isSlotEditable(day, event.slotIndex)
+                    ? 'hover:shadow-md hover:ring-2 hover:ring-indigo-400/80 hover:brightness-105 cursor-pointer'
+                    : 'opacity-45 saturate-50 cursor-default'"
                   :style="{
                     top: `${event.top}px`,
                     height: `${event.height}px`,
@@ -315,12 +320,25 @@
                     borderColor: event.borderColor,
                     color: event.textColor,
                   }"
-                  :title="`${event.title} • ${event.timeRange} (Click to inspect or drag across to select)`"
+                  :title="`${event.title} • ${event.timeRange}`"
                 >
-                  <!-- Clean title and time badges -->
+                  <!-- A hold with a note is called by its note; without one it
+                       falls back to the status word. The time is never dropped,
+                       because two identical labels an hour apart are otherwise
+                       indistinguishable. -->
                   <div class="flex items-center justify-between gap-1 leading-tight h-full pointer-events-none">
-                    <span class="font-extrabold uppercase tracking-wide truncate text-[11px]">{{ event.title }}</span>
-                    <span class="text-[10px] opacity-90 shrink-0 tabular-nums font-mono font-bold">{{ event.timeRange }}</span>
+                    <span
+                      class="truncate text-[11px]"
+                      :class="event.label ? 'font-bold tracking-normal' : 'font-extrabold uppercase tracking-wide'"
+                      :title="event.label ? `${event.label} · ${event.timeRange}` : event.title"
+                    >{{ event.title }}</span>
+                    <!-- A named hold shows only its start time. The full range
+                         took more than half the block and left the label as
+                         "De…", which is no label at all; the block's position
+                         and the hour column already say where it sits. -->
+                    <span class="text-[10px] opacity-80 shrink-0 tabular-nums font-mono font-bold">
+                      {{ event.label ? event.startTime : event.timeRange }}
+                    </span>
                   </div>
                 </div>
               </template>
@@ -441,41 +459,57 @@
 
               <!-- Main Content Body -->
               <div class="px-6 py-2.5 space-y-3.5">
-                <!-- Title / Reason Input with bottom border indicator (Image 1 style) -->
-                <div>
+                <!-- The choice everything else follows from, so it comes first:
+                     whether there is a title at all depends on it. One track with
+                     the live half filled, rather than two pills that both look
+                     pressable and leave you working out which one is on. -->
+                <div
+                  role="radiogroup"
+                  aria-label="What to do with these slots"
+                  class="relative grid grid-cols-2 rounded-full bg-slate-100 p-1 ring-1 ring-slate-200"
+                >
+                  <span
+                    aria-hidden="true"
+                    class="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full shadow-sm ring-1 transition-[transform,background-color] duration-200 ease-out motion-reduce:transition-none"
+                    :class="selectionAction === 'reserve'
+                      ? 'translate-x-0 bg-[#ddd6fe] ring-indigo-300'
+                      : 'translate-x-full bg-[#c4eed0] ring-emerald-300'"
+                  ></span>
+
+                  <button
+                    type="button"
+                    role="radio"
+                    :aria-checked="selectionAction === 'reserve' ? 'true' : 'false'"
+                    @click="selectionAction = 'reserve'"
+                    class="relative z-10 flex cursor-pointer items-center justify-center gap-2 rounded-full py-2 text-[13px] font-bold tracking-tight transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
+                    :class="selectionAction === 'reserve' ? 'text-[#3730a3]' : 'text-slate-500 hover:text-slate-800'"
+                  >
+                    <i class="fa-solid fa-bookmark text-[11px]"></i>
+                    Reserve
+                  </button>
+
+                  <button
+                    type="button"
+                    role="radio"
+                    :aria-checked="selectionAction === 'open' ? 'true' : 'false'"
+                    @click="selectionAction = 'open'"
+                    class="relative z-10 flex cursor-pointer items-center justify-center gap-2 rounded-full py-2 text-[13px] font-bold tracking-tight transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
+                    :class="selectionAction === 'open' ? 'text-[#072711]' : 'text-slate-500 hover:text-slate-800'"
+                  >
+                    <i class="fa-solid fa-circle-check text-[11px]"></i>
+                    Open
+                  </button>
+                </div>
+
+                <!-- Only a held slot has anything to say for itself. Open hours
+                     are open; a note on one would never be read. -->
+                <div v-if="selectionAction === 'reserve'" class="relative pb-1">
                   <input
                     type="text"
                     v-model="selectionTitle"
                     placeholder="Add title (optional)"
-                    class="w-full bg-transparent border-b-2 border-[#1a73e8] pb-1.5 text-xl font-normal text-[#1f1f1f] placeholder-[#747775] focus:outline-none transition-colors"
+                    class="w-full bg-transparent border-b border-[#c4c7c5] focus:border-[#1a73e8] focus:border-b-2 pb-1.5 text-xl font-normal text-[#1f1f1f] placeholder-[#747775] focus:outline-none transition-all"
                   />
-                </div>
-
-                <!-- Action Type Pills (Reserve vs Open only, per Image 1 & user request) -->
-                <div class="flex items-center gap-2 pt-0.5">
-                  <button
-                    type="button"
-                    @click="selectionAction = 'reserve'"
-                    class="rounded-lg px-3.5 py-1.5 text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
-                    :class="selectionAction === 'reserve'
-                      ? 'bg-[#c2e7ff] text-[#001d35] font-semibold shadow-xs'
-                      : 'bg-white/80 text-[#444746] border border-[#c4c7c5] hover:bg-white hover:text-[#1f1f1f]'"
-                  >
-                    <i class="fa-solid fa-bookmark text-[10px]" :class="selectionAction === 'reserve' ? 'text-[#001d35]' : 'text-[#747775]'"></i>
-                    Reserve Slots
-                  </button>
-
-                  <button
-                    type="button"
-                    @click="selectionAction = 'open'"
-                    class="rounded-lg px-3.5 py-1.5 text-xs font-medium transition cursor-pointer flex items-center gap-1.5"
-                    :class="selectionAction === 'open'
-                      ? 'bg-[#c4eed0] text-[#072711] font-semibold shadow-xs'
-                      : 'bg-white/80 text-[#444746] border border-[#c4c7c5] hover:bg-white hover:text-[#1f1f1f]'"
-                  >
-                    <i class="fa-regular fa-calendar-check text-[10px]" :class="selectionAction === 'open' ? 'text-[#072711]' : 'text-[#747775]'"></i>
-                    Open Availability
-                  </button>
                 </div>
 
                 <!-- Date & Time Row (Image 1 style with clock icon) -->
@@ -489,13 +523,12 @@
                     <p class="text-[11px] text-[#5f6368] flex items-center gap-1 flex-wrap">
                       <span>{{ activeZoneInfo.abbr }} ({{ activeZoneInfo.label }})</span>
                       <span>·</span>
-                      <span class="text-[#1f1f1f] font-medium">{{ selectionSummary.slots }} slots ({{ selectionSummary.hoursLabel }})</span>
+                      <span class="text-[#1f1f1f] font-medium">{{ selectionSummary.slots }} {{ selectionSummary.slots === 1 ? 'slot' : 'slots' }} ({{ selectionSummary.hoursLabel }})</span>
                       <span v-if="selectionSummary.past" class="text-amber-700 font-medium">· {{ selectionSummary.past }} past slots excluded</span>
                     </p>
                   </div>
                 </div>
 
-                <!-- Google Calendar-style recurrence dropdown row -->
                 <div class="flex items-start gap-3.5 pt-1">
                   <i class="fa-solid fa-arrows-rotate text-[#444746] text-base mt-1.5"></i>
                   <div class="flex-1 text-xs">
@@ -545,142 +578,179 @@
                   </div>
                 </div>
 
-                <!-- Custom Recurrence Modal (inline overlay) -->
+                <!-- Custom recurrence.
+                     Only a weekly interval is offered because availability is
+                     stored against weekdays — "every 3 days" and "every 2
+                     months" had nowhere to be written, and the old month option
+                     silently saved the same weekday chips while the label
+                     claimed otherwise. -->
                 <Transition enter-active-class="transition duration-150 ease-out" enter-from-class="opacity-0 scale-95" leave-active-class="transition duration-100 ease-in" leave-to-class="opacity-0 scale-95">
                   <div
                     v-if="showCustomRecurrence"
                     class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40"
-                    @click.self="showCustomRecurrence = false"
+                    @click.self="cancelCustomRecurrence"
                   >
-                    <div class="w-full max-w-[340px] rounded-[28px] bg-[#edf2f8] shadow-2xl p-6 space-y-6 text-[#1f1f1f]" @click.stop>
-                      <h3 class="text-[22px] font-normal text-[#1f1f1f] tracking-tight">Custom recurrence</h3>
+                    <div
+                      role="dialog"
+                      aria-modal="true"
+                      aria-labelledby="custom-recurrence-title"
+                      ref="customRecurrenceEl"
+                      class="flex max-h-[calc(100vh-2rem)] w-full max-w-[360px] flex-col rounded-[28px] bg-[#edf2f8] text-[#1f1f1f] shadow-2xl"
+                      @click.stop
+                    >
+                      <h3 id="custom-recurrence-title" class="shrink-0 px-6 pt-6 text-[22px] font-normal tracking-tight">
+                        Custom repeat
+                      </h3>
 
-                      <!-- Repeat every N [unit] -->
-                      <div class="flex items-center gap-3 text-sm">
-                        <span class="text-[#444746] whitespace-nowrap">Repeat every</span>
-                        
-                        <!-- Number stepper box -->
-                        <div class="flex items-center bg-[#dfe4ea] hover:bg-[#d5dbe2] transition rounded-md px-2 py-1.5 gap-2">
-                          <input
-                            type="number"
-                            v-model.number="customEvery"
-                            min="1" max="99"
-                            class="w-7 text-center text-sm font-medium bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
-                          />
-                          <div class="flex flex-col text-[8px] text-[#444746] leading-none gap-0.5">
-                            <button type="button" @click="customEvery = Math.min(99, customEvery + 1)" class="hover:text-black cursor-pointer">▲</button>
-                            <button type="button" @click="customEvery = Math.max(1, customEvery - 1)" class="hover:text-black cursor-pointer">▼</button>
-                          </div>
-                        </div>
-
-                        <!-- Unit dropdown -->
-                        <div class="relative inline-flex items-center">
-                          <select
-                            v-model="customUnit"
-                            class="appearance-none bg-[#dfe4ea] hover:bg-[#d5dbe2] transition rounded-md pl-3 pr-7 py-1.5 text-sm text-[#1f1f1f] focus:outline-none cursor-pointer"
-                          >
-                            <option value="day">day</option>
-                            <option value="week">week</option>
-                            <option value="month">month</option>
-                          </select>
-                          <i class="fa-solid fa-caret-down text-[10px] text-[#444746] absolute right-2.5 pointer-events-none"></i>
-                        </div>
-                      </div>
-
-                      <!-- Repeat on (day chips) — only when weekly -->
-                      <div v-if="customUnit === 'week'" class="space-y-3">
-                        <div class="text-sm text-[#444746]">Repeat on</div>
-                        <div class="flex items-center justify-between">
-                          <button
-                            v-for="d in repeatDayOptions"
-                            :key="d.key"
-                            type="button"
-                            @click="toggleRepeatDay(d.key)"
-                            class="w-7 h-7 rounded-full text-xs font-semibold flex items-center justify-center transition cursor-pointer select-none"
-                            :class="repeatDays.includes(d.key)
-                              ? 'bg-[#0b57d0] text-white shadow-xs'
-                              : 'bg-[#dfe4ea] text-[#0b57d0] hover:bg-[#d2d8e0]'"
-                          >
-                            {{ d.label }}
-                          </button>
-                        </div>
-                      </div>
-
-                      <!-- Ends -->
-                      <div class="space-y-3">
-                        <div class="text-sm text-[#444746]">Ends</div>
-                        <div class="space-y-3 text-sm">
-                          <!-- Never -->
-                          <label class="flex items-center gap-3 cursor-pointer group">
+                      <!-- The dialog can be taller than a laptop window, and when it
+                           was it took Done off the bottom of the screen with it. -->
+                      <div class="min-h-0 flex-1 space-y-5 overflow-y-auto px-6 py-5">
+                        <!-- Interval -->
+                        <div class="flex items-center gap-3 text-sm">
+                          <label for="repeat-every" class="whitespace-nowrap text-[#444746]">Repeat every</label>
+                          <div class="flex items-center gap-1 rounded-md bg-[#dfe4ea] pl-2 pr-1 py-1">
                             <input
-                              type="radio"
-                              v-model="customEnds"
-                              value="never"
-                              class="w-4 h-4 text-[#0b57d0] accent-[#0b57d0] cursor-pointer"
+                              id="repeat-every"
+                              type="number"
+                              v-model.number="customEvery"
+                              @change="customEvery = clampInt(customEvery, 1, 52)"
+                              @blur="customEvery = clampInt(customEvery, 1, 52)"
+                              min="1"
+                              max="52"
+                              class="w-8 bg-transparent text-center text-sm font-medium focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                             />
-                            <span class="text-[#1f1f1f]">Never</span>
+                            <div class="flex flex-col">
+                              <button
+                                type="button"
+                                aria-label="Increase interval"
+                                @click="customEvery = clampInt(customEvery + 1, 1, 52)"
+                                class="flex h-5 w-6 items-center justify-center rounded text-[9px] text-[#444746] transition hover:bg-[#c9d0d8] hover:text-black cursor-pointer"
+                              >▲</button>
+                              <button
+                                type="button"
+                                aria-label="Decrease interval"
+                                @click="customEvery = clampInt(customEvery - 1, 1, 52)"
+                                class="flex h-5 w-6 items-center justify-center rounded text-[9px] text-[#444746] transition hover:bg-[#c9d0d8] hover:text-black cursor-pointer"
+                              >▼</button>
+                            </div>
+                          </div>
+                          <span class="text-[#444746]">{{ customEvery === 1 ? 'week' : 'weeks' }}</span>
+                        </div>
+
+                        <!-- Days -->
+                        <div class="space-y-2">
+                          <div role="group" aria-label="Repeat on these days" class="space-y-2">
+                            <div class="text-sm text-[#444746]">Repeat on</div>
+                            <div class="flex items-center justify-between">
+                              <button
+                                v-for="d in repeatDayOptions"
+                                :key="d.key"
+                                type="button"
+                                :aria-label="d.name"
+                                :aria-pressed="repeatDays.includes(d.key) ? 'true' : 'false'"
+                                @click="toggleRepeatDay(d.key)"
+                                class="flex h-9 w-9 items-center justify-center rounded-full text-xs font-semibold transition cursor-pointer select-none"
+                                :class="repeatDays.includes(d.key)
+                                  ? 'bg-[#0b57d0] text-white shadow-xs'
+                                  : 'bg-[#dfe4ea] text-[#0b57d0] hover:bg-[#d2d8e0]'"
+                              >
+                                {{ d.label }}
+                              </button>
+                            </div>
+                          </div>
+                          <!-- Two of the circles read S and two read T, so the chosen
+                               days are named in full underneath rather than left to
+                               be worked out from colour. -->
+                          <p class="text-[11px] text-[#5f6368]">
+                            {{ chosenDayNames || 'Pick at least one day' }}
+                          </p>
+                        </div>
+
+                        <!-- Ends -->
+                        <div role="radiogroup" aria-label="When the repeat ends" class="space-y-3">
+                          <div class="text-sm text-[#444746]">Ends</div>
+
+                          <label class="flex cursor-pointer items-center gap-3 text-sm">
+                            <input type="radio" name="custom-ends" v-model="customEnds" value="never" class="h-4 w-4 accent-[#0b57d0] cursor-pointer" />
+                            <span>Never</span>
                           </label>
 
-                          <!-- On date -->
-                          <label class="flex items-center gap-3 cursor-pointer group">
-                            <input
-                              type="radio"
-                              v-model="customEnds"
-                              value="on"
-                              class="w-4 h-4 text-[#0b57d0] accent-[#0b57d0] cursor-pointer"
-                            />
-                            <span class="text-[#1f1f1f] w-8">On</span>
+                          <label class="flex cursor-pointer items-center gap-3 text-sm">
+                            <input type="radio" name="custom-ends" v-model="customEnds" value="on" class="h-4 w-4 accent-[#0b57d0] cursor-pointer" />
+                            <span class="w-10 shrink-0">On</span>
                             <input
                               type="date"
+                              aria-label="Repeat until this date"
                               v-model="customEndsOn"
-                              :disabled="customEnds !== 'on'"
-                              class="bg-[#dfe4ea] rounded-md px-3 py-1.5 text-xs text-[#1f1f1f] focus:outline-none disabled:opacity-40 disabled:cursor-not-allowed cursor-pointer border-none"
+                              :min="teacher.manilaNow.iso"
+                              @focus="customEnds = 'on'"
+                              class="rounded-md border-none bg-[#dfe4ea] px-3 py-1.5 text-sm text-[#1f1f1f] focus:outline-none cursor-pointer"
+                              :class="customEnds !== 'on' ? 'opacity-60' : ''"
                             />
                           </label>
 
-                          <!-- After N occurrences -->
-                          <label class="flex items-center gap-3 cursor-pointer group">
-                            <input
-                              type="radio"
-                              v-model="customEnds"
-                              value="after"
-                              class="w-4 h-4 text-[#0b57d0] accent-[#0b57d0] cursor-pointer"
-                            />
-                            <span class="text-[#1f1f1f] w-8">After</span>
-                            <div
-                              class="flex items-center bg-[#dfe4ea] rounded-md px-2.5 py-1.5 gap-2"
-                              :class="customEnds !== 'after' ? 'opacity-40 pointer-events-none' : ''"
-                            >
+                          <label class="flex cursor-pointer items-center gap-3 text-sm">
+                            <input type="radio" name="custom-ends" v-model="customEnds" value="after" class="h-4 w-4 accent-[#0b57d0] cursor-pointer" />
+                            <span class="w-10 shrink-0">After</span>
+                            <div class="flex items-center gap-1 rounded-md bg-[#dfe4ea] pl-2 pr-1 py-1" :class="customEnds !== 'after' ? 'opacity-60' : ''">
                               <input
                                 type="number"
+                                aria-label="Number of dates"
                                 v-model.number="customAfterN"
-                                min="1" max="999"
-                                :disabled="customEnds !== 'after'"
-                                class="w-7 text-center text-sm font-medium bg-transparent focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                @focus="customEnds = 'after'"
+                                @change="customAfterN = clampInt(customAfterN, 1, 999)"
+                                @blur="customAfterN = clampInt(customAfterN, 1, 999)"
+                                min="1"
+                                max="999"
+                                class="w-9 bg-transparent text-center text-sm font-medium focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               />
-                              <span class="text-sm text-[#444746]">occurrences</span>
-                              <div class="flex flex-col text-[8px] text-[#444746] leading-none gap-0.5">
-                                <button type="button" @click="customEnds === 'after' && (customAfterN = Math.min(999, customAfterN + 1))" class="hover:text-black cursor-pointer">▲</button>
-                                <button type="button" @click="customEnds === 'after' && (customAfterN = Math.max(1, customAfterN - 1))" class="hover:text-black cursor-pointer">▼</button>
+                              <div class="flex flex-col">
+                                <button type="button" aria-label="More dates" @click="customEnds = 'after'; customAfterN = clampInt(customAfterN + 1, 1, 999)" class="flex h-5 w-6 items-center justify-center rounded text-[9px] text-[#444746] transition hover:bg-[#c9d0d8] hover:text-black cursor-pointer">▲</button>
+                                <button type="button" aria-label="Fewer dates" @click="customEnds = 'after'; customAfterN = clampInt(customAfterN - 1, 1, 999)" class="flex h-5 w-6 items-center justify-center rounded text-[9px] text-[#444746] transition hover:bg-[#c9d0d8] hover:text-black cursor-pointer">▼</button>
                               </div>
+                              <span class="pr-1 text-sm text-[#444746]">times</span>
                             </div>
                           </label>
                         </div>
+
+                        <!-- What this actually does. The settings above are the
+                             argument; this is the answer, and it is the same
+                             figure the card and the save use. -->
+                        <div class="rounded-xl bg-white px-3.5 py-2.5 text-xs text-[#444746]">
+                          <p v-if="customPreview" class="leading-relaxed">
+                            <strong class="font-semibold text-[#1f1f1f]">{{ customPreview.count }}</strong>
+                            {{ customPreview.count === 1 ? 'date' : 'dates' }} —
+                            <span class="tabular-nums">{{ customPreview.list }}</span>
+                            <span v-if="customPreview.passed" class="text-[#5f6368]">
+                              · {{ customPreview.passed }} already passed, skipped
+                            </span>
+                            <!-- "Never" is the word people expect here, but the
+                                 hours are written to real weeks and so have to
+                                 stop somewhere. The option keeps its name; this
+                                 line says where the run actually ends. -->
+                            <span v-if="customPreview.capped" class="text-[#5f6368]">
+                              · stops after {{ MAX_REPEAT_WEEKS }} weeks
+                            </span>
+                          </p>
+                          <p v-else class="leading-relaxed text-[#5f6368]">
+                            Nothing to change yet — pick at least one day that has not passed.
+                          </p>
+                        </div>
                       </div>
 
-                      <!-- Footer Buttons -->
-                      <div class="flex items-center justify-end gap-2 pt-3">
+                      <div class="flex shrink-0 items-center justify-end gap-2 rounded-b-[28px] px-6 pb-5 pt-1">
                         <button
                           type="button"
-                          @click="showCustomRecurrence = false"
-                          class="px-5 py-2 text-sm font-medium text-[#0b57d0] hover:bg-[#dfe4ea] rounded-full transition cursor-pointer"
+                          @click="cancelCustomRecurrence"
+                          class="rounded-full px-5 py-2 text-sm font-medium text-[#0b57d0] transition hover:bg-[#dfe4ea] cursor-pointer"
                         >
                           Cancel
                         </button>
                         <button
                           type="button"
+                          :disabled="!customPreview"
                           @click="applyCustomRecurrence"
-                          class="px-6 py-2 text-sm font-medium text-white bg-[#0b57d0] hover:bg-[#0842a0] rounded-full shadow-xs transition cursor-pointer"
+                          class="rounded-full bg-[#0b57d0] px-6 py-2 text-sm font-medium text-white shadow-xs transition hover:bg-[#0842a0] disabled:cursor-not-allowed disabled:opacity-40 cursor-pointer"
                         >
                           Done
                         </button>
@@ -692,14 +762,21 @@
               </div>
 
               <!-- Footer with Delete area, Cancel, and Save (Image 1 style) -->
-              <div class="flex items-center justify-between border-t border-[#dfe3e7] px-6 py-3 bg-[#e9eef6]">
+              <div class="flex items-center justify-between border-t border-[#dfe3e7] px-6 py-3 bg-[#e9eef6] rounded-b-2xl">
+                <!-- Deleting closes every date in the plan, which may be far more
+                     than the rectangle on screen. It says how many before it does
+                     it, because there is no undo. -->
                 <button
                   type="button"
                   @click="deleteSelectionArea"
-                  class="cursor-pointer text-xs font-medium text-[#b3261e] hover:text-rose-700 transition flex items-center gap-1.5 hover:underline"
+                  class="cursor-pointer text-xs font-medium text-[#b3261e] transition flex items-center gap-1.5 hover:text-rose-700 hover:underline"
                 >
                   <i class="fa-regular fa-trash-can text-[12px]"></i>
-                  Delete selected area
+                  <span v-if="!pendingDelete">Clear these hours</span>
+                  <span v-else class="font-bold">
+                    Clear {{ planSummary ? planSummary.count : 0 }}
+                    {{ planSummary && planSummary.count === 1 ? 'date' : 'dates' }}? Tap again
+                  </span>
                 </button>
 
                 <div class="flex items-center gap-2">
@@ -825,6 +902,8 @@
     </Transition>
 
     <!-- Create / Reserve Slot Modal with Dragged Initial Values -->
+    <ScheduleTemplateModal :is-open="isTemplateOpen" @close="isTemplateOpen = false" />
+
     <ReserveModal
       :is-open="isCreateModalOpen"
       :initial-days="modalInitialDays"
@@ -842,12 +921,15 @@ import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useTeacherStore } from '@/stores/useTeacherStore';
 import { getTimeZoneInfo, normalizeTimeZone } from '@/lib/timezoneUtils';
 import ReserveModal from '@/components/teacher/ReserveModal.vue';
+import ScheduleTemplateModal from '@/components/teacher/ScheduleTemplateModal.vue';
 
 const teacher = useTeacherStore();
 
 // Calendar Navigation State
+// Nothing switches this any more — the Day/Month selector was removed from the
+// toolbar — but the month and day branches below are left intact so the control
+// can come back without rebuilding them.
 const currentView = ref('week'); // 'day' | 'week' | 'month'
-const isViewMenuOpen = ref(false);
 const viewModeLabels = {
   day: 'Day',
   week: 'Week',
@@ -861,6 +943,7 @@ const selectedEvent = ref(null);
 
 // Modal state
 const isCreateModalOpen = ref(false);
+const isTemplateOpen = ref(false);
 const modalInitialDays = ref(['mon', 'tue', 'wed', 'thu', 'fri']);
 const modalInitialStart = ref('t1300');
 const modalInitialEnd = ref('t1400');
@@ -872,6 +955,7 @@ const modalInitialReason = ref('');
 const isDragging = ref(false);
 const dragMoved = ref(false);
 const dragSelection = ref(null); // live while the button is down
+let pressedLockedEvent = false;
 const selection = ref(null);     // the same rectangle, kept after it comes up
 const dayColElements = {};
 
@@ -888,17 +972,43 @@ const isRepeatOpen = ref(false);
 const repeatDropdownOpen = ref(false);
 const repeatPreset = ref('none'); // 'none'|'daily'|'weekly'|'weekday'|'custom'
 const showCustomRecurrence = ref(false);
-// Custom recurrence state
+/* Custom recurrence state.
+   There is no unit any more. Availability is stored against weekdays, so a week
+   is the only interval the store can actually honour — "every 3 days" and
+   "every 2 months" had nowhere to be written, and "month" was writing the same
+   weekday chips as "week" while the label claimed otherwise. */
 const customEvery = ref(1);
-const customUnit = ref('week'); // 'day'|'week'|'month'
-const customEnds = ref('never'); // 'never'|'on'|'after'
+const customEnds = ref('on'); // 'never'|'on'|'after'
 const customEndsOn = ref('');
-const customAfterN = ref(13);
+const customAfterN = ref(8);
+
+/** "Never" still has to stop somewhere; a year is the stated limit. */
+const MAX_REPEAT_WEEKS = 52;
+
+/** `max` on a number input does not stop anyone typing 999 into it. */
+const clampInt = (value, lo, hi) => {
+  const n = Math.round(Number(value));
+  if (!Number.isFinite(n)) return lo;
+  return Math.min(hi, Math.max(lo, n));
+};
+
+const customRecurrenceEl = ref(null);
+
+/** What the dialog held when it opened, so Cancel has something to go back to. */
+let recurrenceDraft = null;
 
 const repeatDayOrderedKeys = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 
 // Hours of day: 0 to 23
 const hoursOfDay = Array.from({ length: 24 }, (_, i) => i);
+
+/** How much width the grid's scrollbar is taking, if it takes any. */
+const gridScrollbarWidth = ref(0);
+const measureGridScrollbar = () => {
+  const el = scrollContainer.value;
+  gridScrollbarWidth.value = el ? Math.max(0, el.offsetWidth - el.clientWidth) : 0;
+};
+let gridResizeObserver = null;
 
 const formatHourLabel = (hour) => {
   if (hour === 0) return '12 AM';
@@ -1008,25 +1118,25 @@ const repeatDropdownLabel = computed(() => {
     return opt ? opt.label : 'Weekly';
   }
   if (repeatPreset.value === 'custom') {
-    const unitLabel = customEvery.value === 1 ? customUnit.value : `${customUnit.value}s`;
-    if (customUnit.value === 'week' && repeatDays.value.length > 0) {
-      const dayNameMap = { mon: 'Mo', tue: 'Tu', wed: 'We', thu: 'Th', fri: 'Fr', sat: 'Sa', sun: 'Su' };
-      const dayStr = repeatDayOrderedKeys.filter(k => repeatDays.value.includes(k)).map(k => dayNameMap[k]).join(', ');
-      return `Every ${customEvery.value} ${unitLabel} on ${dayStr}`;
-    }
-    return `Every ${customEvery.value} ${unitLabel}`;
+    const every = Math.max(1, Math.round(customEvery.value) || 1);
+    const unit = every === 1 ? 'week' : `${every} weeks`;
+    const names = { mon: 'Mon', tue: 'Tue', wed: 'Wed', thu: 'Thu', fri: 'Fri', sat: 'Sat', sun: 'Sun' };
+    const days = repeatDayOrderedKeys.filter((k) => repeatDays.value.includes(k)).map((k) => names[k]);
+    return days.length ? `Every ${unit} on ${days.join(', ')}` : `Every ${unit}`;
   }
   return 'Does not repeat';
 });
 
+// `name` is what a screen reader says. The circles show one letter, and two of
+// them are S and two are T, so the letter cannot be the accessible name.
 const repeatDayOptions = [
-  { key: 'sun', label: 'S', fullLabel: 'Sun' },
-  { key: 'mon', label: 'M', fullLabel: 'Mon' },
-  { key: 'tue', label: 'T', fullLabel: 'Tue' },
-  { key: 'wed', label: 'W', fullLabel: 'Wed' },
-  { key: 'thu', label: 'T', fullLabel: 'Thu' },
-  { key: 'fri', label: 'F', fullLabel: 'Fri' },
-  { key: 'sat', label: 'S', fullLabel: 'Sat' },
+  { key: 'sun', label: 'S', fullLabel: 'Sun', name: 'Sunday' },
+  { key: 'mon', label: 'M', fullLabel: 'Mon', name: 'Monday' },
+  { key: 'tue', label: 'T', fullLabel: 'Tue', name: 'Tuesday' },
+  { key: 'wed', label: 'W', fullLabel: 'Wed', name: 'Wednesday' },
+  { key: 'thu', label: 'T', fullLabel: 'Thu', name: 'Thursday' },
+  { key: 'fri', label: 'F', fullLabel: 'Fri', name: 'Friday' },
+  { key: 'sat', label: 'S', fullLabel: 'Sat', name: 'Saturday' },
 ];
 
 const setDayColRef = (key, el) => {
@@ -1193,6 +1303,21 @@ const getSlotIndexFromMouseEvent = (e, dayKey) => {
   return Math.min(47, Math.max(0, Math.floor(clampedY / 32)));
 };
 
+/**
+ * How many half hours of a day have already begun: all 48 for a day that is
+ * over, none for one still ahead, and the slot the clock is in for today. One
+ * number drives the shading, the hover and the refusals, so they cannot drift.
+ */
+const spentSlots = (day) => {
+  const now = teacher.manilaNow;
+  if (day.iso < now.iso) return 48;
+  if (day.iso > now.iso) return 0;
+  return Math.min(48, Math.floor(now.minutes / 30) + 1);
+};
+
+// Anything from the hour we are in onward can be changed, however far out.
+const isSlotEditable = (day, slotIndex) => slotIndex >= spentSlots(day);
+
 const hoveredSlot = ref(null);
 const handleColMouseMove = (day, e) => {
   if (isDragging.value) {
@@ -1200,6 +1325,11 @@ const handleColMouseMove = (day, e) => {
     return;
   }
   const slotIndex = getSlotIndexFromMouseEvent(e, day.dayKey);
+  // No hover over an hour that cannot be acted on — the indicator is an offer.
+  if (!isSlotEditable(day, slotIndex)) {
+    hoveredSlot.value = null;
+    return;
+  }
   hoveredSlot.value = { dayKey: day.dayKey, slotIndex };
 };
 
@@ -1207,8 +1337,16 @@ const handleColMouseMove = (day, e) => {
 const handleColMouseDown = (e) => {
   if (e.button !== 0) return; // Only left click
   hoveredSlot.value = null;
+  // A student's booked lesson is not availability to edit, so a press on one
+  // is remembered here and left to the read-only inspector on mouseup.
+  pressedLockedEvent = !!e.target?.closest?.('[data-locked]');
   const cell = pointToCell(e);
   if (!cell) return;
+  // A drag cannot begin on an hour that has gone, or beyond the horizon.
+  // Refusing at the press is what stops a sweep appearing to work and then
+  // quietly doing nothing when it lands.
+  const day = viewDays.value[cell.dayIdx];
+  if (!day || !isSlotEditable(day, cell.slot)) return;
   isDragging.value = true;
   dragMoved.value = false;
   dragSelection.value = {
@@ -1224,6 +1362,12 @@ const handleGlobalMouseMove = (e) => {
   if (!isDragging.value || !dragSelection.value) return;
   const cell = pointToCell(e);
   if (!cell) return;
+  // Hold the far end at the first hour that is still ahead, so the rectangle
+  // on screen is the one that will actually be applied.
+  const overDay = viewDays.value[cell.dayIdx];
+  if (!overDay) return;
+  cell.slot = Math.max(cell.slot, spentSlots(overDay));
+  if (cell.slot > 47) return;
   const sel = dragSelection.value;
   if (cell.dayIdx !== sel.toDay || cell.slot !== sel.toSlot) {
     sel.toDay = cell.dayIdx;
@@ -1242,20 +1386,22 @@ const handleGlobalMouseUp = () => {
   const swept = dragSelection.value;
   isDragging.value = false;
 
+  // A click is a sweep of one half hour. It used to flip the slot open or shut
+  // where it stood, which gave no say over reserve, no note and no repeat, and
+  // left the card reachable only by dragging. Both gestures now end in the
+  // same place, the card, with the same choices in it.
+  const day = viewDays.value[swept.fromDay];
+  const slotKey = teacher.scheduleSlots[swept.fromSlot]?.key;
+  const gone = day && slotKey && teacher.isPastSlot(day.dayKey, slotKey);
+
   if (dragMoved.value) {
     selection.value = { ...swept };
-  } else {
+  } else if (pressedLockedEvent || gone) {
+    // Nothing here to edit: a booked lesson opens its own inspector on the
+    // click that follows, and an hour that has passed cannot be changed.
     selection.value = null;
-    const day = viewDays.value[swept.fromDay];
-    const slotKey = teacher.scheduleSlots[swept.fromSlot]?.key;
-    if (day && slotKey) {
-      const current = teacher.getSlotStatus(day.dayKey, slotKey);
-      if (current === 'closed') {
-        teacher.setSlotStatus(day.dayKey, slotKey, 'open');
-      } else if (current === 'open') {
-        teacher.setSlotStatus(day.dayKey, slotKey, 'closed');
-      }
-    }
+  } else {
+    selection.value = { ...swept };
   }
 
   dragSelection.value = null;
@@ -1323,7 +1469,10 @@ const selectionSummary = computed(() => {
   };
 });
 
+const pendingDelete = ref(false);
+
 const clearSelection = () => {
+  pendingDelete.value = false;
   selection.value = null;
 };
 
@@ -1343,16 +1492,20 @@ const selectionDateText = computed(() => {
 });
 
 // Selection Recurrence Statement
+/**
+ * The sentence under the dropdown now reports the plan rather than the setting.
+ * It used to restate the rule — "Applied every weekday" — for a write that only
+ * ever touched the current week, which is how the card came to promise a term's
+ * worth of hours and deliver seven days of them.
+ */
 const repeatSummaryStatement = computed(() => {
-  if (repeatPreset.value === 'none') return 'Does not repeat';
-  if (repeatPreset.value === 'daily') return 'Applied to every day of the week';
-  if (repeatPreset.value === 'weekday') return 'Applied every weekday — Monday to Friday';
-  if (repeatPreset.value === 'weekly') {
-    const opt = repeatPresetOptions.value.find(o => o.value === 'weekly');
-    return opt ? `Applied ${opt.label.toLowerCase()}` : 'Applied weekly';
-  }
-  if (repeatPreset.value === 'custom') return repeatDropdownLabel.value;
-  return '';
+  const sum = planSummary.value;
+  if (!sum) return 'Nothing left to change — these hours have passed.';
+  const dates = `${sum.count} ${sum.count === 1 ? 'date' : 'dates'}`;
+  const parts = [`${dates}: ${sum.list}`];
+  if (sum.passed) parts.push(`${sum.passed} already passed, skipped`);
+  if (sum.capped) parts.push(`stops after ${MAX_REPEAT_WEEKS} weeks`);
+  return parts.join(' · ');
 });
 
 const toggleRepeatDay = (dayKey) => {
@@ -1382,31 +1535,79 @@ const selectRepeatPreset = (value) => {
   }
 };
 
+/** Three months out from the selection — far enough to be useful, near enough to read. */
+const defaultEndDate = () => {
+  const r = selectionRect.value;
+  const base = r && viewDays.value[r.d0] ? new Date(viewDays.value[r.d0].dateObj) : new Date();
+  base.setMonth(base.getMonth() + 3);
+  return isoDate(base);
+};
+
 const openCustomRecurrence = () => {
   repeatDropdownOpen.value = false;
+  // Everything the dialog can change, kept so Cancel can put it back. The day
+  // chips are the live array the save reads, so without this a cancelled
+  // dialog still changed what Save would write.
+  recurrenceDraft = {
+    days: [...repeatDays.value],
+    preset: repeatPreset.value,
+    every: customEvery.value,
+    ends: customEnds.value,
+    endsOn: customEndsOn.value,
+    afterN: customAfterN.value,
+  };
   // seed day chips from current selection or swept days
   if (repeatDays.value.length === 0) {
     const r = selectionRect.value;
     repeatDays.value = r ? viewDays.value.slice(r.d0, r.d1 + 1).map(d => d.dayKey) : [];
   }
-  if (!customEndsOn.value) {
-    const r = selectionRect.value;
-    const baseDate = r && viewDays.value[r.d0] ? new Date(viewDays.value[r.d0].dateObj) : new Date();
-    baseDate.setMonth(baseDate.getMonth() + 3);
-    customEndsOn.value = isoDate(baseDate);
-  }
+  if (!customEndsOn.value) customEndsOn.value = defaultEndDate();
   showCustomRecurrence.value = true;
 };
 
-const applyCustomRecurrence = () => {
-  repeatPreset.value = 'custom';
-  if (customUnit.value !== 'week') {
-    // for daily/monthly, cover all days
-    repeatDays.value = customUnit.value === 'day'
-      ? ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun']
-      : repeatDays.value;
+const cancelCustomRecurrence = () => {
+  if (recurrenceDraft) {
+    repeatDays.value = [...recurrenceDraft.days];
+    repeatPreset.value = recurrenceDraft.preset;
+    customEvery.value = recurrenceDraft.every;
+    customEnds.value = recurrenceDraft.ends;
+    customEndsOn.value = recurrenceDraft.endsOn;
+    customAfterN.value = recurrenceDraft.afterN;
+    recurrenceDraft = null;
   }
   showCustomRecurrence.value = false;
+};
+
+const applyCustomRecurrence = () => {
+  recurrenceDraft = null;
+  repeatPreset.value = 'custom';
+  showCustomRecurrence.value = false;
+};
+
+/**
+ * The note already on the selected hours, so re-opening them shows what was
+ * typed rather than an empty box that would wipe it on the next save. Only a
+ * note they all share counts: a mixed run has no single label to show, and
+ * guessing one would quietly overwrite the rest.
+ */
+const existingSelectionLabel = () => {
+  const r = selectionRect.value;
+  if (!r) return '';
+  let found = null;
+  for (let d = r.d0; d <= r.d1; d += 1) {
+    const day = viewDays.value[d];
+    if (!day) continue;
+    for (let sl = r.s0; sl <= r.s1; sl += 1) {
+      const slotKey = teacher.scheduleSlots[sl]?.key;
+      if (!slotKey) continue;
+      if (teacher.getSlotStatus(day.dayKey, slotKey) !== 'reserved') continue;
+      const note = teacher.getSlotReason(day.dayKey, slotKey);
+      const label = note && note !== 'Reserved' ? note : '';
+      if (found === null) found = label;
+      else if (found !== label) return '';
+    }
+  }
+  return found || '';
 };
 
 /** The days the sweep itself covers — where the chips start from. */
@@ -1428,62 +1629,168 @@ const toggleRepeatPanel = () => {
 // Initialize form defaults when selection happens
 watch(selection, (newVal) => {
   if (newVal) {
-    selectionAction.value = 'reserve';
-    selectionTitle.value = '';
+    const summary = selectionSummary.value;
+    const allReserved = summary && summary.slots > 0 && summary.reserved === summary.slots;
+    selectionAction.value = allReserved ? 'reserve' : 'open';
+    selectionTitle.value = existingSelectionLabel();
     isRepeatOpen.value = false;
     repeatPreset.value = 'none';
     repeatDropdownOpen.value = false;
     showCustomRecurrence.value = false;
     customEvery.value = 1;
-    customUnit.value = 'week';
-    customEnds.value = 'never';
-    customAfterN.value = 13;
+    // A dated end is the friendlier default than a year of hours, and the end
+    // date is reset with everything else — it used to survive from one
+    // selection to the next, so a run could silently inherit last week's limit.
+    customEnds.value = 'on';
+    customEndsOn.value = defaultEndDate();
+    customAfterN.value = 8;
+    recurrenceDraft = null;
     repeatDays.value = sweptDayKeys();
   }
 });
 
-// Save changes according to selectionAction and repeatDays
-const saveSelectionAction = () => {
+/**
+ * Every date this edit will touch, worked out once.
+ *
+ * The preview and the two write paths all read this, so what the card promises
+ * and what it does cannot drift apart — which is exactly what went wrong when
+ * the save looked only at the current week while the label said "every 2 weeks
+ * until December".
+ *
+ * `writable` excludes hours that have already begun; `passed` counts them, so
+ * the card can say what it skipped instead of quietly doing less than it said.
+ */
+const recurrencePlan = computed(() => {
   const r = selectionRect.value;
-  if (!r) return;
+  const empty = { dates: [], writable: [], passed: 0, capped: false };
+  if (!r) return empty;
 
-  const targetDays = repeatDays.value.length > 0
-    ? repeatDays.value
-    : viewDays.value.slice(r.d0, r.d1 + 1).map((d) => d.dayKey);
+  const swept = viewDays.value.slice(r.d0, r.d1 + 1);
+  if (!swept.length) return empty;
 
-  const status = selectionAction.value === 'reserve' ? 'reserved' : 'open';
-  const reason = selectionAction.value === 'reserve' ? effectiveReserveReason.value : '';
+  const weekStart = getStartOfWeek(swept[0].dateObj);
+  const todayIso = teacher.manilaNow.iso;
 
-  targetDays.forEach((dayKey) => {
+  // While the dialog is open its settings are the rule — that is what the
+  // preview inside it is reporting on, before Done has been pressed.
+  const mode = showCustomRecurrence.value ? 'custom' : repeatPreset.value;
+
+  // Which weekdays, and how far apart the weeks are.
+  let dayKeys;
+  let everyWeeks = 1;
+  if (mode === 'none') {
+    dayKeys = swept.map((d) => d.dayKey);
+  } else if (mode === 'daily') {
+    dayKeys = [...DAY_KEYS];
+  } else if (mode === 'weekday') {
+    dayKeys = ['mon', 'tue', 'wed', 'thu', 'fri'];
+  } else if (mode === 'custom') {
+    // No fallback here. With no day chosen the answer is "no dates", and Done
+    // is disabled on the back of it — quietly substituting the swept day made
+    // an empty row look like a valid rule.
+    dayKeys = [...repeatDays.value];
+    everyWeeks = clampInt(customEvery.value, 1, 52);
+  } else {
+    dayKeys = repeatDays.value.length ? [...repeatDays.value] : swept.map((d) => d.dayKey);
+  }
+
+  const offsets = DAY_KEYS.map((k, i) => (dayKeys.includes(k) ? i : -1)).filter((i) => i >= 0);
+  if (!offsets.length) return empty;
+
+  const oneWeekOnly = mode === 'none';
+  const limit = mode === 'custom' && customEnds.value === 'after'
+    ? clampInt(customAfterN.value, 1, 999)
+    : Infinity;
+  const until = mode === 'custom' && customEnds.value === 'on' && customEndsOn.value
+    ? customEndsOn.value
+    : null;
+
+  const dates = [];
+  let capped = false;
+  const weeks = oneWeekOnly ? 1 : Math.ceil(MAX_REPEAT_WEEKS / everyWeeks);
+
+  outer: for (let w = 0; w < weeks; w += 1) {
+    const base = addDays(weekStart, w * everyWeeks * 7);
+    for (const off of offsets) {
+      const d = addDays(base, off);
+      const iso = isoDate(d);
+      if (until && iso > until) break outer;
+      dates.push({ iso, dayKey: DAY_KEYS[off], weekStartIso: isoDate(getStartOfWeek(d)), dateObj: d });
+      if (dates.length >= limit) break outer;
+    }
+    if (!oneWeekOnly && w === weeks - 1 && limit === Infinity && !until) capped = true;
+  }
+
+  const writable = dates.filter((d) => d.iso >= todayIso);
+  return { dates, writable, passed: dates.length - writable.length, capped };
+});
+
+const chosenDayNames = computed(() => {
+  const names = { mon: 'Monday', tue: 'Tuesday', wed: 'Wednesday', thu: 'Thursday', fri: 'Friday', sat: 'Saturday', sun: 'Sunday' };
+  return repeatDayOrderedKeys.filter((k) => repeatDays.value.includes(k)).map((k) => names[k]).join(', ');
+});
+
+const planSummary = computed(() => {
+  const plan = recurrencePlan.value;
+  if (!plan.writable.length) return null;
+  // Without the year, a run that reaches into next year ends on "Sep 25",
+  // which reads as earlier than the "Oct 3" it started on.
+  const thisYear = Number(teacher.manilaNow.iso.slice(0, 4));
+  const fmt = (d) => {
+    const y = d.dateObj.getFullYear();
+    return `${MONTH_NAMES[d.dateObj.getMonth()].slice(0, 3)} ${d.dateObj.getDate()}${y === thisYear ? '' : ` ${y}`}`;
+  };
+  const first = plan.writable.slice(0, 3).map(fmt);
+  const last = plan.writable.length > 3 ? fmt(plan.writable[plan.writable.length - 1]) : null;
+  return {
+    count: plan.writable.length,
+    passed: plan.passed,
+    capped: plan.capped,
+    list: last ? `${first.join(', ')} … ${last}` : first.join(', '),
+  };
+});
+
+/* While the dialog is open the plan has to be read as if its settings were
+   already chosen, because that is what the preview is for. They are: the dialog
+   edits the live refs and Cancel puts them back. */
+const customPreview = computed(() => (showCustomRecurrence.value ? planSummary.value : null));
+
+/** Write the plan. Both Save and Delete go through here. */
+const writePlan = (status, reason) => {
+  const r = selectionRect.value;
+  if (!r) return 0;
+  let written = 0;
+
+  recurrencePlan.value.writable.forEach(({ weekStartIso, dayKey }) => {
     for (let sl = r.s0; sl <= r.s1; sl += 1) {
       const slotKey = teacher.scheduleSlots[sl]?.key;
-      if (slotKey) {
-        teacher.setSlotStatus(dayKey, slotKey, status, reason);
-      }
+      if (slotKey) written += teacher.setSlotStatusOn(weekStartIso, dayKey, slotKey, status, reason);
     }
   });
+  return written;
+};
 
+// Save: write the plan the card is showing, nothing else.
+const saveSelectionAction = () => {
+  const status = selectionAction.value === 'reserve' ? 'reserved' : 'open';
+  const reason = selectionAction.value === 'reserve' ? effectiveReserveReason.value : '';
+  writePlan(status, reason);
   clearSelection();
 };
 
-// Direct Quick Delete Button
+/**
+ * Delete closes every hour in the plan. It used to read `repeatDays` directly,
+ * which meant it could erase columns that were never highlighted — including
+ * day chips left behind by a cancelled Custom dialog. It now acts on exactly
+ * what the card says it will, and says how much that is before doing it.
+ */
 const deleteSelectionArea = () => {
-  const r = selectionRect.value;
-  if (!r) return;
-
-  const targetDays = repeatDays.value.length > 0
-    ? repeatDays.value
-    : viewDays.value.slice(r.d0, r.d1 + 1).map((d) => d.dayKey);
-
-  targetDays.forEach((dayKey) => {
-    for (let sl = r.s0; sl <= r.s1; sl += 1) {
-      const slotKey = teacher.scheduleSlots[sl]?.key;
-      if (slotKey) {
-        teacher.setSlotStatus(dayKey, slotKey, 'closed');
-      }
-    }
-  });
-
+  if (!pendingDelete.value) {
+    pendingDelete.value = true;
+    return;
+  }
+  pendingDelete.value = false;
+  writePlan('closed', '');
   clearSelection();
 };
 
@@ -1504,8 +1811,20 @@ const reserveSelection = () => {
   isCreateModalOpen.value = true;
 };
 
+/**
+ * Escape closes the top layer, not the bottom one.
+ *
+ * There was a single handler that cleared the whole selection, so pressing
+ * Escape inside the Custom recurrence dialog unmounted the dialog AND the card
+ * underneath it — throwing away the sweep and every setting on the way out.
+ */
 const onSelectionKeydown = (e) => {
-  if (e.key === 'Escape' && selection.value) clearSelection();
+  if (e.key !== 'Escape') return;
+  if (showCustomRecurrence.value) { cancelCustomRecurrence(); return; }
+  if (repeatDropdownOpen.value) { repeatDropdownOpen.value = false; return; }
+  if (pendingDelete.value) { pendingDelete.value = false; return; }
+  if (selectedEvent.value) { selectedEvent.value = null; return; }
+  if (selection.value) clearSelection();
 };
 
 // A selection names cells on the week in view, so it cannot outlive it.
@@ -1534,6 +1853,13 @@ onMounted(() => {
   window.addEventListener('mouseup', handleGlobalMouseUp);
   window.addEventListener('mousemove', handleGlobalMouseMove);
   window.addEventListener('keydown', onSelectionKeydown);
+
+  measureGridScrollbar();
+  if (typeof ResizeObserver !== 'undefined' && scrollContainer.value) {
+    gridResizeObserver = new ResizeObserver(measureGridScrollbar);
+    gridResizeObserver.observe(scrollContainer.value);
+  }
+  window.addEventListener('resize', measureGridScrollbar);
 });
 
 onUnmounted(() => {
@@ -1541,6 +1867,8 @@ onUnmounted(() => {
   window.removeEventListener('mouseup', handleGlobalMouseUp);
   window.removeEventListener('mousemove', handleGlobalMouseMove);
   window.removeEventListener('keydown', onSelectionKeydown);
+  window.removeEventListener('resize', measureGridScrollbar);
+  gridResizeObserver?.disconnect();
 });
 
 // Navigation Functions
@@ -1597,7 +1925,11 @@ const getEventsForDay = (day) => {
         canDelete: true,
       });
     } else if (status === 'reserved') {
-      const reason = teacher.getSlotReason(dayKey, slotKey) || 'Reserved Block';
+      // "Reserved" is what the store writes when no note was given, so it is a
+      // placeholder rather than a label and must not be shown as one.
+      const stored = teacher.getSlotReason(dayKey, slotKey);
+      const label = stored && stored !== 'Reserved' ? stored : '';
+      const reason = stored || 'Reserved Block';
       results.push({
         id: `res-${dayKey}-${slotKey}`,
         dayKey,
@@ -1605,7 +1937,9 @@ const getEventsForDay = (day) => {
         slotIndex: s,
         top,
         height,
-        title: 'reserve',
+        title: label || 'reserve',
+        label,
+        startTime: formatSlotTime(s),
         reason,
         timeRange,
         bgColor: '#eef2ff',
@@ -1619,38 +1953,16 @@ const getEventsForDay = (day) => {
     }
   }
 
-  // Upcoming Student Lessons / Reservations
-  teacher.reservations.forEach((r, idx) => {
-    if (day.dayKey === 'wed' && idx === 0) {
-      results.push({
-        id: `booked-${r.id}`,
-        slotIndex: 18,
-        top: 18 * 32,
-        height: 63,
-        title: 'reserve',
-        subtitle: `${r.subject} • ${r.topic}`,
-        timeRange: r.rangeManila,
-        studentName: r.studentName,
-        subject: r.subject,
-        meetLink: r.meetLink,
-        bgColor: '#eef2ff',
-        borderColor: '#4f46e5',
-        textColor: '#312e81',
-        modalHeaderBg: '#4338ca',
-        typeLabel: 'Reserve',
-        fullDateLabel: `${day.dayName}, ${day.iso}`,
-        canDelete: false,
-      });
-    }
-  });
-
   return results;
 };
 
 const onEventClick = (event) => {
-  if (!dragMoved.value) {
-    selectedEvent.value = event;
-  }
+  if (dragMoved.value) return;
+  // Availability is edited in the card the same click already opened. Only a
+  // booked lesson — which is the student's, not the instructor's to move —
+  // still gets the read-only inspector.
+  if (event.canDelete) return;
+  selectedEvent.value = event;
 };
 
 const onMonthCellClick = (cell) => {
