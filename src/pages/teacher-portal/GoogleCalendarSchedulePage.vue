@@ -272,7 +272,11 @@
               class="relative h-[1536px] select-none"
               :class="[
                 day.isToday ? 'bg-blue-50/15' : '',
-                spentSlots(day) >= 48 ? 'cursor-default' : 'cursor-crosshair',
+                hoverInsideSelection(dayIdx)
+                  ? 'cursor-move'
+                  : spentSlots(day) >= 48
+                    ? 'cursor-default'
+                    : 'cursor-crosshair',
               ]"
             >
               <!-- Hours that have already begun. Shaded rather than left bare,
@@ -307,6 +311,7 @@
               <!-- Render Events / Availability Blocks overlay on day column -->
               <template v-for="event in getEventsForDay(day)" :key="event.id">
                 <div
+                  v-if="!liftedOut(dayIdx, event.slotIndex)"
                   @click.stop="onEventClick(event)"
                   :data-locked="event.canDelete ? null : 'true'"
                   class="absolute inset-x-1 rounded-lg px-2 py-1 overflow-hidden shadow-xs transition-all z-10 text-xs border"
@@ -343,6 +348,28 @@
                 </div>
               </template>
 
+              <!-- The run in hand: the same blocks, at the hours they would
+                   land on, lifted off the board with a shadow. -->
+              <div
+                v-for="blk in carriedBlocks(dayIdx)"
+                :key="`carry-${blk.key}`"
+                class="pointer-events-none absolute inset-x-1 z-20 flex items-center justify-between gap-1 overflow-hidden rounded-lg border px-2 py-1 text-xs shadow-lg"
+                :class="moveBlocked ? 'opacity-50 saturate-50' : ''"
+                :style="{
+                  top: `${blk.top}px`,
+                  height: '31px',
+                  backgroundColor: blk.status === 'open' ? '#ecfdf5' : '#eef2ff',
+                  borderColor: blk.status === 'open' ? '#10b981' : '#6366f1',
+                  color: blk.status === 'open' ? '#065f46' : '#3730a3',
+                }"
+              >
+                <span
+                  class="truncate text-[11px]"
+                  :class="blk.label ? 'font-bold tracking-normal' : 'font-extrabold uppercase tracking-wide'"
+                >{{ blk.label || (blk.status === 'open' ? 'open' : 'reserve') }}</span>
+                <span class="shrink-0 font-mono text-[10px] font-bold tabular-nums opacity-80">{{ blk.time }}</span>
+              </div>
+
               <!-- The sweep, live. Tinted rather than filled: the whole point of
                    dragging across open and held slots is to see which ones you
                    have got hold of, and an opaque box hid exactly that. -->
@@ -365,7 +392,12 @@
               <!-- The same run once the mouse is up, waiting on an action. -->
               <div
                 v-if="!isDragging && selectionRect && dayIdx >= selectionRect.d0 && dayIdx <= selectionRect.d1"
-                class="absolute inset-x-0.5 rounded-lg z-40 pointer-events-none border-2 border-brighture-amber bg-brighture-gold/15 ring-2 ring-brighture-gold/35"
+                class="absolute inset-x-0.5 rounded-lg z-40 pointer-events-none border-2 transition-colors"
+                :class="isMovingSelection
+                  ? (moveBlocked
+                      ? 'border-rose-500 bg-rose-500/15 ring-2 ring-rose-300/60'
+                      : 'border-brighture-amber bg-brighture-gold/25 ring-2 ring-brighture-gold/50 shadow-lg')
+                  : 'border-brighture-amber bg-brighture-gold/15 ring-2 ring-brighture-gold/35'"
                 :style="{
                   top: `${selectionBoxStyles.top}px`,
                   height: `${selectionBoxStyles.height}px`,
@@ -434,16 +466,22 @@
           leave-to-class="opacity-0 scale-95"
         >
           <div
-            v-if="selectionSummary"
-            class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/35 backdrop-blur-2xs"
-            @click.self="clearSelection"
+            v-if="selectionSummary && !isMovingSelection"
+            class="pointer-events-none fixed inset-0 z-50"
           >
+            <!-- Beside the run, not over the middle of the screen. The card is
+                 about hours you are looking at, and a dimmed backdrop both hid
+                 them and made the board unreachable — which is no good now that
+                 the run itself can be picked up and dragged. -->
             <div
-              class="relative w-full max-w-lg rounded-2xl bg-[#f0f4f9] text-[#1f1f1f] shadow-2xl border border-[#dfe3e7] overflow-visible select-none animate-in fade-in zoom-in-95 duration-150"
+              ref="cardEl"
+              class="pointer-events-auto absolute w-[23rem] rounded-2xl bg-[#f0f4f9] text-[#1f1f1f] shadow-2xl border border-[#dfe3e7] overflow-visible select-none animate-in fade-in zoom-in-95 duration-150"
+              :style="cardStyle"
+              @mousedown.stop
               @click.stop
             >
               <!-- Card Top Handle & Close Icon -->
-              <div class="flex items-center justify-between px-5 pt-3.5 pb-1 text-[#5f6368]">
+              <div class="flex items-center justify-between px-4 pt-3.5 pb-1 text-[#5f6368]">
                 <div class="flex items-center gap-2 text-xs">
                   <span class="text-[11px] font-semibold tracking-wide text-[#444746] uppercase">Edit Selected Schedule</span>
                 </div>
@@ -458,7 +496,7 @@
               </div>
 
               <!-- Main Content Body -->
-              <div class="px-6 py-2.5 space-y-3.5">
+              <div class="px-4 py-2.5 space-y-3.5">
                 <!-- The choice everything else follows from, so it comes first:
                      whether there is a title at all depends on it. One track with
                      the live half filled, rather than two pills that both look
@@ -762,41 +800,17 @@
               </div>
 
               <!-- Footer with Delete area, Cancel, and Save (Image 1 style) -->
-              <div class="flex items-center justify-between border-t border-[#dfe3e7] px-6 py-3 bg-[#e9eef6] rounded-b-2xl">
-                <!-- One delete button. What it asks next depends on whether
-                     these hours live in the template: a run that exists on one
-                     date only needs a confirm, a repeating one needs a choice. -->
-                <template v-if="pendingDelete !== 'confirm'">
-                  <button
-                    type="button"
-                    @click="promptDelete"
-                    class="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-rose-600 ring-1 ring-rose-200 transition hover:bg-rose-50 active:scale-95"
-                  >
-                    <i class="fa-regular fa-trash-can text-[12px]"></i>
-                    {{ clearLabel }}
-                    <i v-if="selectionRepeats" class="fa-solid fa-arrows-rotate text-[10px] opacity-70" title="Repeats weekly"></i>
-                  </button>
-                </template>
-
-                <template v-else>
-                  <div class="flex items-center gap-1.5">
-                    <button
-                      type="button"
-                      @click="deleteSelectionArea"
-                      class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-rose-700 active:scale-95"
-                    >
-                      <i class="fa-regular fa-trash-can text-[12px]"></i>
-                      {{ clearLabel }} on {{ selectionDateShort }}? Tap again
-                    </button>
-                    <button
-                      type="button"
-                      @click="pendingDelete = ''"
-                      class="cursor-pointer rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
-                    >
-                      Keep
-                    </button>
-                  </div>
-                </template>
+              <div class="flex flex-wrap items-center justify-between gap-2 border-t border-[#dfe3e7] px-4 py-3 bg-[#e9eef6] rounded-b-2xl">
+                <!-- One delete button, and it only ever opens the sheet. -->
+                <button
+                  type="button"
+                  @click="promptDelete"
+                  class="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-rose-600 ring-1 ring-rose-200 transition hover:bg-rose-50 active:scale-95"
+                >
+                  <i class="fa-regular fa-trash-can text-[12px]"></i>
+                  {{ clearLabel }}
+                  <i v-if="selectionRepeats" class="fa-solid fa-arrows-rotate text-[10px] opacity-70" title="Repeats weekly"></i>
+                </button>
 
                 <div class="flex items-center gap-2">
                   <button
@@ -833,46 +847,107 @@
                   <div
                     role="dialog"
                     aria-modal="true"
-                    class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200"
+                    class="w-full max-w-[380px] overflow-hidden rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 animate-in fade-in zoom-in-95 duration-150"
                   >
-                    <p class="px-5 pt-4 pb-3 text-center text-xs leading-relaxed text-[#5f6368]">
-                      These hours come back every
-                      <span class="font-semibold text-[#1f1f1f]">{{ selectionWeekdayLong }}</span>.
-                    </p>
+                    <!-- Header -->
+                    <div class="px-5 pt-5 pb-3 text-left">
+                      <div class="flex items-start gap-3">
+                        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600 ring-1 ring-rose-100">
+                          <i class="fa-regular fa-calendar-xmark text-lg"></i>
+                        </div>
+                        <div class="min-w-0 flex-1">
+                          <h3 class="text-base font-semibold text-slate-900 leading-snug">
+                            Clear Time Slot
+                          </h3>
+                          <p class="mt-0.5 text-xs text-slate-500 font-medium">
+                            <span class="text-slate-700 font-semibold">{{ selectionSummary?.timeRange }}</span> &bull; {{ selectionDateShort }}
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          @click="pendingDelete = ''"
+                          class="rounded-full p-1 text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+                          title="Close"
+                        >
+                          <i class="fa-solid fa-xmark text-sm"></i>
+                        </button>
+                      </div>
 
-                    <button
-                      type="button"
-                      @click="deleteSelectionArea"
-                      class="block w-full cursor-pointer border-t border-slate-200 px-5 py-3 text-center transition hover:bg-rose-50"
-                    >
-                      <span class="block text-sm font-semibold text-rose-600">
-                        Clear {{ selectionDateShort }} only
-                      </span>
-                      <span class="mt-0.5 block text-[11px] text-[#5f6368]">
-                        Every other {{ selectionWeekdayLong }} keeps {{ selectionSummary?.timeRange }}
-                      </span>
-                    </button>
+                      <div v-if="selectionRepeats" class="mt-3 rounded-lg bg-amber-50/80 border border-amber-200/70 px-3 py-2 text-[11px] text-amber-800 flex items-center gap-2">
+                        <i class="fa-solid fa-rotate text-amber-600 text-xs shrink-0"></i>
+                        <span>This slot repeats weekly on <strong>{{ selectionWeekdayLong }}s</strong>. Choose what to remove:</span>
+                      </div>
+                      <p v-else class="mt-2 text-xs text-slate-500 leading-relaxed">
+                        This will remove {{ selectionSummary?.timeRange }} on this date.
+                      </p>
+                    </div>
 
-                    <button
-                      type="button"
-                      @click="clearSelectionEveryWeek"
-                      class="block w-full cursor-pointer border-t border-slate-200 px-5 py-3 text-center transition hover:bg-rose-50"
-                    >
-                      <span class="block text-sm font-semibold text-rose-600">
-                        Clear every {{ selectionWeekdayLong }}
-                      </span>
-                      <span class="mt-0.5 block text-[11px] text-[#5f6368]">
-                        Takes {{ selectionSummary?.timeRange }} out of your template
-                      </span>
-                    </button>
+                    <!-- Action Options -->
+                    <div class="px-4 py-2 space-y-2">
+                      <!-- Option 1: Only this date -->
+                      <button
+                        type="button"
+                        @click="deleteSelectionArea"
+                        class="group w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-rose-300 hover:bg-rose-50/50 hover:shadow-xs active:bg-rose-100/60"
+                      >
+                        <div class="flex items-start gap-3">
+                          <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 group-hover:bg-rose-100 group-hover:text-rose-600 transition">
+                            <i class="fa-regular fa-calendar text-xs"></i>
+                          </div>
+                          <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-1">
+                              <span class="text-xs font-semibold text-slate-900 group-hover:text-rose-700">
+                                {{ selectionRepeats ? `This date only (${selectionDateShort})` : 'Clear this time slot' }}
+                              </span>
+                              <span v-if="selectionRepeats" class="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                                One-time
+                              </span>
+                            </div>
+                            <p class="mt-0.5 text-[11px] leading-relaxed text-slate-500 group-hover:text-slate-600">
+                              {{ selectionRepeats ? `Keeps ${selectionSummary?.timeRange} for all other upcoming ${selectionWeekdayLong}s.` : 'Removes availability for this slot.' }}
+                            </p>
+                          </div>
+                        </div>
+                      </button>
 
-                    <button
-                      type="button"
-                      @click="pendingDelete = ''"
-                      class="block w-full cursor-pointer border-t-8 border-slate-100 px-5 py-3 text-center text-sm font-semibold text-[#444746] transition hover:bg-slate-50"
-                    >
-                      Cancel
-                    </button>
+                      <!-- Option 2: All future / weekly recurrence -->
+                      <button
+                        v-if="selectionRepeats"
+                        type="button"
+                        @click="clearSelectionEveryWeek"
+                        class="group w-full cursor-pointer rounded-xl border border-slate-200 bg-white p-3 text-left transition hover:border-rose-300 hover:bg-rose-50/50 hover:shadow-xs active:bg-rose-100/60"
+                      >
+                        <div class="flex items-start gap-3">
+                          <div class="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 group-hover:bg-rose-100 group-hover:text-rose-600 transition">
+                            <i class="fa-solid fa-rotate text-xs"></i>
+                          </div>
+                          <div class="min-w-0 flex-1">
+                            <div class="flex items-center justify-between gap-1">
+                              <span class="text-xs font-semibold text-slate-900 group-hover:text-rose-700">
+                                Every {{ selectionWeekdayLong }} (Template)
+                              </span>
+                              <span class="text-[10px] font-semibold text-rose-600 bg-rose-50 border border-rose-200/60 px-1.5 py-0.5 rounded">
+                                Recurring
+                              </span>
+                            </div>
+                            <p class="mt-0.5 text-[11px] leading-relaxed text-slate-500 group-hover:text-slate-600">
+                              Permanently removes {{ selectionSummary?.timeRange }} from your weekly schedule template.
+                            </p>
+                          </div>
+                        </div>
+                      </button>
+                    </div>
+
+                    <!-- Footer -->
+                    <div class="border-t border-slate-100 bg-slate-50/80 px-4 py-3 flex justify-end">
+                      <button
+                        type="button"
+                        @click="pendingDelete = ''"
+                        class="cursor-pointer rounded-lg px-4 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/70 hover:text-slate-800 transition"
+                      >
+                        Cancel
+                      </button>
+                    </div>
                   </div>
                 </div>
               </Transition>
@@ -1038,6 +1113,104 @@ const dragSelection = ref(null); // live while the button is down
 let pressedLockedEvent = false;
 const selection = ref(null);     // the same rectangle, kept after it comes up
 const dayColElements = {};
+
+/* Moving a run. Grabbing inside a selection picks the hours up rather than
+   starting a new sweep: the statuses and their notes travel with the box, so
+   a lesson block put down at the wrong time is corrected by dragging it, the
+   way it would be in any calendar. `moveOrigin` holds where it was lifted
+   from and what it was carrying, so a refused drop can put it all back. */
+const isMovingSelection = ref(false);
+const moveBlocked = ref(false);
+const moveOrigin = ref(null);
+
+/** Bumped whenever the board moves under the card, so the card follows it. */
+const anchorTick = ref(0);
+const bumpAnchor = () => { anchorTick.value += 1; };
+
+const cardEl = ref(null);
+const cardSize = ref({ w: 368, h: 300 });
+const measureCard = () => {
+  const el = cardEl.value;
+  if (el) cardSize.value = { w: el.offsetWidth, h: el.offsetHeight };
+};
+
+/**
+ * Put the card beside the run it is about.
+ *
+ * Right of the selection first, then left, then under it, then over it — the
+ * first of those that fits on screen and does not cover the hours in question
+ * wins. The card is measured rather than assumed, because its height changes
+ * with the repeat row, the title field and the confirm states, and a guess
+ * that is 40px out is a card that sits over the slots.
+ */
+const cardStyle = computed(() => {
+  anchorTick.value; // re-run when the board scrolls or resizes
+  const r = selectionRect.value;
+  if (!r) return { visibility: 'hidden' };
+  const first = dayColElements[viewDays.value[r.d0]?.dayKey];
+  const last = dayColElements[viewDays.value[r.d1]?.dayKey];
+  if (!first || !last) return { visibility: 'hidden' };
+
+  const a = first.getBoundingClientRect();
+  const b = last.getBoundingClientRect();
+  const runTop = a.top + r.s0 * 32;
+  const runBottom = a.top + (r.s1 + 1) * 32;
+  const { w, h } = cardSize.value;
+  const M = 12;   // keep clear of the window edges
+  const GAP = 10; // and of the run itself
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const clampY = (y) => Math.min(Math.max(M, y), Math.max(M, vh - h - M));
+  const clampX = (x) => Math.min(Math.max(M, x), Math.max(M, vw - w - M));
+
+  if (b.right + GAP + w <= vw - M) return { left: `${b.right + GAP}px`, top: `${clampY(runTop - 8)}px` };
+  if (a.left - GAP - w >= M) return { left: `${a.left - GAP - w}px`, top: `${clampY(runTop - 8)}px` };
+  if (runBottom + GAP + h <= vh - M) return { left: `${clampX(a.left)}px`, top: `${runBottom + GAP}px` };
+  if (runTop - GAP - h >= M) return { left: `${clampX(a.left)}px`, top: `${runTop - GAP - h}px` };
+  return { left: `${clampX(a.left)}px`, top: `${clampY(runTop)}px` };
+});
+
+/**
+ * The hours in hand, placed where they would land.
+ *
+ * Dragging only the outline left the green and purple blocks sitting at the
+ * old time, so the board showed the run in two places at once and neither of
+ * them was the answer. These are drawn at the destination instead, and
+ * `liftedOut` takes the originals off the board for as long as the drag lasts.
+ */
+const carriedBlocks = (dayIdx) => {
+  const o = moveOrigin.value;
+  const r = selectionRect.value;
+  if (!isMovingSelection.value || !o || !r) return [];
+  return o.payload
+    .filter((c) => r.d0 + c.dd === dayIdx)
+    .map((c) => ({
+      key: `${c.dd}-${c.ss}`,
+      top: (r.s0 + c.ss) * 32,
+      status: c.status,
+      label: c.status === 'reserved' && c.reason && c.reason !== 'Reserved' ? c.reason : '',
+      time:
+        c.status === 'reserved' && c.reason && c.reason !== 'Reserved'
+          ? formatSlotTime(r.s0 + c.ss)
+          : `${formatSlotTime(r.s0 + c.ss)} – ${formatSlotTime(r.s0 + c.ss + 1)}`,
+    }));
+};
+
+const liftedOut = (dayIdx, slotIndex) => {
+  const o = moveOrigin.value;
+  if (!isMovingSelection.value || !o) return false;
+  return dayIdx >= o.d0 && dayIdx <= o.d1 && slotIndex >= o.s0 && slotIndex <= o.s1;
+};
+
+/** True when the pointer is over hours that are already selected. */
+const hoverInsideSelection = (dayIdx) => {
+  const r = selectionRect.value;
+  const h = hoveredSlot.value;
+  if (!r || !h) return false;
+  const day = viewDays.value[dayIdx];
+  if (!day || h.dayKey !== day.dayKey) return false;
+  return dayIdx >= r.d0 && dayIdx <= r.d1 && h.slotIndex >= r.s0 && h.slotIndex <= r.s1;
+};
 
 // Google Calendar Quick Action Card State
 const selectionAction = ref('reserve'); // 'reserve' | 'open'
@@ -1427,6 +1600,14 @@ const handleColMouseDown = (e) => {
   // quietly doing nothing when it lands.
   const day = viewDays.value[cell.dayIdx];
   if (!day || !isSlotEditable(day, cell.slot)) return;
+
+  // Inside an existing selection, the press means "pick this up".
+  const r = selectionRect.value;
+  if (r && cell.dayIdx >= r.d0 && cell.dayIdx <= r.d1 && cell.slot >= r.s0 && cell.slot <= r.s1) {
+    beginSelectionMove(cell, r);
+    return;
+  }
+
   isDragging.value = true;
   dragMoved.value = false;
   dragSelection.value = {
@@ -1439,6 +1620,14 @@ const handleColMouseDown = (e) => {
 
 // Global Mouse Move for Smooth Drag Across Grid
 const handleGlobalMouseMove = (e) => {
+  if (isMovingSelection.value && moveOrigin.value) {
+    const cell = pointToCell(e);
+    if (!cell) return;
+    const r = movedRectFor(cell);
+    moveBlocked.value = !rectIsLandable(r);
+    selection.value = { fromDay: r.d0, fromSlot: r.s0, toDay: r.d1, toSlot: r.s1 };
+    return;
+  }
   if (!isDragging.value || !dragSelection.value) return;
   const cell = pointToCell(e);
   if (!cell) return;
@@ -1456,11 +1645,115 @@ const handleGlobalMouseMove = (e) => {
   }
 };
 
+/**
+ * Lift the selected hours. What they are — open, held, and the note on a hold
+ * — is copied out now, because the source cells are cleared on the drop and
+ * there would otherwise be nothing left to write at the destination.
+ */
+const beginSelectionMove = (cell, r) => {
+  const payload = [];
+  for (let d = r.d0; d <= r.d1; d += 1) {
+    const day = viewDays.value[d];
+    if (!day) continue;
+    for (let sl = r.s0; sl <= r.s1; sl += 1) {
+      const slotKey = teacher.scheduleSlots[sl]?.key;
+      if (!slotKey) continue;
+      const status = teacher.getSlotStatus(day.dayKey, slotKey);
+      if (status === 'closed') continue;
+      payload.push({
+        dd: d - r.d0,
+        ss: sl - r.s0,
+        status,
+        reason: teacher.getSlotReason(day.dayKey, slotKey) || '',
+      });
+    }
+  }
+  // A sweep usually takes in more than it needs — empty half hours at the end
+  // of a run, a column with nothing in it. Those are fine to select, but there
+  // is nothing to carry there, so the box shrinks to what is actually in hand
+  // the moment it is picked up: the hours you see moving are the hours moving.
+  isMovingSelection.value = true;
+  let box = { ...r };
+  if (payload.length) {
+    const minDd = Math.min(...payload.map((c) => c.dd));
+    const maxDd = Math.max(...payload.map((c) => c.dd));
+    const minSs = Math.min(...payload.map((c) => c.ss));
+    const maxSs = Math.max(...payload.map((c) => c.ss));
+    box = { d0: r.d0 + minDd, d1: r.d0 + maxDd, s0: r.s0 + minSs, s1: r.s0 + maxSs };
+    payload.forEach((c) => {
+      c.dd -= minDd;
+      c.ss -= minSs;
+    });
+    // The grab point keeps its offset from the box, so nothing jumps under the
+    // cursor when the trim happens.
+    selection.value = { fromDay: box.d0, fromSlot: box.s0, toDay: box.d1, toSlot: box.s1 };
+  }
+
+  moveOrigin.value = { ...box, anchorDay: cell.dayIdx, anchorSlot: cell.slot, payload };
+  moveBlocked.value = false;
+};
+
+/** Where the box would land for a given pointer cell, clamped to the board. */
+const movedRectFor = (cell) => {
+  const o = moveOrigin.value;
+  const spanD = o.d1 - o.d0;
+  const spanS = o.s1 - o.s0;
+  const d0 = Math.min(
+    Math.max(0, o.d0 + (cell.dayIdx - o.anchorDay)),
+    viewDays.value.length - 1 - spanD
+  );
+  const s0 = Math.min(Math.max(0, o.s0 + (cell.slot - o.anchorSlot)), 47 - spanS);
+  return { d0, d1: d0 + spanD, s0, s1: s0 + spanS };
+};
+
+/** A run cannot be dropped onto hours that have already begun. */
+const rectIsLandable = (r) =>
+  viewDays.value.slice(r.d0, r.d1 + 1).every((day) => day && r.s0 >= spentSlots(day));
+
+const finishSelectionMove = () => {
+  const o = moveOrigin.value;
+  isMovingSelection.value = false;
+  moveOrigin.value = null;
+  if (!o) return;
+
+  const r = selectionRect.value;
+  const moved = r && (r.d0 !== o.d0 || r.s0 !== o.s0);
+  if (!moved || !rectIsLandable(r)) {
+    // Put it back where it came from rather than half-applying the drop.
+    selection.value = { fromDay: o.d0, fromSlot: o.s0, toDay: o.d1, toSlot: o.s1 };
+    moveBlocked.value = false;
+    resetCardForSelection();
+    return;
+  }
+
+  const write = (dayIdx, slotIdx, status, reason) => {
+    const day = viewDays.value[dayIdx];
+    const slotKey = teacher.scheduleSlots[slotIdx]?.key;
+    if (day && slotKey) teacher.setSlotStatus(day.dayKey, slotKey, status, reason);
+  };
+  // Empty the old box first: source and destination can overlap, and clearing
+  // afterwards would wipe hours that had just been written.
+  for (let d = o.d0; d <= o.d1; d += 1) {
+    for (let sl = o.s0; sl <= o.s1; sl += 1) write(d, sl, 'closed', '');
+  }
+  o.payload.forEach((cellData) => {
+    write(r.d0 + cellData.dd, r.s0 + cellData.ss, cellData.status, cellData.reason);
+  });
+  moveBlocked.value = false;
+  // The hours that landed decide what the card offers, so this runs after the
+  // writes rather than off the selection change that preceded them.
+  resetCardForSelection();
+};
+
 /* Mouse up. A sweep leaves a selection behind instead of acting on the spot:
    the slots it covers may be empty, open or held, and which of those was meant
    is a question the board cannot answer on the instructor's behalf. A press
    that never moved is still the old single-slot toggle. */
 const handleGlobalMouseUp = () => {
+  if (isMovingSelection.value) {
+    finishSelectionMove();
+    return;
+  }
   if (!isDragging.value || !dragSelection.value) return;
 
   const swept = dragSelection.value;
@@ -1550,10 +1843,9 @@ const selectionSummary = computed(() => {
 });
 
 /**
- * '' | 'confirm' | 'choose' — what the delete button is currently asking.
- * A run that only exists on one date asks 'confirm' (tap again). A run that
- * comes back every week asks 'choose', because "delete" is genuinely two
- * different actions there and guessing wrong is not recoverable.
+ * '' | 'choose' — whether the delete sheet is open over the card. A run that
+ * repeats is offered two ways out there, since "delete" is genuinely two
+ * different actions for it and guessing wrong is not recoverable.
  */
 const pendingDelete = ref('');
 
@@ -1571,9 +1863,16 @@ const selectionWeekdayLong = computed(() => {
     : `${full(days[0])}–${full(days[days.length - 1])}`;
 });
 
-/** One entry point for both deletes: it decides which question to ask. */
+/**
+ * Every delete asks in the sheet.
+ *
+ * The confirm used to live in the footer as a long "…? Tap again" button with
+ * a Keep beside it, which wrapped onto a second line next to Cancel and Save
+ * and left four buttons competing in one strip. One question at a time, in
+ * front of the card, is easier to read and harder to hit by accident.
+ */
 const promptDelete = () => {
-  pendingDelete.value = selectionRepeats.value ? 'choose' : 'confirm';
+  pendingDelete.value = 'choose';
 };
 
 /**
@@ -1811,8 +2110,21 @@ const toggleRepeatPanel = () => {
 };
 
 // Initialize form defaults when selection happens
-watch(selection, (newVal) => {
-  if (newVal) {
+// The card's height changes with the title field, the repeat row and the two
+// confirm states; each of those moves where it should sit.
+watch(
+  [selection, selectionAction, selectionTitle, pendingDelete, repeatPreset, isRepeatOpen],
+  () => nextTick(() => { measureCard(); bumpAnchor(); })
+);
+
+/**
+ * Point the card at whatever is selected now.
+ *
+ * Split out of the watch because a drag changes the selection on every row it
+ * crosses, and running this each time would clear a half-typed title and reset
+ * the repeat row dozens of times on the way to the drop.
+ */
+const resetCardForSelection = () => {
     const summary = selectionSummary.value;
     const allReserved = summary && summary.slots > 0 && summary.reserved === summary.slots;
     selectionAction.value = allReserved ? 'reserve' : 'open';
@@ -1830,7 +2142,11 @@ watch(selection, (newVal) => {
     customAfterN.value = 8;
     recurrenceDraft = null;
     repeatDays.value = sweptDayKeys();
-  }
+};
+
+watch(selection, (newVal) => {
+  // Mid-drag the selection is still moving; the card catches up on the drop.
+  if (newVal && !isMovingSelection.value) resetCardForSelection();
 });
 
 /**
@@ -2035,6 +2351,8 @@ onMounted(() => {
   window.addEventListener('keydown', onSelectionKeydown);
 
   measureGridScrollbar();
+  scrollContainer.value?.addEventListener('scroll', bumpAnchor, { passive: true });
+  window.addEventListener('resize', bumpAnchor);
   if (typeof ResizeObserver !== 'undefined' && scrollContainer.value) {
     gridResizeObserver = new ResizeObserver(measureGridScrollbar);
     gridResizeObserver.observe(scrollContainer.value);
@@ -2048,6 +2366,8 @@ onUnmounted(() => {
   window.removeEventListener('mousemove', handleGlobalMouseMove);
   window.removeEventListener('keydown', onSelectionKeydown);
   window.removeEventListener('resize', measureGridScrollbar);
+  window.removeEventListener('resize', bumpAnchor);
+  scrollContainer.value?.removeEventListener('scroll', bumpAnchor);
   gridResizeObserver?.disconnect();
 });
 
