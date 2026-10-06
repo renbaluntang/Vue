@@ -439,7 +439,7 @@
             @click.self="clearSelection"
           >
             <div
-              class="w-full max-w-lg rounded-2xl bg-[#f0f4f9] text-[#1f1f1f] shadow-2xl border border-[#dfe3e7] overflow-visible select-none animate-in fade-in zoom-in-95 duration-150"
+              class="relative w-full max-w-lg rounded-2xl bg-[#f0f4f9] text-[#1f1f1f] shadow-2xl border border-[#dfe3e7] overflow-visible select-none animate-in fade-in zoom-in-95 duration-150"
               @click.stop
             >
               <!-- Card Top Handle & Close Icon -->
@@ -763,21 +763,40 @@
 
               <!-- Footer with Delete area, Cancel, and Save (Image 1 style) -->
               <div class="flex items-center justify-between border-t border-[#dfe3e7] px-6 py-3 bg-[#e9eef6] rounded-b-2xl">
-                <!-- Deleting closes every date in the plan, which may be far more
-                     than the rectangle on screen. It says how many before it does
-                     it, because there is no undo. -->
-                <button
-                  type="button"
-                  @click="deleteSelectionArea"
-                  class="cursor-pointer text-xs font-medium text-[#b3261e] transition flex items-center gap-1.5 hover:text-rose-700 hover:underline"
-                >
-                  <i class="fa-regular fa-trash-can text-[12px]"></i>
-                  <span v-if="!pendingDelete">Clear these hours</span>
-                  <span v-else class="font-bold">
-                    Clear {{ planSummary ? planSummary.count : 0 }}
-                    {{ planSummary && planSummary.count === 1 ? 'date' : 'dates' }}? Tap again
-                  </span>
-                </button>
+                <!-- One delete button. What it asks next depends on whether
+                     these hours live in the template: a run that exists on one
+                     date only needs a confirm, a repeating one needs a choice. -->
+                <template v-if="pendingDelete !== 'confirm'">
+                  <button
+                    type="button"
+                    @click="promptDelete"
+                    class="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-rose-600 ring-1 ring-rose-200 transition hover:bg-rose-50 active:scale-95"
+                  >
+                    <i class="fa-regular fa-trash-can text-[12px]"></i>
+                    {{ clearLabel }}
+                    <i v-if="selectionRepeats" class="fa-solid fa-arrows-rotate text-[10px] opacity-70" title="Repeats weekly"></i>
+                  </button>
+                </template>
+
+                <template v-else>
+                  <div class="flex items-center gap-1.5">
+                    <button
+                      type="button"
+                      @click="deleteSelectionArea"
+                      class="flex cursor-pointer items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-rose-700 active:scale-95"
+                    >
+                      <i class="fa-regular fa-trash-can text-[12px]"></i>
+                      {{ clearLabel }} on {{ selectionDateShort }}? Tap again
+                    </button>
+                    <button
+                      type="button"
+                      @click="pendingDelete = ''"
+                      class="cursor-pointer rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-500 transition hover:bg-slate-200 hover:text-slate-800"
+                    >
+                      Keep
+                    </button>
+                  </div>
+                </template>
 
                 <div class="flex items-center gap-2">
                   <button
@@ -796,6 +815,67 @@
                   </button>
                 </div>
               </div>
+
+              <!-- Repeating hours are two different deletes wearing one word.
+                   Rather than pick a default and hope, the card asks, naming
+                   what each one actually touches. -->
+              <Transition
+                enter-active-class="transition duration-150 ease-out"
+                enter-from-class="opacity-0"
+                leave-active-class="transition duration-100 ease-in"
+                leave-to-class="opacity-0"
+              >
+                <div
+                  v-if="pendingDelete === 'choose'"
+                  class="absolute inset-0 z-10 flex items-center justify-center rounded-2xl bg-[#f0f4f9]/80 backdrop-blur-sm p-5"
+                  @click.self="pendingDelete = ''"
+                >
+                  <div
+                    role="dialog"
+                    aria-modal="true"
+                    class="w-full max-w-sm overflow-hidden rounded-2xl bg-white shadow-xl ring-1 ring-slate-200"
+                  >
+                    <p class="px-5 pt-4 pb-3 text-center text-xs leading-relaxed text-[#5f6368]">
+                      These hours come back every
+                      <span class="font-semibold text-[#1f1f1f]">{{ selectionWeekdayLong }}</span>.
+                    </p>
+
+                    <button
+                      type="button"
+                      @click="deleteSelectionArea"
+                      class="block w-full cursor-pointer border-t border-slate-200 px-5 py-3 text-center transition hover:bg-rose-50"
+                    >
+                      <span class="block text-sm font-semibold text-rose-600">
+                        Clear {{ selectionDateShort }} only
+                      </span>
+                      <span class="mt-0.5 block text-[11px] text-[#5f6368]">
+                        Every other {{ selectionWeekdayLong }} keeps {{ selectionSummary?.timeRange }}
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      @click="clearSelectionEveryWeek"
+                      class="block w-full cursor-pointer border-t border-slate-200 px-5 py-3 text-center transition hover:bg-rose-50"
+                    >
+                      <span class="block text-sm font-semibold text-rose-600">
+                        Clear every {{ selectionWeekdayLong }}
+                      </span>
+                      <span class="mt-0.5 block text-[11px] text-[#5f6368]">
+                        Takes {{ selectionSummary?.timeRange }} out of your template
+                      </span>
+                    </button>
+
+                    <button
+                      type="button"
+                      @click="pendingDelete = ''"
+                      class="block w-full cursor-pointer border-t-8 border-slate-100 px-5 py-3 text-center text-sm font-semibold text-[#444746] transition hover:bg-slate-50"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+              </Transition>
             </div>
           </div>
         </Transition>
@@ -1469,10 +1549,114 @@ const selectionSummary = computed(() => {
   };
 });
 
-const pendingDelete = ref(false);
+/**
+ * '' | 'confirm' | 'choose' — what the delete button is currently asking.
+ * A run that only exists on one date asks 'confirm' (tap again). A run that
+ * comes back every week asks 'choose', because "delete" is genuinely two
+ * different actions there and guessing wrong is not recoverable.
+ */
+const pendingDelete = ref('');
+
+const selectionWeekdayLong = computed(() => {
+  const r = selectionRect.value;
+  if (!r) return '';
+  const days = viewDays.value.slice(r.d0, r.d1 + 1);
+  if (!days.length) return '';
+  const full = (d) =>
+    ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][
+      d.dateObj.getDay()
+    ];
+  return days.length === 1
+    ? full(days[0])
+    : `${full(days[0])}–${full(days[days.length - 1])}`;
+});
+
+/** One entry point for both deletes: it decides which question to ask. */
+const promptDelete = () => {
+  pendingDelete.value = selectionRepeats.value ? 'choose' : 'confirm';
+};
+
+/**
+ * How much time is actually being cleared, said the way a person would say it.
+ *
+ * The label read "these hours" whatever was picked, which is wrong twice over
+ * for a single half-hour slot: it is not hours, and it does not say that the
+ * run repeats across several dates when it does.
+ */
+const durationPhrase = (slots) => {
+  const mins = slots * 30;
+  if (mins < 60) return `${mins} min`;
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return m ? `${h}h ${m}m` : `${h}h`;
+};
+
+const clearLabel = computed(() => {
+  const r = selectionRect.value;
+  if (!r) return 'Clear';
+  const perDate = durationPhrase(r.s1 - r.s0 + 1);
+  const dates = planSummary.value?.count ?? 1;
+  return dates > 1 ? `Clear ${perDate} on ${dates} dates` : `Clear ${perDate}`;
+});
+
+/**
+ * Whether the picked hours are part of the weekly template.
+ *
+ * If they are, clearing this date alone leaves them coming back next week —
+ * so the button has to ask which of the two the instructor meant rather than
+ * quietly doing the narrower one.
+ */
+const selectionRepeats = computed(() => {
+  const r = selectionRect.value;
+  if (!r) return false;
+  let any = false;
+  for (let d = r.d0; d <= r.d1; d += 1) {
+    const day = viewDays.value[d];
+    if (!day) continue;
+    for (let sl = r.s0; sl <= r.s1; sl += 1) {
+      const slotKey = teacher.scheduleSlots[sl]?.key;
+      if (!slotKey) continue;
+      if (teacher.getSlotStatus(day.dayKey, slotKey) === 'closed') continue;
+      if (!teacher.patternHasSlot(day.dayKey, slotKey)) return false;
+      any = true;
+    }
+  }
+  return any;
+});
+
+/** "Oct 13", or "Oct 13–15" when the run spans days. */
+const selectionDateShort = computed(() => {
+  const r = selectionRect.value;
+  if (!r) return '';
+  const days = viewDays.value.slice(r.d0, r.d1 + 1);
+  if (!days.length) return '';
+  const fmt = (d) => `${MONTH_NAMES[d.dateObj.getMonth()].slice(0, 3)} ${d.dateObj.getDate()}`;
+  return days.length === 1 ? fmt(days[0]) : `${fmt(days[0])}–${days[days.length - 1].dateObj.getDate()}`;
+});
+
+/** Take the picked hours out of the template, and out of the week on screen. */
+const clearSelectionEveryWeek = () => {
+  pendingDelete.value = '';
+  const r = selectionRect.value;
+  if (!r) return;
+  const pairs = [];
+  for (let d = r.d0; d <= r.d1; d += 1) {
+    const day = viewDays.value[d];
+    if (!day) continue;
+    for (let sl = r.s0; sl <= r.s1; sl += 1) {
+      const slotKey = teacher.scheduleSlots[sl]?.key;
+      if (slotKey) pairs.push({ dayKey: day.dayKey, slotKey });
+    }
+  }
+  teacher.clearPatternSlots(pairs);
+  // The week in view may hold its own copy of those hours, and the instructor
+  // is looking straight at it.
+  writePlan('closed', '');
+  clearSelection();
+};
 
 const clearSelection = () => {
-  pendingDelete.value = false;
+  pendingDelete.value = '';
   selection.value = null;
 };
 
@@ -1785,11 +1969,7 @@ const saveSelectionAction = () => {
  * what the card says it will, and says how much that is before doing it.
  */
 const deleteSelectionArea = () => {
-  if (!pendingDelete.value) {
-    pendingDelete.value = true;
-    return;
-  }
-  pendingDelete.value = false;
+  pendingDelete.value = '';
   writePlan('closed', '');
   clearSelection();
 };
@@ -1822,7 +2002,7 @@ const onSelectionKeydown = (e) => {
   if (e.key !== 'Escape') return;
   if (showCustomRecurrence.value) { cancelCustomRecurrence(); return; }
   if (repeatDropdownOpen.value) { repeatDropdownOpen.value = false; return; }
-  if (pendingDelete.value) { pendingDelete.value = false; return; }
+  if (pendingDelete.value) { pendingDelete.value = ''; return; }
   if (selectedEvent.value) { selectedEvent.value = null; return; }
   if (selection.value) clearSelection();
 };

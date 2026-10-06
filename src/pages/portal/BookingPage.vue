@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
 import DurationToggle from "../student-view-v4/DurationToggle.vue";
 import CalendarViewToggle from "../student-view-v4/CalendarViewToggle.vue";
 import BookingConfirmationPage from "../student-view-v4/BookingConfirmationPage.vue";
@@ -57,6 +57,55 @@ const favoritesOnly = ref(false);
 const activeVideo = ref(null); // { teacher, kind: 'intro' | 'demo' }
 const openVideo = (teacher, kind) => { activeVideo.value = { teacher, kind }; };
 const closeVideo = () => { activeVideo.value = null; };
+
+const promoRail = ref(null);
+const promoIndex = ref(0);
+const promoLabels = ['Talk Now', 'Refer a Friend'];
+
+/** Which card the rail has settled on, read off the scroll position. */
+const syncPromoIndex = () => {
+  const el = promoRail.value;
+  if (!el || !el.firstElementChild) return;
+  const step = el.firstElementChild.getBoundingClientRect().width + 12;
+  promoIndex.value = Math.max(0, Math.min(promoLabels.length - 1, Math.round(el.scrollLeft / step)));
+};
+
+const goToPromo = (i) => {
+  const el = promoRail.value;
+  if (!el || !el.children[i]) return;
+  // Centre the card rather than left-align it: the rail's side padding is half
+  // the leftover width, so a card's snap point sits in the middle of the view.
+  const card = el.children[i];
+  el.scrollTo({ left: card.offsetLeft - el.offsetLeft - (el.clientWidth - card.clientWidth) / 2, behavior: 'smooth' });
+};
+
+/**
+ * The rail moves on by itself, because the second card is otherwise only found
+ * by people who think to swipe. It stops the moment a pointer or the keyboard
+ * is on it, and never runs for anyone who has asked for less motion or is past
+ * the breakpoint where both cards are already side by side.
+ */
+const promoPaused = ref(false);
+let promoTimer = null;
+
+const stopPromoAuto = () => {
+  if (promoTimer) clearInterval(promoTimer);
+  promoTimer = null;
+};
+
+const startPromoAuto = () => {
+  stopPromoAuto();
+  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
+  promoTimer = setInterval(() => {
+    const el = promoRail.value;
+    if (promoPaused.value || !el) return;
+    if (el.scrollWidth <= el.clientWidth + 2) return;
+    goToPromo((promoIndex.value + 1) % promoLabels.length);
+  }, 6000);
+};
+
+onMounted(startPromoAuto);
+onBeforeUnmount(stopPromoAuto);
 
 const videoTabs = [
   { kind: 'intro', icon: '▶', label: (t) => `Get to know ${t.name.split(' ')[0]}` },
@@ -513,10 +562,21 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
 
   <div v-else class="min-h-screen bg-[#f1f5f9] px-3 py-6 pb-10 text-slate-800 sm:px-6">
     <div :class="`mx-auto space-y-6 transition-all duration-300 ${containerMaxWidthClass}`">
-      <!-- Two ways in: start something now, or bring someone with you -->
-      <div class="grid gap-4 lg:grid-cols-2">
+      <!-- Two ways in: start something now, or bring someone with you.
+           Stacked, these two cost a whole phone screen before the teachers —
+           the thing the page is for — come into view, so on small screens they
+           share one swipeable rail and the grid returns at lg. -->
+      <div
+        ref="promoRail"
+        @scroll.passive="syncPromoIndex"
+        @pointerenter="promoPaused = true"
+        @pointerleave="promoPaused = false"
+        @focusin="promoPaused = true"
+        @focusout="promoPaused = false"
+        class="promo-rail -mx-3 flex snap-x snap-mandatory gap-3 overflow-x-auto px-[7%] pb-1 sm:-mx-6 sm:px-[15%] lg:mx-0 lg:grid lg:grid-cols-2 lg:gap-4 lg:overflow-visible lg:px-0 lg:pb-0"
+      >
         <!-- Instant option — the alternative to picking a slot below -->
-        <section class="relative flex flex-col overflow-hidden rounded-2xl border border-white/10 p-5 text-white sm:p-6 shadow-xl shadow-black/20 bg-[radial-gradient(120%_140%_at_90%_10%,rgba(255,205,0,0.18)_0%,rgba(255,205,0,0.04)_40%,transparent_70%),radial-gradient(70%_90%_at_0%_100%,rgba(51,65,85,0.25)_0%,transparent_60%),linear-gradient(135deg,#131722_0%,#1a202c_48%,#0b0e14_100%)]">
+        <section class="relative flex w-full shrink-0 snap-center flex-col overflow-hidden rounded-2xl lg:w-auto lg:shrink border border-white/10 p-5 text-white sm:p-6 shadow-xl shadow-black/20 bg-[radial-gradient(120%_140%_at_90%_10%,rgba(255,205,0,0.18)_0%,rgba(255,205,0,0.04)_40%,transparent_70%),radial-gradient(70%_90%_at_0%_100%,rgba(51,65,85,0.25)_0%,transparent_60%),linear-gradient(135deg,#131722_0%,#1a202c_48%,#0b0e14_100%)]">
           <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           <div class="relative z-10 flex flex-1 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div class="flex items-start gap-3.5">
@@ -544,7 +604,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
         </section>
 
         <!-- Referral — same construction, violet accent instead of gold -->
-        <section class="relative flex flex-col overflow-hidden rounded-2xl border border-white/10 p-5 text-white sm:p-6 shadow-xl shadow-black/20 bg-[radial-gradient(120%_140%_at_90%_10%,rgba(139,92,246,0.24)_0%,rgba(139,92,246,0.06)_40%,transparent_70%),radial-gradient(70%_90%_at_0%_100%,rgba(51,65,85,0.25)_0%,transparent_60%),linear-gradient(135deg,#131722_0%,#1a202c_48%,#0b0e14_100%)]">
+        <section class="relative flex w-full shrink-0 snap-center flex-col overflow-hidden rounded-2xl lg:w-auto lg:shrink border border-white/10 p-5 text-white sm:p-6 shadow-xl shadow-black/20 bg-[radial-gradient(120%_140%_at_90%_10%,rgba(139,92,246,0.24)_0%,rgba(139,92,246,0.06)_40%,transparent_70%),radial-gradient(70%_90%_at_0%_100%,rgba(51,65,85,0.25)_0%,transparent_60%),linear-gradient(135deg,#131722_0%,#1a202c_48%,#0b0e14_100%)]">
           <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           <div class="relative z-10 flex flex-1 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div class="flex items-start gap-3.5">
@@ -571,6 +631,21 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
             </RouterLink>
           </div>
         </section>
+      </div>
+
+      <!-- Which card you are on, and a way to step between them without
+           swiping. Hidden once both are side by side. -->
+      <div class="-mt-1 flex items-center justify-center gap-2 lg:hidden">
+        <button
+          v-for="(label, i) in promoLabels"
+          :key="label"
+          type="button"
+          :aria-label="`Show ${label}`"
+          :aria-current="promoIndex === i ? 'true' : 'false'"
+          @click="goToPromo(i); startPromoAuto()"
+          class="h-1.5 cursor-pointer rounded-full transition-all duration-200"
+          :class="promoIndex === i ? 'w-6 bg-slate-800' : 'w-1.5 bg-slate-300 hover:bg-slate-400'"
+        ></button>
       </div>
 
       <!-- Top Header & Search Filter Bar -->
@@ -1272,6 +1347,14 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
 </template>
 
 <style scoped>
+/* The rail is swiped, so its scrollbar is noise on top of the cards. */
+.promo-rail {
+  scrollbar-width: none;
+}
+.promo-rail::-webkit-scrollbar {
+  display: none;
+}
+
 /* Mobile chip strip: scrollable without a visible scrollbar, and faded on the
    right so it reads as "more to the side" rather than cut off. */
 .chip-strip {

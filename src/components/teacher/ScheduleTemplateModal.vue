@@ -154,12 +154,40 @@
               </div>
             </div>
 
-            <!-- The swept run -->
+            <!-- The swept run. The box itself stays transparent to the mouse so
+                 a sweep can start on the cell underneath, but its top and bottom
+                 edges take the pointer: an hour chosen slightly wrong is fixed by
+                 dragging the edge, not by sweeping the whole run again. -->
             <div
               v-if="selection"
               class="pointer-events-none absolute z-[6] rounded-md border-2 border-amber-500 shadow-[0_0_0_3px_rgb(245_158_11_/_0.18)]"
               :style="sweepBox"
-            ></div>
+            >
+              <div
+                v-for="edge in ['left', 'right']"
+                :key="edge"
+                class="group pointer-events-auto absolute inset-y-0 flex w-2.5 cursor-ew-resize items-center justify-center"
+                :class="edge === 'left' ? '-left-1.5' : '-right-1.5'"
+                :aria-label="edge === 'left' ? 'Drag to take in earlier days' : 'Drag to take in later days'"
+                @mousedown="startResize(edge, $event)"
+              >
+                <span
+                  class="h-[55%] max-h-8 w-1 rounded-full bg-amber-500 opacity-70 ring-1 ring-white transition group-hover:max-h-12 group-hover:opacity-100"
+                ></span>
+              </div>
+              <div
+                v-for="edge in ['top', 'bottom']"
+                :key="edge"
+                class="group pointer-events-auto absolute inset-x-0 flex h-2.5 cursor-ns-resize items-center justify-center"
+                :class="edge === 'top' ? '-top-1.5' : '-bottom-1.5'"
+                :aria-label="edge === 'top' ? 'Drag to change the start time' : 'Drag to change the end time'"
+                @mousedown="startResize(edge, $event)"
+              >
+                <span
+                  class="h-1 w-8 rounded-full bg-amber-500 opacity-70 ring-1 ring-white transition group-hover:w-12 group-hover:opacity-100"
+                ></span>
+              </div>
+            </div>
 
           </div>
         </div>
@@ -722,27 +750,92 @@ const cellAt = (e) => {
 };
 
 let dragging = false;
+/**
+ * 'new' sweeps a fresh run. 'resize-y' moves a horizontal edge and leaves the
+ * days alone; 'resize-x' moves a vertical one and leaves the hours alone.
+ * Grabbing an edge asks to change one thing, so only that thing moves.
+ */
+let dragMode = 'new';
+/**
+ * How far the grab landed from the edge it grabbed. The handle straddles the
+ * boundary, so without this a bottom-edge grab reads as the row below and the
+ * run grows by half an hour before the mouse has moved.
+ */
+let resizeOffset = 0;
+
+const beginDrag = () => {
+  dragging = true;
+  pendingClear.value = false;
+  askingLabel.value = false;
+  window.addEventListener('mousemove', onMove);
+  window.addEventListener('mouseup', onUp);
+};
+
 const onDown = (e) => {
   if (e.button !== 0) return;
   const at = cellAt(e);
   if (!at) return;
   e.preventDefault();
-  dragging = true;
-  pendingClear.value = false;
-  askingLabel.value = false;
+  dragMode = 'new';
+  resizeOffset = 0;
   selection.value = { fromDay: at.dayIdx, fromSlot: at.slot, toDay: at.dayIdx, toSlot: at.slot };
-  window.addEventListener('mousemove', onMove);
-  window.addEventListener('mouseup', onUp);
+  beginDrag();
 };
+
+/**
+ * Grabbing an edge rewrites the selection so the edge being dragged is the
+ * `to` end and the far edge is the `from` end. Everything downstream reads
+ * `rect`, which normalises the two, so the rest of the component needs no
+ * idea that a resize is happening — and dragging past the far edge simply
+ * flips the run rather than collapsing it.
+ */
+const startResize = (edge, e) => {
+  if (e.button !== 0) return;
+  const r = rect.value;
+  if (!r) return;
+  e.preventDefault();
+  e.stopPropagation();
+  const at = cellAt(e);
+  const vertical = edge === 'top' || edge === 'bottom';
+  dragMode = vertical ? 'resize-y' : 'resize-x';
+  if (vertical) {
+    resizeOffset = at ? at.slot - (edge === 'top' ? r.s0 : r.s1) : 0;
+    selection.value = {
+      fromDay: r.d0,
+      toDay: r.d1,
+      fromSlot: edge === 'top' ? r.s1 : r.s0,
+      toSlot: edge === 'top' ? r.s0 : r.s1,
+    };
+  } else {
+    resizeOffset = at ? at.dayIdx - (edge === 'left' ? r.d0 : r.d1) : 0;
+    selection.value = {
+      fromSlot: r.s0,
+      toSlot: r.s1,
+      fromDay: edge === 'left' ? r.d1 : r.d0,
+      toDay: edge === 'left' ? r.d0 : r.d1,
+    };
+  }
+  beginDrag();
+};
+
 const onMove = (e) => {
   if (!dragging || !selection.value) return;
   const at = cellAt(e);
   if (!at) return;
-  selection.value.toDay = at.dayIdx;
-  selection.value.toSlot = at.slot;
+  if (dragMode !== 'resize-y') {
+    const day = dragMode === 'new' ? at.dayIdx : at.dayIdx - resizeOffset;
+    selection.value.toDay = Math.min(DAYS.length - 1, Math.max(0, day));
+  }
+  if (dragMode !== 'resize-x') {
+    const slot = dragMode === 'new' ? at.slot : at.slot - resizeOffset;
+    selection.value.toSlot = Math.min(47, Math.max(0, slot));
+  }
 };
+
 const onUp = () => {
   dragging = false;
+  dragMode = 'new';
+  resizeOffset = 0;
   window.removeEventListener('mousemove', onMove);
   window.removeEventListener('mouseup', onUp);
   if (rect.value) {
@@ -858,17 +951,24 @@ const primaryAction = computed(() => {
     const n = applyDates.value.length;
     return {
       key: 'apply',
-      label: n ? `Apply to ${n} ${n === 1 ? 'date' : 'dates'}` : 'Apply to calendar',
+      label: 'Apply',
       enabled: n > 0,
       hint: n
-        ? `The whole template written onto those ${n} ${n === 1 ? 'date' : 'dates'}.`
+        ? `The whole template written onto ${n} ${n === 1 ? 'date' : 'dates'}.`
         : 'Pick an end that reaches past today.',
     };
   }
-  if (isDirty.value) return { key: 'save', label: 'Save template', enabled: true, hint: '' };
+  if (isDirty.value) {
+    return {
+      key: 'save',
+      label: 'Apply',
+      enabled: true,
+      hint: 'Saved as your weekly template, from now on.',
+    };
+  }
   return {
     key: 'republish',
-    label: 'Apply to every week',
+    label: 'Apply',
     enabled: true,
     hint: 'Puts every upcoming week back under this template.',
   };

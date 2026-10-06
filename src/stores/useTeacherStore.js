@@ -563,21 +563,14 @@ Nice to meet you all and I hope we can work together well.`,
   const activeWeekStart = ref(weekStartOf(new Date()));
   const thisWeekStart = computed(() => weekStartOf(new Date()));
 
-  /**
-   * How far ahead the repeating pattern reaches. It is a boundary on what is
-   * already published, not on what may be done: past it a week starts blank
-   * rather than echoing this week's hours, but any date from today onward can
-   * still be opened or held, and once a week is given its own hours it keeps
-   * and shows them.
+  /*
+   * There is no publishing horizon any more.
+   *
+   * The pattern used to be shown for two weeks and nothing after, so a template
+   * applied to "every week" reached the next fortnight and stopped — which is
+   * not what those words say. A week follows the template until it is given
+   * hours of its own.
    */
-  const PUBLISHED_WEEKS = 2;
-  const publishedUntilIso = computed(() => {
-    const d = atNoon(thisWeekStart.value);
-    d.setDate(d.getDate() + PUBLISHED_WEEKS * 7 - 1);
-    return isoDay(d);
-  });
-  const isPublishedDate = (iso) => !!iso && iso <= publishedUntilIso.value;
-  const activeWeekPublished = computed(() => isPublishedDate(activeWeekStart.value));
 
   const scheduleDays = computed(() => {
     const start = atNoon(activeWeekStart.value);
@@ -665,11 +658,9 @@ Nice to meet you all and I hope we can work together well.`,
    * either the pattern or the active week's exception keeps every caller —
    * grid, calendar, modals — working unchanged.
    */
-  const availability = computed(() => {
-    const own = weekOverrides.value[activeWeekStart.value];
-    if (own) return own;
-    return activeWeekPublished.value ? weekPattern.value : {};
-  });
+  const availability = computed(
+    () => weekOverrides.value[activeWeekStart.value] ?? weekPattern.value
+  );
 
   const weekFollowsPattern = computed(() => !weekOverrides.value[activeWeekStart.value]);
   const weekHasOwnHours = (iso) => !!weekOverrides.value[iso];
@@ -686,12 +677,9 @@ Nice to meet you all and I hope we can work together well.`,
    */
   const beginWeekEdit = () => {
     if (weekOverrides.value[activeWeekStart.value]) return;
-    // A week beyond the published horizon starts from nothing, not from the
-    // pattern — otherwise the first edit there would drag in a whole week of
-    // hours that were never shown.
-    weekOverrides.value[activeWeekStart.value] = activeWeekPublished.value
-      ? copyMap(weekPattern.value)
-      : {};
+    // Editing a week starts from what it was already showing, which is the
+    // template.
+    weekOverrides.value[activeWeekStart.value] = copyMap(weekPattern.value);
   };
 
   /** Drop this week's exception and go back to the repeating pattern. */
@@ -721,6 +709,17 @@ Nice to meet you all and I hope we can work together well.`,
    * shape every unedited week takes, so a stray change reaches weeks nobody is
    * looking at.
    */
+  /** Whether an hour is in the template, i.e. whether it comes back every week. */
+  const patternHasSlot = (dayKey, slotKey) =>
+    readStatus(weekPattern.value, dayKey, slotKey) !== 'closed';
+
+  /** Take hours out of the template, so they stop coming back. */
+  const clearPatternSlots = (pairs) => {
+    const next = copyMap(weekPattern.value);
+    pairs.forEach(({ dayKey, slotKey }) => { delete next[`${dayKey}-${slotKey}`]; });
+    weekPattern.value = next;
+  };
+
   const clonePattern = () => copyMap(weekPattern.value);
   const setPattern = (map) => { weekPattern.value = copyMap(map); };
 
@@ -1141,8 +1140,8 @@ Nice to meet you all and I hope we can work together well.`,
     withWeek, setSlotStatusOn,
     goToWeek, shiftWeek, goToThisWeek, weekStartOf,
     manilaNow, isPastSlot, freeConversationNow,
-    PUBLISHED_WEEKS, publishedUntilIso, isPublishedDate, activeWeekPublished,
     clonePattern, setPattern, upcomingEditedWeeks, resetWeeksToPattern,
+    patternHasSlot, clearPatternSlots,
     getSlotReason, setSlotStatus, cycleSlot, toggleSlot, setDay, setDayStatus, setSlotRow, setSlotRowStatus,
     openSlotCount, reservedSlotCount, openHours, reservedHours, SLOT_MINUTES, SLOTS_PER_HOUR,
     weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings,

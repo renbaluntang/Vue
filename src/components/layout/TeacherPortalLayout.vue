@@ -326,7 +326,7 @@
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden relative">
       <!-- Next lesson strip: one line at every width, like the student portal. -->
       <div
-        v-if="teacher.nextReservation && !isDashboardRoute"
+        v-if="teacher.nextReservation && !isDashboardRoute && !nextLessonDismissed"
         class="bg-slate-900 border-b border-slate-800 text-white px-3 sm:px-6 py-1.5 text-xs font-semibold flex flex-nowrap items-center gap-2 sm:gap-3 flex-shrink-0 z-30"
       >
         <p class="min-w-0 flex-1 truncate leading-5">
@@ -348,6 +348,18 @@
           <span class="hidden sm:inline">Start Lesson</span>
           <span class="sm:hidden">Start</span>
         </a>
+
+        <!-- The strip sits above every page in the portal, so on a long teaching
+             day it is permanent furniture. Dismissing it is for this visit only;
+             the lesson has not gone anywhere, and the bar returns on reload. -->
+        <button
+          type="button"
+          @click="nextLessonDismissed = true"
+          aria-label="Hide the next lesson reminder"
+          class="shrink-0 flex h-6 w-6 cursor-pointer items-center justify-center rounded-md text-slate-400 transition hover:bg-white/10 hover:text-white"
+        >
+          <i class="fa-solid fa-xmark text-xs"></i>
+        </button>
       </div>
 
       <!-- backdrop-blur makes this header its own stacking context, so the menus
@@ -676,6 +688,9 @@ const badgeFor = (item) => {
 
 const isCurrentRoute = (path) => (path === '/' ? route.path === '/' : route.path.startsWith(path));
 const isDashboardRoute = computed(() => route.path === '/');
+
+/** Hidden for this visit only — the lesson is still on the books. */
+const nextLessonDismissed = ref(false);
 
 const currentPageTitle = computed(() => {
   const current = navItems.find((item) => isCurrentRoute(item.path));
