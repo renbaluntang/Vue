@@ -480,139 +480,179 @@
               @mousedown.stop
               @click.stop
             >
-              <!-- Card Top Handle & Close Icon -->
-              <div class="flex items-center justify-between px-4 pt-3.5 pb-1 text-[#5f6368]">
-                <div class="flex items-center gap-2 text-xs">
-                  <span class="text-[11px] font-semibold tracking-wide text-[#444746] uppercase">Edit Selected Schedule</span>
+              <!-- Card Top Handle & Actions (Delete, Close) -->
+              <div class="flex items-center justify-between px-5 pt-3.5 pb-2.5 border-b border-slate-200/60 bg-white rounded-t-2xl">
+                <div class="flex items-center gap-2">
+                  <span class="inline-flex h-2 w-2 rounded-full bg-blue-600"></span>
+                  <span class="text-xs font-bold tracking-wider text-slate-700 uppercase">Edit Schedule Slot</span>
                 </div>
-                <button
-                  type="button"
-                  @click="clearSelection"
-                  class="flex h-7 w-7 items-center justify-center rounded-full text-[#444746] hover:bg-[#e1e3e1] hover:text-[#1f1f1f] transition"
-                  aria-label="Close"
-                >
-                  <i class="fa-solid fa-xmark text-sm"></i>
-                </button>
+                <div class="flex items-center gap-1">
+                  <!-- Delete / Trash Action at Top -->
+                  <button
+                    type="button"
+                    @click="promptDelete"
+                    class="group relative flex h-7 w-7 items-center justify-center rounded-full text-slate-500 hover:bg-rose-50 hover:text-rose-600 transition"
+                    :title="clearLabel"
+                    aria-label="Delete / Clear slot"
+                  >
+                    <i class="fa-regular fa-trash-can text-[13px]"></i>
+                    <span v-if="selectionRepeats" class="absolute -bottom-0.5 right-0.5 flex h-3 w-3 items-center justify-center rounded-full bg-rose-100 text-[8px] text-rose-600 ring-1 ring-white">
+                      <i class="fa-solid fa-rotate text-[7px]"></i>
+                    </span>
+                  </button>
+
+                  <!-- Close Button -->
+                  <button
+                    type="button"
+                    @click="clearSelection"
+                    class="flex h-7 w-7 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-600 transition"
+                    aria-label="Close"
+                  >
+                    <i class="fa-solid fa-xmark text-sm"></i>
+                  </button>
+                </div>
               </div>
 
               <!-- Main Content Body -->
-              <div class="px-4 py-2.5 space-y-3.5">
-                <!-- The choice everything else follows from, so it comes first:
-                     whether there is a title at all depends on it. One track with
-                     the live half filled, rather than two pills that both look
-                     pressable and leave you working out which one is on. -->
-                <div
-                  role="radiogroup"
-                  aria-label="What to do with these slots"
-                  class="relative grid grid-cols-2 rounded-full bg-slate-100 p-1 ring-1 ring-slate-200"
-                >
-                  <span
-                    aria-hidden="true"
-                    class="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-full shadow-sm ring-1 transition-[transform,background-color] duration-200 ease-out motion-reduce:transition-none"
-                    :class="selectionAction === 'reserve'
-                      ? 'translate-x-0 bg-[#ddd6fe] ring-indigo-300'
-                      : 'translate-x-full bg-[#c4eed0] ring-emerald-300'"
-                  ></span>
-
-                  <button
-                    type="button"
-                    role="radio"
-                    :aria-checked="selectionAction === 'reserve' ? 'true' : 'false'"
-                    @click="selectionAction = 'reserve'"
-                    class="relative z-10 flex cursor-pointer items-center justify-center gap-2 rounded-full py-2 text-[13px] font-bold tracking-tight transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500"
-                    :class="selectionAction === 'reserve' ? 'text-[#3730a3]' : 'text-slate-500 hover:text-slate-800'"
+              <div class="px-5 py-4 space-y-4 bg-white">
+                <!-- Action Segmented Control (Open vs Reserve) -->
+                <div>
+                  <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1.5">Availability Status</label>
+                  <div
+                    role="radiogroup"
+                    aria-label="What to do with these slots"
+                    class="relative grid grid-cols-2 rounded-xl bg-slate-100 p-1 ring-1 ring-slate-200/80"
                   >
-                    <i class="fa-solid fa-bookmark text-[11px]"></i>
-                    Reserve
-                  </button>
+                    <span
+                      aria-hidden="true"
+                      class="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg shadow-sm transition-[transform,background-color] duration-200 ease-out motion-reduce:transition-none"
+                      :class="selectionAction === 'reserve'
+                        ? 'translate-x-0 bg-white ring-1 ring-purple-200/70'
+                        : 'translate-x-full bg-white ring-1 ring-emerald-200/70'"
+                    ></span>
 
-                  <button
-                    type="button"
-                    role="radio"
-                    :aria-checked="selectionAction === 'open' ? 'true' : 'false'"
-                    @click="selectionAction = 'open'"
-                    class="relative z-10 flex cursor-pointer items-center justify-center gap-2 rounded-full py-2 text-[13px] font-bold tracking-tight transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
-                    :class="selectionAction === 'open' ? 'text-[#072711]' : 'text-slate-500 hover:text-slate-800'"
-                  >
-                    <i class="fa-solid fa-circle-check text-[11px]"></i>
-                    Open
-                  </button>
+                    <button
+                      type="button"
+                      role="radio"
+                      :aria-checked="selectionAction === 'reserve' ? 'true' : 'false'"
+                      @click="selectionAction = 'reserve'"
+                      class="relative z-10 flex cursor-pointer items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all focus:outline-none"
+                      :class="selectionAction === 'reserve' ? 'text-purple-700 font-extrabold' : 'text-slate-500 hover:text-slate-700 font-medium'"
+                    >
+                      <i class="fa-solid fa-bookmark text-[11px]" :class="selectionAction === 'reserve' ? 'text-purple-600' : 'text-slate-400'"></i>
+                      <span>Reserved</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      role="radio"
+                      :aria-checked="selectionAction === 'open' ? 'true' : 'false'"
+                      @click="selectionAction = 'open'"
+                      class="relative z-10 flex cursor-pointer items-center justify-center gap-2 rounded-lg py-2 text-xs font-bold transition-all focus:outline-none"
+                      :class="selectionAction === 'open' ? 'text-emerald-700 font-extrabold' : 'text-slate-500 hover:text-slate-700 font-medium'"
+                    >
+                      <i class="fa-solid fa-circle-check text-[12px]" :class="selectionAction === 'open' ? 'text-emerald-600' : 'text-slate-400'"></i>
+                      <span>Open</span>
+                    </button>
+                  </div>
                 </div>
 
-                <!-- Only a held slot has anything to say for itself. Open hours
-                     are open; a note on one would never be read. -->
-                <div v-if="selectionAction === 'reserve'" class="relative pb-1">
+                <!-- Title / Reason input for Reserved -->
+                <div v-if="selectionAction === 'reserve'" class="pt-0.5">
+                  <label class="block text-[11px] font-semibold uppercase tracking-wider text-slate-400 mb-1">Reservation Note / Title</label>
                   <input
                     type="text"
                     v-model="selectionTitle"
-                    placeholder="Add title (optional)"
-                    class="w-full bg-transparent border-b border-[#c4c7c5] focus:border-[#1a73e8] focus:border-b-2 pb-1.5 text-xl font-normal text-[#1f1f1f] placeholder-[#747775] focus:outline-none transition-all"
+                    placeholder="e.g. Office Hours, Meeting, Private Lesson"
+                    class="w-full rounded-lg border border-slate-200 bg-slate-50/50 px-3 py-2 text-xs font-medium text-slate-800 placeholder-slate-400 focus:border-purple-500 focus:bg-white focus:outline-none focus:ring-2 focus:ring-purple-100 transition"
                   />
                 </div>
 
-                <!-- Date & Time Row (Image 1 style with clock icon) -->
-                <div class="flex items-start gap-3.5 pt-1">
-                  <i class="fa-regular fa-clock text-[#444746] text-base mt-0.5"></i>
-                  <div class="space-y-0.5 text-xs">
-                    <p class="text-sm font-medium text-[#1f1f1f]">
-                      {{ selectionDateText }} &nbsp;·&nbsp;
-                      <span class="text-[#0b57d0] font-bold">{{ selectionSummary.timeRange }}</span>
-                    </p>
-                    <p class="text-[11px] text-[#5f6368] flex items-center gap-1 flex-wrap">
+                <!-- Date & Time Box -->
+                <div class="flex items-start gap-3 rounded-xl border border-slate-200/70 bg-slate-50/70 p-3">
+                  <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 ring-1 ring-blue-100">
+                    <i class="fa-regular fa-clock text-sm"></i>
+                  </div>
+                  <div class="min-w-0 flex-1 space-y-0.5">
+                    <div class="flex items-center justify-between gap-2">
+                      <p class="text-xs font-bold text-slate-900 leading-tight">
+                        {{ selectionDateText }}
+                      </p>
+                      <span class="rounded bg-blue-100/70 px-1.5 py-0.5 text-[10px] font-bold text-blue-700">
+                        {{ selectionSummary.timeRange }}
+                      </span>
+                    </div>
+                    <p class="text-[11px] text-slate-500 flex items-center gap-1.5 flex-wrap pt-0.5">
                       <span>{{ activeZoneInfo.abbr }} ({{ activeZoneInfo.label }})</span>
-                      <span>·</span>
-                      <span class="text-[#1f1f1f] font-medium">{{ selectionSummary.slots }} {{ selectionSummary.slots === 1 ? 'slot' : 'slots' }} ({{ selectionSummary.hoursLabel }})</span>
-                      <span v-if="selectionSummary.past" class="text-amber-700 font-medium">· {{ selectionSummary.past }} past slots excluded</span>
+                      <span class="text-slate-300">&bull;</span>
+                      <span class="font-medium text-slate-700">{{ selectionSummary.slots }} {{ selectionSummary.slots === 1 ? 'slot' : 'slots' }} ({{ selectionSummary.hoursLabel }})</span>
+                      <span v-if="selectionSummary.past" class="text-amber-700 font-semibold">&bull; {{ selectionSummary.past }} past excluded</span>
                     </p>
                   </div>
                 </div>
 
-                <div class="flex items-start gap-3.5 pt-1">
-                  <i class="fa-solid fa-arrows-rotate text-[#444746] text-base mt-1.5"></i>
-                  <div class="flex-1 text-xs">
-                    <!-- Dropdown trigger -->
+                <!-- Recurrence / Repeat Selector -->
+                <div class="flex items-start gap-3 rounded-xl border border-slate-200/70 bg-slate-50/70 p-3">
+                  <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600 ring-1 ring-slate-200">
+                    <i class="fa-solid fa-rotate text-xs"></i>
+                  </div>
+                  <div class="min-w-0 flex-1 space-y-1">
+                    <label class="block text-[11px] font-semibold text-slate-600">Frequency</label>
                     <div class="relative">
                       <button
+                        ref="repeatTriggerEl"
                         type="button"
                         @click="repeatDropdownOpen = !repeatDropdownOpen"
-                        class="flex items-center justify-between w-full max-w-[260px] gap-2 rounded-md border border-[#c4c7c5] bg-white px-3 py-1.5 text-xs font-medium text-[#1f1f1f] hover:bg-[#f3f4f6] transition cursor-pointer"
+                        class="flex items-center justify-between w-full rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-800 hover:bg-slate-50 hover:border-slate-300 transition cursor-pointer shadow-2xs"
                       >
-                        <span>{{ repeatDropdownLabel }}</span>
-                        <i class="fa-solid fa-chevron-down text-[10px] text-[#747775]"></i>
+                        <span class="truncate font-semibold text-slate-700">{{ repeatDropdownLabel }}</span>
+                        <i class="fa-solid fa-chevron-down text-[10px] text-slate-400"></i>
                       </button>
 
                       <!-- Dropdown menu -->
-                      <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 -translate-y-1" leave-active-class="transition duration-75 ease-in" leave-to-class="opacity-0 -translate-y-1">
+                      <!-- The card is placed beside the run, so it can sit low
+                           on the board. A menu that only ever opened downwards
+                           lost its last options off the bottom of the window.
+                           It flips above the field when there is no room below,
+                           and scrolls if there is room for neither. -->
+                      <Transition enter-active-class="transition duration-100 ease-out" enter-from-class="opacity-0 scale-95" leave-active-class="transition duration-75 ease-in" leave-to-class="opacity-0 scale-95">
                         <div
                           v-if="repeatDropdownOpen"
-                          class="absolute left-0 top-full mt-1 z-20 w-56 rounded-lg border border-[#e0e0e0] bg-white shadow-xl py-1 text-sm text-[#1f1f1f]"
+                          ref="repeatMenuEl"
+                          class="absolute left-0 z-30 w-60 max-h-[min(18rem,50vh)] overflow-y-auto overscroll-contain rounded-xl border border-slate-200 bg-white shadow-xl py-1 text-xs text-slate-700"
+                          :class="repeatDropUp ? 'bottom-full mb-1.5 origin-bottom' : 'top-full mt-1.5 origin-top'"
                         >
                           <button
                             v-for="opt in repeatPresetOptions"
                             :key="opt.value"
                             type="button"
                             @click="selectRepeatPreset(opt.value)"
-                            class="w-full text-left px-4 py-2 hover:bg-[#f3f4f6] transition cursor-pointer"
-                            :class="repeatPreset === opt.value ? 'bg-[#e8f0fe] font-medium text-[#1a73e8]' : ''"
+                            class="w-full flex items-center justify-between px-3.5 py-2 hover:bg-slate-50 transition cursor-pointer"
+                            :class="repeatPreset === opt.value ? 'bg-blue-50 font-bold text-blue-600' : ''"
                           >
-                            {{ opt.label }}
+                            <span>{{ opt.label }}</span>
+                            <i v-if="repeatPreset === opt.value" class="fa-solid fa-check text-xs text-blue-600"></i>
                           </button>
-                          <div class="border-t border-[#e0e0e0] mt-1 pt-1">
+                          <div class="border-t border-slate-100 mt-1 pt-1">
                             <button
                               type="button"
                               @click="openCustomRecurrence"
-                              class="w-full text-left px-4 py-2 hover:bg-[#f3f4f6] transition cursor-pointer"
-                              :class="repeatPreset === 'custom' ? 'bg-[#e8f0fe] font-medium text-[#1a73e8]' : ''"
+                              class="w-full flex items-center justify-between px-3.5 py-2 hover:bg-slate-50 transition cursor-pointer"
+                              :class="repeatPreset === 'custom' ? 'bg-blue-50 font-bold text-blue-600' : ''"
                             >
-                              Custom...
+                              <span>Custom repetition...</span>
+                              <i class="fa-solid fa-sliders text-xs text-slate-400"></i>
                             </button>
                           </div>
                         </div>
                       </Transition>
                     </div>
 
-                    <!-- Summary text -->
-                    <p class="text-[11px] text-[#5f6368] italic mt-1.5">{{ repeatSummaryStatement }}</p>
+                    <!-- Explanatory note -->
+                    <p class="text-[11px] leading-snug text-slate-500 pt-0.5">
+                      <i class="fa-regular fa-circle-question text-[10px] mr-1 text-slate-400"></i>
+                      <span>{{ repeatSummaryStatement }}</span>
+                    </p>
                   </div>
                 </div>
 
@@ -799,35 +839,22 @@
 
               </div>
 
-              <!-- Footer with Delete area, Cancel, and Save (Image 1 style) -->
-              <div class="flex flex-wrap items-center justify-between gap-2 border-t border-[#dfe3e7] px-4 py-3 bg-[#e9eef6] rounded-b-2xl">
-                <!-- One delete button, and it only ever opens the sheet. -->
+              <!-- Footer with Cancel and Save -->
+              <div class="flex items-center justify-end gap-2 border-t border-slate-200/80 px-5 py-3 bg-slate-50/90 rounded-b-2xl">
                 <button
                   type="button"
-                  @click="promptDelete"
-                  class="flex cursor-pointer items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-bold text-rose-600 ring-1 ring-rose-200 transition hover:bg-rose-50 active:scale-95"
+                  @click="clearSelection"
+                  class="cursor-pointer rounded-lg px-4 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-200/70 hover:text-slate-800 transition"
                 >
-                  <i class="fa-regular fa-trash-can text-[12px]"></i>
-                  {{ clearLabel }}
-                  <i v-if="selectionRepeats" class="fa-solid fa-arrows-rotate text-[10px] opacity-70" title="Repeats weekly"></i>
+                  Cancel
                 </button>
-
-                <div class="flex items-center gap-2">
-                  <button
-                    type="button"
-                    @click="clearSelection"
-                    class="cursor-pointer rounded-full px-4 py-1.5 text-xs font-medium text-[#444746] hover:bg-[#d3e3fd]/40 hover:text-[#1f1f1f] transition"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    @click="saveSelectionAction"
-                    class="cursor-pointer rounded-full bg-[#0b57d0] px-5 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#0842a0] active:scale-95 transition"
-                  >
-                    Save
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  @click="saveSelectionAction"
+                  class="cursor-pointer rounded-lg bg-[#0b57d0] px-6 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-[#0842a0] active:scale-95 transition"
+                >
+                  Save
+                </button>
               </div>
 
               <!-- Repeating hours are two different deletes wearing one word.
@@ -1223,6 +1250,31 @@ const isRepeatOpen = ref(false);
 
 // Google Calendar-style repeat dropdown
 const repeatDropdownOpen = ref(false);
+
+/* The menu opens downwards by default and flips up when the window has no
+   room for it there. Measured rather than guessed: its height changes with
+   the preset list, and an estimate that is 30px out is a clipped option. */
+const repeatTriggerEl = ref(null);
+const repeatMenuEl = ref(null);
+const repeatDropUp = ref(false);
+
+watch(repeatDropdownOpen, (open) => {
+  if (!open) {
+    repeatDropUp.value = false;
+    return;
+  }
+  nextTick(() => {
+    const trigger = repeatTriggerEl.value?.getBoundingClientRect();
+    const menu = repeatMenuEl.value;
+    if (!trigger || !menu) return;
+    const height = menu.offsetHeight;
+    const MARGIN = 12;
+    const GAP = 6;
+    const fitsBelow = trigger.bottom + GAP + height <= window.innerHeight - MARGIN;
+    const fitsAbove = trigger.top - GAP - height >= MARGIN;
+    repeatDropUp.value = !fitsBelow && fitsAbove;
+  });
+});
 const repeatPreset = ref('none'); // 'none'|'daily'|'weekly'|'weekday'|'custom'
 const showCustomRecurrence = ref(false);
 /* Custom recurrence state.
