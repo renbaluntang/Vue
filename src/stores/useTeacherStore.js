@@ -100,7 +100,7 @@ export const useTeacherStore = defineStore('teacher', () => {
    * The Away overlay surfaces this so being Away can never hide a class.
    */
   const imminentReservation = computed(() =>
-    reservations.value.find((row) => row.minutesUntil <= 15) ?? null
+    reservations.value.find((row) => row.minutesUntil >= 0 && row.minutesUntil <= 15) ?? null
   );
 
   /**
@@ -134,16 +134,33 @@ export const useTeacherStore = defineStore('teacher', () => {
   };
 
 
-  const stats = ref({
-    lessonsThisMonth: 62,
-    hoursThisMonth: '31.0',
-    feedbackPending: 2,
-    averageRating: 4.98,
-    completionRate: 99,
-  });
+
+  const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+
+  /** 'Sep 2, 2026 18:00' -> { dayUtc, minutes, clock }, or null if unparsable. */
+  const parseStamp = (stamp) => {
+    const m = /^([A-Za-z]{3}) (\d{1,2}), (\d{4}) (\d{2}):(\d{2})/.exec(stamp ?? '');
+    if (!m) return null;
+    const month = MONTH_ABBR.indexOf(m[1]);
+    if (month < 0) return null;
+    return {
+      dayUtc: Date.UTC(Number(m[3]), month, Number(m[2])),
+      minutes: Number(m[4]) * 60 + Number(m[5]),
+      clock: `${m[4]}:${m[5]}`,
+    };
+  };
+
+  /** Move a stamp by whole days, leaving everything after the time untouched. */
+  const shiftStamp = (stamp, days) => {
+    const at = parseStamp(stamp);
+    if (!at || !days) return stamp;
+    const d = new Date(at.dayUtc + days * 86_400_000);
+    const head = `${MONTH_ABBR[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()} ${at.clock}`;
+    return stamp.replace(/^[A-Za-z]{3} \d{1,2}, \d{4} \d{2}:\d{2}/, head);
+  };
 
   // Upcoming reservations, soonest first.
-  const reservations = ref([
+  const seededReservations = ref([
     {
       id: 'r-501',
       topic: 'Cross-Border Negotiations & Pitching',
@@ -273,8 +290,51 @@ export const useTeacherStore = defineStore('teacher', () => {
     },
   ]);
 
-  const nextReservation = computed(() => reservations.value[0] ?? null);
-  const laterReservations = computed(() => reservations.value.slice(1));
+  /**
+   * How far the seed has to move to land on the day being looked at.
+   *
+   * The reservations were written around a fixed September date. Left alone,
+   * every "today" on the dashboard is weeks in the past while the header four
+   * lines above it reads the real clock — the two disagree on screen. Shifting
+   * the whole set by one offset keeps the shape the seed describes (two
+   * lessons tonight, a trial tomorrow morning) and lands it on the real day.
+   */
+  const reservationDayShift = computed(() => {
+    const at = parseStamp(seededReservations.value[0]?.startManila);
+    if (!at) return 0;
+    const [y, m, d] = manilaNow.value.iso.split('-').map(Number);
+    return Math.round((Date.UTC(y, m - 1, d) - at.dayUtc) / 86_400_000);
+  });
+
+  const reservations = computed(() => {
+    const shift = reservationDayShift.value;
+    const now = manilaNow.value;
+    const [y, m, d] = now.iso.split('-').map(Number);
+    const todayUtc = Date.UTC(y, m - 1, d);
+    return seededReservations.value.map((row) => {
+      const startManila = shiftStamp(row.startManila, shift);
+      const at = parseStamp(startManila);
+      return {
+        ...row,
+        startManila,
+        startTokyo: shiftStamp(row.startTokyo, shift),
+        startStudent: shiftStamp(row.startStudent, shift),
+        // Counted off the real clock rather than carried from the seed, so the
+        // countdown in the header cannot drift from the time beside it.
+        minutesUntil: at
+          ? Math.round((at.dayUtc - todayUtc) / 60_000) + at.minutes - now.minutes
+          : row.minutesUntil,
+      };
+    });
+  });
+
+  /** The soonest lesson that has not already started. */
+  const nextReservation = computed(
+    () => reservations.value.find((row) => row.minutesUntil >= 0) ?? null
+  );
+  const laterReservations = computed(() =>
+    reservations.value.filter((row) => row !== nextReservation.value)
+  );
 
   /** A lesson is joinable five minutes out, matching the legacy rule. */
   const canJoin = (reservation) =>
@@ -439,7 +499,7 @@ Nice to meet you all and I hope we can work together well.`,
   };
 
   // Completed lessons, newest first.
-  const lessonLog = ref([
+  const seededLessonLog = ref([
     {
       id: 'l-410',
       studentId: 21,
@@ -498,12 +558,23 @@ Nice to meet you all and I hope we can work together well.`,
     },
   ]);
 
+  // Dated from the same writing session as the reservations; shifted by the
+  // same offset it keeps its spacing and stops reading as a month old.
+  const lessonLog = computed(() => {
+    const shift = reservationDayShift.value;
+    return seededLessonLog.value.map((row) => ({
+      ...row,
+      dateManila: shiftStamp(row.dateManila, shift),
+      dateTokyo: shiftStamp(row.dateTokyo, shift),
+    }));
+  });
+
   const pendingFeedback = computed(() =>
     lessonLog.value.filter((lesson) => !lesson.feedbackSubmitted && lesson.status === 'Completed')
   );
 
   const submitFeedback = (lessonId, { feedback, hiddenNote }) => {
-    const lesson = lessonLog.value.find((row) => row.id === lessonId);
+    const lesson = seededLessonLog.value.find((row) => row.id === lessonId);
     if (!lesson) return;
     lesson.feedbackSubmitted = true;
     lesson.feedback = feedback;
@@ -735,10 +806,72 @@ Nice to meet you all and I hope we can work together well.`,
     Object.keys(weekOverrides.value).filter((iso) => iso >= thisWeekStart.value)
   );
 
-  const resetWeeksToPattern = () => {
+  /**
+   * Reserved hours a week holds that the template did not hand it.
+   *
+   * Forking a week copies the template, holds included, so "is this slot
+   * reserved" cannot tell a promise apart from an inherited placeholder.
+   * Comparing against the template it was forked from can: what the template
+   * also reserves belongs to the template and may be replaced, and what only
+   * the week has was put there for that week alone.
+   */
+  const ownHolds = (own, pattern) => {
+    if (!own) return [];
+    return Object.keys(own)
+      .filter((key) => statusAt(own, key) === 'reserved' && statusAt(pattern, key) !== 'reserved')
+      .map((key) => {
+        const value = own[key];
+        return {
+          key,
+          value: typeof value === 'object' && value ? { ...value } : value,
+          reason: typeof value === 'object' && value ? value.reason || '' : '',
+        };
+      });
+  };
+
+  /** Everything a template change would destroy if it were allowed to. */
+  const upcomingHolds = computed(() =>
+    upcomingEditedWeeks.value.flatMap((iso) =>
+      ownHolds(weekOverrides.value[iso], weekPattern.value).map((hold) => ({
+        weekStartIso: iso,
+        ...hold,
+      }))
+    )
+  );
+
+  /**
+   * Make `nextPattern` the template, and put every upcoming week back under it.
+   *
+   * Hours a week was given on its own are availability, and availability is
+   * what a template is for, so those are replaced — that is what makes "every
+   * week" true. A reserved hour is not availability: it is time promised to
+   * somebody, and a template has no business deleting it. Those are carried
+   * across and laid back on top, unless the instructor asks otherwise.
+   *
+   * Returns the holds it protected, so the caller can say what it kept.
+   */
+  const republishPattern = (nextPattern, { keepHolds = true } = {}) => {
+    const previous = weekPattern.value;
     const next = { ...weekOverrides.value };
-    upcomingEditedWeeks.value.forEach((iso) => { delete next[iso]; });
+    const kept = [];
+
+    upcomingEditedWeeks.value.forEach((iso) => {
+      const holds = keepHolds ? ownHolds(next[iso], previous) : [];
+      if (!holds.length) {
+        delete next[iso];
+        return;
+      }
+      const merged = copyMap(nextPattern);
+      holds.forEach((hold) => {
+        merged[hold.key] = hold.value;
+        kept.push({ weekStartIso: iso, ...hold });
+      });
+      next[iso] = merged;
+    });
+
+    weekPattern.value = copyMap(nextPattern);
     weekOverrides.value = next;
+    return kept;
   };
 
   /** Promote this week's hours to the pattern every other week follows. */
@@ -757,13 +890,22 @@ Nice to meet you all and I hope we can work together well.`,
   };
   const goToThisWeek = () => { activeWeekStart.value = thisWeekStart.value; };
 
-  const readStatus = (map, dayKey, slotKey) => {
-    const val = map[`${dayKey}-${slotKey}`];
+  const statusAt = (map, key) => {
+    const val = map?.[key];
     if (!val) return 'closed';
     if (val === true || val === 'open' || (typeof val === 'object' && val?.status === 'open')) return 'open';
     if (val === 'reserved' || (typeof val === 'object' && val?.status === 'reserved')) return 'reserved';
     return 'closed';
   };
+
+  const readStatus = (map, dayKey, slotKey) => statusAt(map, `${dayKey}-${slotKey}`);
+
+  /** The hours a given week is actually running, template or its own. */
+  const hoursFor = (weekStartIso) =>
+    weekOverrides.value[weekStartOf(weekStartIso)] ?? weekPattern.value;
+
+  const getSlotStatusOn = (weekStartIso, dayKey, slotKey) =>
+    readStatus(hoursFor(weekStartIso), dayKey, slotKey);
 
   const getSlotStatus = (dayKey, slotKey) => readStatus(availability.value, dayKey, slotKey);
 
@@ -806,6 +948,17 @@ Nice to meet you all and I hope we can work together well.`,
    */
   const thisWeekHours = computed(
     () => weekOverrides.value[thisWeekStart.value] ?? weekPattern.value
+  );
+
+  /**
+   * Open slots in the week on the clock.
+   *
+   * `weeklyOpen` counts the week the schedule page is parked on, which is the
+   * right answer there and the wrong one anywhere that says "this week" — page
+   * the calendar to December and the figure would follow it.
+   */
+  const thisWeekOpenSlots = computed(
+    () => Object.keys(thisWeekHours.value).filter((key) => statusAt(thisWeekHours.value, key) === 'open').length
   );
 
   const freeConversationNow = computed(() => {
@@ -965,21 +1118,61 @@ Nice to meet you all and I hope we can work together well.`,
   // Teaching analytics. Figures are consistent with `stats` above so the
   // dashboard and the analytics page never contradict each other.
   const analytics = ref({
-    ranges: ['This month', 'Last 3 months', 'This year'],
+    ranges: ['This week', 'This month', 'Last 3 months', 'This year'],
     byRange: {
+      // Seven days of the same week the schedule board shows, so the capacity
+      // ring and the availability grid cannot disagree about it.
+      'This week': {
+        lessons: 20,
+        hours: '10.0',
+        rating: 4.97,
+        completionRate: 95,
+        feedbackHours: 5,
+        repeatShare: 80,
+        capacity: { open: 54, booked: 20 },
+        series: [
+          { label: 'Mon', booked: 5, total: 10 },
+          { label: 'Tue', booked: 4, total: 9 },
+          { label: 'Wed', booked: 3, total: 8 },
+          { label: 'Thu', booked: 5, total: 11 },
+          { label: 'Fri', booked: 2, total: 9 },
+          { label: 'Sat', booked: 1, total: 7 },
+        ],
+        subjects: [
+          { code: 'SF', label: 'Speech Fluency', lessons: 7 },
+          { code: 'DC', label: 'Daily Conversation', lessons: 5 },
+          { code: 'FC', label: 'Free Conversation', lessons: 4 },
+          { code: 'LS1', label: 'Listening 1', lessons: 3 },
+          { code: 'EP', label: 'Exam Prep', lessons: 1 },
+        ],
+        ratings: [
+          { stars: 5, count: 16 },
+          { stars: 4, count: 2 },
+          { stars: 3, count: 0 },
+          { stars: 2, count: 0 },
+          { stars: 1, count: 0 },
+        ],
+        attendance: [
+          { label: 'Completed', count: 19, tone: 'emerald' },
+          { label: 'Student no-show', count: 0, tone: 'rose' },
+          { label: 'Cancelled by student', count: 1, tone: 'amber' },
+          { label: 'Cancelled by you', count: 0, tone: 'slate' },
+        ],
+      },
       'This month': {
         lessons: 62,
         hours: '31.0',
+        capacity: { open: 216, booked: 62 },
         rating: 4.98,
         completionRate: 99,
         feedbackHours: 6,
         repeatShare: 78,
         // Lessons per calendar week within the range.
         series: [
-          { label: 'W1', lessons: 14 },
-          { label: 'W2', lessons: 17 },
-          { label: 'W3', lessons: 16 },
-          { label: 'W4', lessons: 15 },
+          { label: 'W1', booked: 14, total: 48 },
+          { label: 'W2', booked: 17, total: 58 },
+          { label: 'W3', booked: 16, total: 56 },
+          { label: 'W4', booked: 15, total: 54 },
         ],
         subjects: [
           { code: 'SF', label: 'Speech Fluency', lessons: 24 },
@@ -1005,14 +1198,15 @@ Nice to meet you all and I hope we can work together well.`,
       'Last 3 months': {
         lessons: 178,
         hours: '89.0',
+        capacity: { open: 648, booked: 178 },
         rating: 4.96,
         completionRate: 98,
         feedbackHours: 8,
         repeatShare: 74,
         series: [
-          { label: 'Jun', lessons: 54 },
-          { label: 'Jul', lessons: 62 },
-          { label: 'Aug', lessons: 62 },
+          { label: 'Jun', booked: 54, total: 207 },
+          { label: 'Jul', booked: 62, total: 225 },
+          { label: 'Aug', booked: 62, total: 216 },
         ],
         subjects: [
           { code: 'SF', label: 'Speech Fluency', lessons: 66 },
@@ -1038,15 +1232,16 @@ Nice to meet you all and I hope we can work together well.`,
       'This year': {
         lessons: 486,
         hours: '243.0',
+        capacity: { open: 2106, booked: 486 },
         rating: 4.95,
         completionRate: 98,
         feedbackHours: 9,
         repeatShare: 71,
         series: [
-          { label: 'Q1', lessons: 108 },
-          { label: 'Q2', lessons: 132 },
-          { label: 'Q3', lessons: 178 },
-          { label: 'Q4', lessons: 68 },
+          { label: 'Q1', booked: 108, total: 526 },
+          { label: 'Q2', booked: 132, total: 526 },
+          { label: 'Q3', booked: 178, total: 526 },
+          { label: 'Q4', booked: 68, total: 528 },
         ],
         subjects: [
           { code: 'SF', label: 'Speech Fluency', lessons: 181 },
@@ -1088,9 +1283,8 @@ Nice to meet you all and I hope we can work together well.`,
 
   /** Today is whatever day the soonest reservations share. */
   const todaysReservations = computed(() => {
-    const first = reservations.value[0];
-    if (!first) return [];
-    const today = first.startManila.split(' ').slice(0, 3).join(' ');
+    const [y, m, d] = manilaNow.value.iso.split('-').map(Number);
+    const today = `${MONTH_ABBR[m - 1]} ${d}, ${y} `;
     return reservations.value.filter((row) => row.startManila.startsWith(today));
   });
 
@@ -1125,7 +1319,7 @@ Nice to meet you all and I hope we can work together well.`,
   const fullName = computed(() => `${profile.value.firstName} ${profile.value.lastName}`);
 
   return {
-    profile, fullName, isAway, toggleAway, teachesFreeConversation, googleCalendarLinked, stats,
+    profile, fullName, isAway, toggleAway, teachesFreeConversation, googleCalendarLinked,
     googleCalendarAccount, googleCalendarSyncedAt, calendarSettingsOpen,
     linkGoogleCalendar, unlinkGoogleCalendar,
     usesTokyo, localStart, localRange, viewZoneId, viewZoneAbbr, awaySince, imminentReservation,
@@ -1139,8 +1333,8 @@ Nice to meet you all and I hope we can work together well.`,
     editedWeeks, beginWeekEdit, followPattern, applyWeekToPattern, writePattern,
     withWeek, setSlotStatusOn,
     goToWeek, shiftWeek, goToThisWeek, weekStartOf,
-    manilaNow, isPastSlot, freeConversationNow,
-    clonePattern, setPattern, upcomingEditedWeeks, resetWeeksToPattern,
+    manilaNow, isPastSlot, freeConversationNow, thisWeekOpenSlots,
+    clonePattern, setPattern, upcomingEditedWeeks, republishPattern, upcomingHolds, getSlotStatusOn,
     patternHasSlot, clearPatternSlots,
     getSlotReason, setSlotStatus, cycleSlot, toggleSlot, setDay, setDayStatus, setSlotRow, setSlotRowStatus,
     openSlotCount, reservedSlotCount, openHours, reservedHours, SLOT_MINUTES, SLOTS_PER_HOUR,

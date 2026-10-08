@@ -124,21 +124,30 @@
           </div>
 
           <div class="grid grid-cols-7 gap-1 text-center text-xs">
-            <button
-              v-for="cell in miniMonthDays"
-              :key="cell.iso"
-              type="button"
-              @click="selectMiniDate(cell.dateObj)"
-              class="h-7 w-7 mx-auto rounded-full flex items-center justify-center text-[11px] font-semibold transition cursor-pointer"
-              :class="[
-                cell.isCurrentMonth ? 'text-slate-800' : 'text-slate-300',
-                cell.isToday ? 'bg-blue-600 text-white font-black' : '',
-                cell.isSelected && !cell.isToday ? 'bg-blue-100 text-blue-800 font-bold' : '',
-                !cell.isToday && !cell.isSelected ? 'hover:bg-slate-100' : ''
-              ]"
-            >
-              {{ cell.dayNumber }}
-            </button>
+            <div v-for="cell in miniMonthDays" :key="cell.iso" class="relative py-0.5">
+              <!-- The band bridges the 4px gutter so seven cells read as one
+                   week rather than seven selected days. -->
+              <span
+                v-if="cell.inWeek"
+                aria-hidden="true"
+                class="pointer-events-none absolute inset-y-0 -left-0.5 -right-0.5 bg-blue-50"
+                :class="[cell.weekStart ? 'rounded-l-full left-0' : '', cell.weekEnd ? 'rounded-r-full right-0' : '']"
+              ></span>
+              <button
+                type="button"
+                @click="selectMiniDate(cell.dateObj)"
+                :aria-current="cell.isToday ? 'date' : undefined"
+                class="relative mx-auto flex aspect-square w-full max-w-7 items-center justify-center rounded-full text-[11px] font-semibold transition cursor-pointer"
+                :class="[
+                  cell.isCurrentMonth ? 'text-slate-800' : 'text-slate-300',
+                  cell.isToday ? 'bg-blue-600 text-white font-black' : '',
+                  cell.inWeek && !cell.isToday ? 'text-blue-800 font-bold' : '',
+                  !cell.isToday ? 'hover:bg-slate-200/70' : ''
+                ]"
+              >
+                {{ cell.dayNumber }}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -1503,7 +1512,12 @@ const miniMonthDays = computed(() => {
 
   const startDate = addDays(firstDay, -startDayOfWeek);
   const todayIso = isoDate(new Date());
-  const selectedIso = isoDate(anchorDate.value);
+  // The board shows a week, so the month marks a week. Reading the dates off
+  // viewDays rather than recomputing the week here is what keeps the band and
+  // the grid from ever disagreeing about which days are on screen.
+  const weekIsos = viewDays.value.map((day) => day.iso);
+  const firstOfWeek = weekIsos[0];
+  const lastOfWeek = weekIsos[weekIsos.length - 1];
 
   return Array.from({ length: 35 }, (_, i) => {
     const cellDate = addDays(startDate, i);
@@ -1514,10 +1528,28 @@ const miniMonthDays = computed(() => {
       dayNumber: cellDate.getDate(),
       isCurrentMonth: cellDate.getMonth() === month,
       isToday: cellIso === todayIso,
-      isSelected: cellIso === selectedIso,
+      inWeek: weekIsos.includes(cellIso),
+      weekStart: cellIso === firstOfWeek,
+      weekEnd: cellIso === lastOfWeek,
     };
   });
 });
+
+/**
+ * Follow the board when it leaves the month on show.
+ *
+ * Paging the board into November while the month stayed on October left the
+ * mini calendar with no band at all — it was showing a month the board was
+ * not in. Browsing the month on its own still sticks, right up until the
+ * board moves somewhere the band cannot be drawn.
+ */
+watch(
+  () => viewDays.value.map((day) => day.iso).join(),
+  () => {
+    if (miniMonthDays.value.some((cell) => cell.inWeek)) return;
+    miniMonthAnchor.value = new Date(anchorDate.value);
+  }
+);
 
 // Month View Grid
 const monthViewDays = computed(() => {

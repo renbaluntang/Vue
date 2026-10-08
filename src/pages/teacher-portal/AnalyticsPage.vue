@@ -36,25 +36,87 @@
     </section>
 
     <div class="grid gap-5 xl:grid-cols-3">
+      <!-- ===== Capacity =====
+           One ratio against a limit, so it is drawn as a meter: a single arc
+           on a lighter step of its own ramp, not two series competing. The
+           total sits inside the ring, which is what the ring is for. -->
+      <section class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
+        <h2 class="text-base font-black text-slate-900">Class summary</h2>
+        <p class="mt-0.5 text-[11px] font-medium text-slate-400 tabular-nums">{{ weekRangeLabel }}</p>
+
+        <!-- The number belongs in the middle of the ring, so it is laid over
+             the svg rather than inside it — the svg is rotated, and rotated
+             type is a thing to avoid, not to counter-rotate. -->
+        <div class="relative mx-auto mt-6 grid h-[168px] w-[168px] place-items-center">
+          <svg viewBox="0 0 120 120" class="h-full w-full -rotate-90" role="img" :aria-label="capacityLabel">
+            <circle cx="60" cy="60" :r="RING_R" fill="none" stroke="#FCE9A8" stroke-width="11" />
+            <circle
+              v-if="capacity.booked"
+              cx="60" cy="60" :r="RING_R"
+              fill="none"
+              stroke="#B88600"
+              stroke-width="11"
+              stroke-linecap="butt"
+              :stroke-dasharray="capacity.dash"
+              stroke-dashoffset="-1"
+            />
+          </svg>
+
+          <div class="absolute text-center">
+            <p class="text-3xl font-black leading-none text-slate-900">{{ capacity.open }}</p>
+            <p class="mt-1 text-[11px] font-medium text-slate-400">Slots</p>
+          </div>
+        </div>
+
+        <ul class="mt-6 space-y-3">
+          <li class="flex items-center gap-2.5">
+            <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#B88600"></span>
+            <span class="text-xs font-black text-slate-900 tabular-nums">{{ capacity.booked }}</span>
+            <span class="min-w-0 truncate text-xs font-medium text-slate-500">Booked class</span>
+          </li>
+          <li class="flex items-center gap-2.5">
+            <span class="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-amber-300/70" style="background:#FCE9A8"></span>
+            <span class="text-xs font-black text-slate-900 tabular-nums">{{ capacity.free }}</span>
+            <span class="min-w-0 truncate text-xs font-medium text-slate-500">Still open</span>
+          </li>
+        </ul>
+
+        <p v-if="!capacity.open" class="mt-4 text-xs text-slate-500">
+          No hours opened in this period. Students cannot book you until there are some.
+        </p>
+      </section>
       <!-- ===== Volume ===== -->
       <section class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm xl:col-span-2 sm:p-6">
         <div class="flex items-center justify-between gap-3">
           <div>
-            <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Teaching volume</p>
-            <h2 class="mt-1 text-base font-black text-slate-900">Lessons taught</h2>
+            <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Slots open vs booked</p>
+            <h2 class="mt-1 text-base font-black text-slate-900">Slot booking rate</h2>
           </div>
           <p class="text-xs font-bold text-slate-500">
-            {{ data.lessons }} total · avg {{ averagePerBucket }} per {{ bucketNoun }}
+            {{ totalBookedSlots }} booked / {{ totalOpenSlots }} total · {{ overallBookingRate }}% booked
           </p>
         </div>
 
         <div class="mt-5 flex items-end justify-between gap-3">
           <div v-for="point in data.series" :key="point.label" class="flex flex-1 flex-col items-center gap-2">
-            <p class="text-[11px] font-black text-slate-800 tabular-nums">{{ point.lessons }}</p>
-            <div class="flex h-40 w-full max-w-[56px] items-end overflow-hidden rounded-t-xl bg-slate-100">
+            <!-- Numbers above bar: booked / total slots and percentage -->
+            <div class="text-center">
+              <p class="text-[11px] font-black text-slate-800 tabular-nums">
+                {{ pointBooked(point) }}
+                <span class="text-[10px] font-medium text-slate-400">/{{ pointTotal(point) }}</span>
+              </p>
+              <p class="text-[10px] font-bold text-brighture-bronze tabular-nums">
+                {{ pointPercentage(point) }}%
+              </p>
+            </div>
+            <!-- Progress bar representing booked percentage of total open slots -->
+            <div
+              class="flex h-40 w-full max-w-[56px] items-end overflow-hidden rounded-t-xl bg-slate-100"
+              :title="`${pointBooked(point)} of ${pointTotal(point)} slots booked (${pointPercentage(point)}%)`"
+            >
               <div
                 class="w-full rounded-t-xl bg-gradient-to-t from-brighture-gold-deep to-brighture-gold transition-[height] duration-300 motion-reduce:transition-none"
-                :style="{ height: `${barHeight(point.lessons)}%` }"
+                :style="{ height: `${pointPercentage(point)}%` }"
               ></div>
             </div>
             <p class="text-[11px] font-bold text-slate-500">{{ point.label }}</p>
@@ -141,6 +203,7 @@
           </li>
         </ul>
       </section>
+
     </div>
 
     <p class="text-[11px] text-slate-400">
@@ -187,13 +250,67 @@ const attendanceTotal = computed(() => data.value.attendance.reduce((sum, row) =
 /** Guarded so an empty range renders a flat bar instead of NaN. */
 const share = (value, total) => (total ? Math.round((value / total) * 100) : 0);
 
-const busiest = computed(() => Math.max(1, ...data.value.series.map((point) => point.lessons)));
-const barHeight = (value) => Math.max(4, Math.round((value / busiest.value) * 100));
+const pointBooked = (point) => point.booked ?? point.lessons ?? 0;
+const pointTotal = (point) => point.total ?? point.lessons ?? 1;
+const pointPercentage = (point) => {
+  const total = pointTotal(point);
+  const booked = pointBooked(point);
+  if (!total) return 0;
+  return Math.min(100, Math.max(0, Math.round((booked / total) * 100)));
+};
+
+const totalBookedSlots = computed(() => {
+  return data.value.series.reduce((sum, p) => sum + pointBooked(p), 0);
+});
+
+const totalOpenSlots = computed(() => {
+  return data.value.series.reduce((sum, p) => sum + pointTotal(p), 0);
+});
+
+const overallBookingRate = computed(() => {
+  if (!totalOpenSlots.value) return 0;
+  return Math.round((totalBookedSlots.value / totalOpenSlots.value) * 100);
+});
 
 const bucketNoun = computed(() => (activeRange.value === 'This month' ? 'week' : 'period'));
 const averagePerBucket = computed(() =>
   Math.round(data.value.lessons / Math.max(1, data.value.series.length))
 );
+
+/* The ring: one arc against a capacity, inset 1px at each end so the fill
+   never butts straight into its own track. */
+const RING_R = 44;
+const RING_C = 2 * Math.PI * RING_R;
+
+/** The dates behind "This week"; the longer ranges name themselves. */
+const weekRangeLabel = computed(() => {
+  if (activeRange.value !== 'This week') return activeRange.value;
+  const [y, m, d] = teacher.thisWeekStart.split('-').map(Number);
+  const from = new Date(y, m - 1, d);
+  const to = new Date(y, m - 1, d + 6);
+  const mon = (x) => x.toLocaleDateString('en-US', { month: 'short' });
+  const head = from.getMonth() === to.getMonth() ? `${from.getDate()}` : `${from.getDate()} ${mon(from)}`;
+  return `${head} \u2192 ${to.getDate()} ${mon(to)} ${to.getFullYear()}`;
+});
+
+const capacityLabel = computed(
+  () => `${capacity.value.booked} of ${capacity.value.open} open slots booked, ${activeRange.value.toLowerCase()}`
+);
+
+const capacity = computed(() => {
+  const open = data.value.capacity?.open ?? 0;
+  const booked = Math.min(data.value.capacity?.booked ?? 0, open);
+  const free = Math.max(0, open - booked);
+  const len = open && booked ? Math.max(0, (booked / open) * RING_C - 2) : 0;
+  const hours = open / 2;
+  return {
+    open,
+    booked,
+    free,
+    hours: Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`,
+    dash: `${len} ${RING_C - len}`,
+  };
+});
 
 const toneBg = {
   emerald: 'bg-emerald-500',

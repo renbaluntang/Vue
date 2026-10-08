@@ -411,77 +411,42 @@
             picker-class="hidden md:block"
           />
 
-          <!-- Willing and available are different questions, and the button used
-               to answer only the first. "Open" says the instructor accepts Free
-               Conversation; it said nothing about whether this half hour is one
-               a student can walk into. The dot answers that — filled and
-               breathing while a request would actually land, hollow while the
-               hours are simply set for later. -->
-          <div v-if="teacher.teachesFreeConversation" class="relative">
-            <button
-              type="button"
-              @click="isStatusMenuOpen = !isStatusMenuOpen"
-              aria-haspopup="menu"
-              :aria-expanded="isStatusMenuOpen ? 'true' : 'false'"
-              :aria-label="`Free Conversation: ${fcStatus.label}. ${fcStatus.detail}`"
-              class="inline-flex items-center gap-1.5 rounded-full border py-1.5 pl-2.5 pr-2.5 text-xs font-bold transition active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
-              :class="teacher.isAway
-                ? 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100'
-                : 'border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100'"
+          <!-- One setting, two states, so it is a switch rather than a menu:
+               the position is the answer and the tap is the change, with no
+               second step in between. The subject is named beside it so it is
+               not mistaken for a scheduling control. -->
+          <label
+            v-if="teacher.teachesFreeConversation"
+            class="group inline-flex cursor-pointer select-none items-center gap-2.5"
+          >
+            <span
+              class="text-[11px] font-bold uppercase tracking-wide transition-colors"
+              :class="fcOn ? 'text-brighture-ink' : 'text-slate-400'"
             >
-              <span class="relative flex h-2 w-2 shrink-0" aria-hidden="true">
-                <span
-                  v-if="fcStatus.live"
-                  class="fc-ping absolute inline-flex h-full w-full rounded-full bg-emerald-500 opacity-70"
-                ></span>
-                <span
-                  class="relative inline-flex h-2 w-2 rounded-full border"
-                  :class="fcStatus.live
-                    ? 'border-emerald-600 bg-emerald-600'
-                    : (teacher.isAway ? 'border-amber-500 bg-amber-200' : 'border-emerald-500 bg-white')"
-                ></span>
-              </span>
-              <span>{{ fcStatus.label }}</span>
-              <i
-                class="fa-solid fa-chevron-down text-[9px] opacity-70 transition-transform duration-200"
-                :class="isStatusMenuOpen ? 'rotate-180' : ''"
-              ></i>
-            </button>
+              FC
+            </span>
 
-            <div v-if="isStatusMenuOpen" class="fixed inset-0 z-40" @click="isStatusMenuOpen = false"></div>
+            <input
+              type="checkbox"
+              class="peer sr-only"
+              :checked="fcOn"
+              :aria-label="`Free Conversation: ${fcOn ? 'open' : 'away'}`"
+              @change="toggleFc"
+            />
 
-            <div
-              v-if="isStatusMenuOpen"
-              role="menu"
-              class="absolute right-0 top-full z-50 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-2xl"
+            <span
+              aria-hidden="true"
+              class="relative inline-flex h-6 w-11 shrink-0 items-center rounded-full ring-1 transition-colors duration-200 peer-focus-visible:ring-2 peer-focus-visible:ring-brighture-gold peer-focus-visible:ring-offset-2"
+              :class="fcOn
+                ? 'bg-emerald-500 ring-emerald-600/40 group-hover:bg-emerald-600'
+                : 'bg-rose-500 ring-rose-600/40 group-hover:bg-rose-600'"
             >
-              <!-- Says what the setting governs, which the two-letter badge on
-                   the button used to have to carry, and then where the dot's
-                   state comes from — a badge that cannot be questioned is a
-                   badge that gets ignored. -->
-              <p class="px-3 pt-0.5 text-[10px] font-black uppercase tracking-wide text-slate-400">
-                Free Conversation
-              </p>
-              <p class="px-3 pb-2 pt-0.5 text-[11px] font-semibold text-slate-500">
-                {{ fcStatus.detail }}
-              </p>
-              <button
-                v-for="option in statusOptions"
-                :key="option.label"
-                type="button"
-                role="menuitemradio"
-                :aria-checked="teacher.isAway === option.away ? 'true' : 'false'"
-                @click="setAway(option.away); isStatusMenuOpen = false"
-                class="flex w-full items-center rounded-xl px-3 py-2 text-xs font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink"
-              >
-                <span>{{ option.label }}</span>
-                <i
-                  v-if="teacher.isAway === option.away"
-                  class="fa-solid fa-check ml-auto text-[10px] text-emerald-600"
-                ></i>
-              </button>
-            </div>
-          </div>
+              <span
+                class="pointer-events-none absolute left-0.5 h-5 w-5 rounded-full bg-white shadow-xs ring-1 ring-black/5 transition-transform duration-200 ease-out motion-reduce:transition-none"
+                :class="fcOn ? 'translate-x-0' : 'translate-x-5'"
+              ></span>
+            </span>
+          </label>
 
         </div>
       </header>
@@ -644,7 +609,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import RouteProgress from '../RouteProgress.vue';
 import AwayOverlay from '../teacher/AwayOverlay.vue';
@@ -664,8 +629,7 @@ const SUPPORT_EMAIL = 'support@brighture-edu.com';
 const navItems = [
   { path: '/', label: 'Dashboard', shortLabel: 'Home', icon: 'fa-solid fa-chart-pie' },
   { path: '/reservations', label: 'Reservations', shortLabel: 'Lessons', icon: 'fa-solid fa-calendar-check' },
-  { path: '/schedule', label: 'Scheduling', shortLabel: 'Schedule', icon: 'fa-solid fa-table-cells' },
-  { path: '/calendar', label: 'Calendar', shortLabel: 'Calendar', icon: 'fa-regular fa-calendar-days' },
+  { path: '/calendar', label: 'Scheduling', shortLabel: 'Schedule', icon: 'fa-regular fa-calendar-days' },
   { path: '/lessons', label: 'Lesson Log', shortLabel: 'Log', icon: 'fa-solid fa-clock-rotate-left', badge: 'feedback' },
   { path: '/writing', label: 'Writing', shortLabel: 'Writing', icon: 'fa-solid fa-pen-nib', badge: 'writing' },
   { path: '/analytics', label: 'Analytics', shortLabel: 'Stats', icon: 'fa-solid fa-chart-line' },
@@ -674,11 +638,11 @@ const navItems = [
 // Profile is reached through Settings — the sidebar, the drawer footer, the
 // settings sheet and the avatar all lead there — so it takes no nav slot of its
 // own in either the rail or the bottom bar.
-const bottomNavItems = ['/', '/reservations', '/schedule', '/writing']
+const bottomNavItems = ['/', '/reservations', '/calendar', '/writing']
   .map((path) => navItems.find((item) => item.path === path));
 
 /** Titles for pages that are not in the nav list. */
-const offNavTitles = { '/profile': 'Profile Setting' };
+const offNavTitles = { '/profile': 'Profile Setting', '/schedule': 'Availability grid' };
 
 const badgeFor = (item) => {
   if (item.badge === 'writing') return teacher.pendingWritingCount || 0;
@@ -737,60 +701,36 @@ const isUserMenuOpen = ref(false);
 /** Away can only read as Away when the setting it governs is in play. */
 const showAway = computed(() => teacher.isAway && teacher.teachesFreeConversation);
 
-const setAway = (away) => {
-  if (teacher.isAway !== away) teacher.toggleAway();
-};
-const isStatusMenuOpen = ref(false);
-const statusOptions = [
-  { away: false, label: 'Open' },
-  { away: true, label: 'Away' },
-];
-
-const clock12 = (mins) => {
-  const h = Math.floor(mins / 60) % 24;
-  const m = mins % 60;
-  const hour = h % 12 === 0 ? 12 : h % 12;
-  return `${hour}:${String(m).padStart(2, '0')} ${h < 12 ? 'AM' : 'PM'}`;
-};
-
-const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
-
 /**
- * Three states, because there are three. Willing and open right now is not the
- * same as willing and open at two o'clock, and the old badge showed both as
- * "Open". The detail line always names the next thing that changes, so the dot
- * is never the only thing to go on.
+ * The knob moves on its own clock.
+ *
+ * Going away raises a full-screen overlay. Driving the knob straight off the
+ * store meant the overlay covered the switch in the same frame as the tap, so
+ * the slide never played and the tap read as "a dialog appeared" rather than
+ * "I turned this off". The knob flips first, the store follows once the
+ * travel is done, and the overlay arrives after the thing that caused it.
  */
-const fcStatus = computed(() => {
-  const fc = teacher.freeConversationNow;
-  const nextLabel = () => {
-    if (!fc.next) return 'No open hours this week';
-    const { dayOffset, minutes } = fc.next;
-    if (dayOffset === 0) return `Next open at ${clock12(minutes)}`;
-    const today = new Date(`${teacher.manilaNow.iso}T12:00:00`).getDay();
-    return `Next open ${WEEKDAYS[(today + dayOffset) % 7]} ${clock12(minutes)}`;
-  };
+const SWITCH_TRAVEL_MS = 220;
+const fcOn = ref(!teacher.isAway);
+let switchTimer = null;
 
-  if (fc.away) {
-    return {
-      live: false,
-      label: 'Away',
-      detail: fc.pausedInOpenHour
-        ? 'Paused during an open hour — no new requests'
-        : 'Paused — no new requests',
-    };
-  }
-
-  if (fc.live) {
-    return {
-      live: true,
-      label: 'Live now',
-      detail: `Taking requests until ${clock12(fc.endsAt)}`,
-    };
-  }
-
-  return { live: false, label: 'Open', detail: nextLabel() };
+// Anything else that changes Away — the dashboard band, the overlay's own
+// button — still has to move the knob.
+watch(() => teacher.isAway, (away) => {
+  if (switchTimer) return;
+  fcOn.value = !away;
 });
+
+const toggleFc = () => {
+  const next = !fcOn.value;
+  fcOn.value = next;
+  if (switchTimer) clearTimeout(switchTimer);
+  switchTimer = setTimeout(() => {
+    switchTimer = null;
+    if (teacher.isAway === next) teacher.toggleAway();
+  }, SWITCH_TRAVEL_MS);
+};
+
 const isSettingsSheetOpen = ref(false);
 
 const activeZoneAbbr = computed(
@@ -804,28 +744,12 @@ watch(() => route.path, () => {
   isUserMenuOpen.value = false;
   isSettingsSheetOpen.value = false;
   isMobileMenuOpen.value = false;
-  isStatusMenuOpen.value = false;
 });
+
+onUnmounted(() => { if (switchTimer) clearTimeout(switchTimer); });
 </script>
 
 <style scoped>
-/* The dot breathes only while a request would actually land now — it is the
-   one moving thing in the header, so it has to mean something. Anyone who has
-   asked for less motion gets the filled dot without the pulse, which carries
-   the same state. */
-.fc-ping {
-  animation: fc-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
-}
-
-@keyframes fc-ping {
-  0% { transform: scale(1); opacity: 0.7; }
-  70%, 100% { transform: scale(2.4); opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .fc-ping { animation: none; opacity: 0; }
-}
-
 /* Landscape is a height problem: a phone at 844x390 has less vertical room than
    the narrowest portrait phone. Trade the decorative half of the header for
    list space so the nav and the Settings row below it stay reachable. */

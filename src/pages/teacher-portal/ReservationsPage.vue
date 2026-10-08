@@ -1,79 +1,57 @@
 <template>
   <div class="p-4 sm:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
     <!-- ================================================================= -->
-    <!-- Page Header & Stats Overview                                      -->
+    <!-- Page Header & Integrated Stats                                    -->
     <!-- ================================================================= -->
-    <header class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200/80 pb-5">
       <div class="min-w-0">
-        <div class="flex items-center gap-2">
-          <span class="inline-flex h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <span class="text-xs font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200/60">
-            Live Booking Sync
-          </span>
-          <span v-if="teacher.nextReservation" class="text-xs font-bold text-slate-500 hidden sm:inline">
-            • Next lesson in {{ teacher.nextReservation.minutesUntil }} mins
+        <div class="flex flex-wrap items-center gap-2.5">
+          <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+            Reservations
+          </h1>
+          <span
+            v-if="teacher.nextReservation"
+            class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-200/60"
+          >
+            <span class="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+            Next lesson in {{ teacher.nextReservation.minutesUntil }} mins
           </span>
         </div>
-        <h1 class="mt-1 text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
-          Reservations
-        </h1>
-        <p class="mt-0.5 text-sm text-slate-500">
+        <p class="mt-1 text-xs sm:text-sm text-slate-500 max-w-2xl">
           All scheduled lessons booked with you, sorted chronologically with topics and meeting links.
         </p>
       </div>
 
-      <!-- Quick Action / Timezone Selector in Header -->
-      <div class="flex flex-wrap items-center gap-2.5 shrink-0">
-        <span class="rounded-2xl bg-slate-900 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs">
+      <!-- Compact Inline KPI Badges -->
+      <div class="flex flex-wrap items-center gap-2 shrink-0">
+        <!-- Total Booked -->
+        <div class="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 shadow-2xs">
+          <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600">
+            <i class="fa-solid fa-calendar-check text-[11px]"></i>
+          </span>
+          <div class="text-left leading-tight">
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Total Booked</span>
+            <span class="text-xs font-black text-slate-900">{{ teacher.reservations.length }} lessons</span>
+          </div>
+        </div>
+
+        <!-- Today -->
+        <div class="flex items-center gap-2 rounded-xl border border-slate-200/80 bg-white px-3 py-1.5 shadow-2xs">
+          <span class="flex h-6 w-6 items-center justify-center rounded-lg bg-emerald-50 text-emerald-600">
+            <i class="fa-solid fa-bolt text-[11px]"></i>
+          </span>
+          <div class="text-left leading-tight">
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Today</span>
+            <span class="text-xs font-black text-emerald-700">{{ teacher.todaysReservations.length }} today</span>
+          </div>
+        </div>
+
+        <!-- Count pill -->
+        <span class="rounded-xl bg-slate-900 px-3 py-2 text-xs font-bold text-white shadow-xs">
           {{ filteredReservations.length }} of {{ teacher.reservations.length }} shown
         </span>
       </div>
     </header>
-
-    <!-- ================================================================= -->
-    <!-- KPI Metric Cards                                                  -->
-    <!-- ================================================================= -->
-    <section class="grid grid-cols-2 sm:grid-cols-3 gap-3 lg:gap-4">
-      <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Booked</span>
-          <span class="flex h-7 w-7 items-center justify-center rounded-xl bg-indigo-50 text-indigo-600">
-            <i class="fa-solid fa-calendar-check text-xs"></i>
-          </span>
-        </div>
-        <div class="mt-2 flex items-baseline gap-2">
-          <p class="text-2xl font-black text-slate-900">{{ teacher.reservations.length }}</p>
-          <span class="text-xs font-medium text-slate-500">lessons</span>
-        </div>
-      </div>
-
-      <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Today</span>
-          <span class="flex h-7 w-7 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
-            <i class="fa-solid fa-bolt text-xs"></i>
-          </span>
-        </div>
-        <div class="mt-2 flex items-baseline gap-2">
-          <p class="text-2xl font-black text-slate-900">{{ teacher.todaysReservations.length }}</p>
-          <span class="text-xs font-medium text-emerald-600 font-bold">today</span>
-        </div>
-      </div>
-
-      <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs transition hover:shadow-sm">
-        <div class="flex items-center justify-between">
-          <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Free Conv.</span>
-          <span class="flex h-7 w-7 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
-            <i class="fa-solid fa-comments text-xs"></i>
-          </span>
-        </div>
-        <div class="mt-2 flex items-baseline gap-2">
-          <p class="text-2xl font-black text-slate-900">{{ freeConversationCount }}</p>
-          <span class="text-xs font-medium text-slate-500">slots</span>
-        </div>
-      </div>
-
-    </section>
 
     <!-- ================================================================= -->
     <!-- Next Up Imminent Spotlight Banner (Visible on 'all' and 'today')  -->
@@ -143,7 +121,7 @@
             @click="selectedStudent = teacher.nextReservation"
             class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/20 bg-white/10 hover:bg-white/20 px-3.5 py-2.5 text-xs font-bold text-white transition active:scale-95 whitespace-nowrap"
           >
-            <i class="fa-solid fa-user-circle text-xs"></i>
+            <i class="fa-solid fa-circle-info text-xs"></i>
             <span>Details</span>
           </button>
         </div>
@@ -176,13 +154,13 @@
 
       <!-- View Switcher & Actions -->
       <div class="flex items-center justify-between sm:justify-end gap-2">
-        <!-- View mode toggle (hidden on small screens, cards are default there) -->
-        <div class="hidden lg:inline-flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200/60">
+        <!-- View mode toggle (Table / Cards / Calendar) -->
+        <div class="inline-flex items-center rounded-xl bg-slate-100 p-1 border border-slate-200/60 shadow-2xs">
           <button
             type="button"
             @click="viewMode = 'table'"
             :class="viewMode === 'table' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'"
-            class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition"
+            class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition cursor-pointer"
             title="Table View"
           >
             <i class="fa-solid fa-table-list text-[11px]"></i>
@@ -192,11 +170,21 @@
             type="button"
             @click="viewMode = 'grid'"
             :class="viewMode === 'grid' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'"
-            class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition"
+            class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition cursor-pointer"
             title="Cards View"
           >
             <i class="fa-solid fa-grip text-[11px]"></i>
             <span>Cards</span>
+          </button>
+          <button
+            type="button"
+            @click="viewMode = 'calendar'"
+            :class="viewMode === 'calendar' ? 'bg-white text-slate-900 shadow-xs font-bold' : 'text-slate-500 hover:text-slate-800'"
+            class="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-xs transition cursor-pointer"
+            title="Calendar View"
+          >
+            <i class="fa-regular fa-calendar-days text-[11px]"></i>
+            <span>Calendar</span>
           </button>
         </div>
 
@@ -212,8 +200,8 @@
       </div>
     </div>
 
-    <!-- Category Filter Tabs -->
-    <div class="flex flex-wrap items-center gap-2">
+    <!-- Category Filter Tabs. The calendar is navigated rather than filtered. -->
+    <div v-if="viewMode !== 'calendar'" class="flex flex-wrap items-center gap-2">
       <button
         v-for="tab in tabs"
         :key="tab.key"
@@ -232,12 +220,282 @@
           {{ tab.count }}
         </span>
       </button>
+
+      <!-- The picked date reads as one more chip, because that is what it is. -->
+      <button
+        v-if="jumpDate"
+        type="button"
+        @click="activeTab = 'date'"
+        class="inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition active:scale-95"
+        :class="activeTab === 'date'
+          ? 'bg-slate-900 text-white shadow-sm ring-1 ring-slate-900'
+          : 'border border-slate-200/90 bg-white text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
+      >
+        <span>{{ jumpDate }}</span>
+        <span
+          class="cursor-pointer rounded-full px-1 text-[10px] font-black opacity-70 transition hover:opacity-100"
+          :class="activeTab === 'date' ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'"
+          role="button"
+          aria-label="Clear the date filter"
+          @click.stop="clearJumpDate"
+        >✕</span>
+      </button>
+
+      <!-- Jump to a date -->
+      <div class="relative ml-auto">
+        <button
+          type="button"
+          @click="jumpOpen = !jumpOpen"
+          aria-haspopup="dialog"
+          :aria-expanded="jumpOpen ? 'true' : 'false'"
+          class="inline-flex cursor-pointer items-center gap-1.5 rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900 active:scale-95"
+        >
+          <i class="fa-regular fa-calendar text-[11px] text-slate-400"></i>
+          <span>Jump to date</span>
+        </button>
+
+        <div v-if="jumpOpen" class="fixed inset-0 z-40" @click="jumpOpen = false"></div>
+
+        <div
+          v-if="jumpOpen"
+          role="dialog"
+          aria-label="Jump to a date"
+          class="absolute right-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl"
+        >
+          <div class="flex items-center justify-between">
+            <button type="button" @click="shiftJumpMonth(-1)" class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Previous month">
+              <i class="fa-solid fa-chevron-left text-[10px]"></i>
+            </button>
+            <span class="text-xs font-extrabold text-slate-800">{{ jumpMonthTitle }}</span>
+            <button type="button" @click="shiftJumpMonth(1)" class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Next month">
+              <i class="fa-solid fa-chevron-right text-[10px]"></i>
+            </button>
+          </div>
+
+          <div class="mt-2 grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400">
+            <span v-for="(d, i) in ['S','M','T','W','T','F','S']" :key="`h-${i}`">{{ d }}</span>
+          </div>
+
+          <div class="mt-1 grid grid-cols-7 gap-1 text-center">
+            <div v-for="cell in jumpDays" :key="cell.key" class="relative py-0.5">
+              <button
+                type="button"
+                @click="pickJumpDate(cell)"
+                class="relative mx-auto flex aspect-square w-full max-w-7 items-center justify-center rounded-full text-[11px] font-semibold transition cursor-pointer"
+                :class="[
+                  cell.inMonth ? 'text-slate-800' : 'text-slate-300',
+                  cell.isPicked ? 'bg-slate-900 text-white font-black' : '',
+                  !cell.isPicked && cell.isToday ? 'ring-1 ring-blue-500 text-blue-700 font-black' : '',
+                  !cell.isPicked ? 'hover:bg-slate-100' : '',
+                ]"
+              >
+                {{ cell.dayNum }}
+              </button>
+              <span
+                v-if="cell.hasLessons && !cell.isPicked"
+                aria-hidden="true"
+                class="pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-1 w-1 rounded-full bg-blue-500"
+              ></span>
+            </div>
+          </div>
+
+          <p class="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-400">
+            <span class="mr-1 inline-block h-1 w-1 rounded-full bg-blue-500 align-middle"></span>
+            Days with lessons booked
+          </p>
+        </div>
+      </div>
     </div>
 
     <!-- ================================================================= -->
-    <!-- MAIN CONTENT: Grouped by Date                                     -->
+    <!-- MAIN CONTENT: Calendar Timetable View (When viewMode === 'calendar')-->
     <!-- ================================================================= -->
-    <div v-if="groupedReservations.length" class="space-y-8">
+    <div
+      v-if="viewMode === 'calendar'"
+      class="rounded-3xl border border-slate-200/90 bg-white shadow-xs overflow-hidden"
+    >
+      <!-- Calendar View Top Bar (Matches User Reference Image) -->
+      <div class="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-4 py-3 sm:px-6 bg-slate-50/60">
+        <!-- Date Navigator -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            @click="goToCalendarToday"
+            class="rounded-xl border border-slate-300/80 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-700 shadow-2xs hover:bg-slate-50 active:scale-95 transition cursor-pointer"
+          >
+            Today
+          </button>
+          <div class="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-0.5 shadow-2xs">
+            <button
+              type="button"
+              @click="shiftCalendar(-1)"
+              class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              title="Previous Week"
+            >
+              <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            <button
+              type="button"
+              @click="shiftCalendar(1)"
+              class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 transition cursor-pointer"
+              title="Next Week"
+            >
+              <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
+          </div>
+          <h3 class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight ml-1">
+            {{ calendarPeriodTitle }}
+          </h3>
+        </div>
+
+        <!-- Right Side View Switcher Indicator & Timezone -->
+        <div class="flex items-center gap-2">
+          <!-- View pill (Day / Week / Month) -->
+          <div class="inline-flex items-center rounded-xl bg-slate-200/80 p-0.5 text-[11px] font-bold">
+            <button
+              type="button"
+              @click="calendarPeriodType = 'day'"
+              class="rounded-lg px-2.5 py-1 transition cursor-pointer"
+              :class="calendarPeriodType === 'day' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'"
+            >
+              DAY
+            </button>
+            <button
+              type="button"
+              @click="calendarPeriodType = 'week'"
+              class="rounded-lg px-2.5 py-1 transition cursor-pointer"
+              :class="calendarPeriodType === 'week' ? 'bg-slate-900 text-white shadow-xs' : 'text-slate-600 hover:text-slate-900'"
+            >
+              WEEK
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Calendar Grid Body -->
+      <div class="overflow-x-auto">
+        <div :class="calendarPeriodType === 'day' ? 'min-w-[320px]' : 'min-w-[840px]'">
+          <!-- Day Column Headers -->
+          <div class="grid border-b border-slate-200/90 bg-white text-center" :style="calendarGridStyle">
+            <div class="flex items-center justify-center p-2 text-[10px] font-bold uppercase tracking-wider text-slate-400 border-r border-slate-100">
+              GMT{{ teacher.activeZoneInfo?.offset || '+08' }}
+            </div>
+            <div
+              v-for="day in calendarDays"
+              :key="day.dateKey"
+              class="py-2.5 px-2 border-r border-slate-100 transition"
+              :class="day.isToday ? 'bg-blue-50/50' : ''"
+            >
+              <p class="text-[11px] font-bold uppercase tracking-wider" :class="day.isToday ? 'text-blue-600 font-black' : 'text-slate-400'">
+                {{ day.dayName }}
+              </p>
+              <div
+                class="mx-auto mt-1 flex h-8 w-8 items-center justify-center rounded-xl text-sm font-black transition"
+                :class="day.isToday ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-800 hover:bg-slate-100'"
+              >
+                {{ day.dayNum }}
+              </div>
+              <div v-if="day.reservations.length" class="mt-1">
+                <span class="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-700">
+                  <span class="h-1.5 w-1.5 rounded-full bg-blue-600"></span>
+                  {{ day.reservations.length }} {{ day.reservations.length === 1 ? 'class' : 'classes' }}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Hourly Timetable Body -->
+          <div class="relative grid max-h-[640px] overflow-y-auto custom-scrollbar bg-white" :style="calendarGridStyle">
+            <!-- Hour Labels Column -->
+            <div class="border-r border-slate-100 bg-slate-50/40 select-none">
+              <div
+                v-for="hour in calendarHours"
+                :key="hour"
+                class="h-[72px] relative border-b border-slate-100 text-right pr-2.5 pt-1.5"
+              >
+                <span class="text-[10px] font-bold text-slate-400 uppercase tracking-tight">
+                  {{ hour }}
+                </span>
+              </div>
+            </div>
+
+            <!-- One column per day in view -->
+            <div
+              v-for="day in calendarDays"
+              :key="`col-${day.dateKey}`"
+              class="relative border-r border-slate-100 min-h-[1152px]"
+              :class="day.isToday ? 'bg-blue-50/15' : ''"
+            >
+              <!-- Background Hour Row Guidelines -->
+              <div
+                v-for="hour in calendarHours"
+                :key="`line-${hour}`"
+                class="h-[72px] border-b border-slate-100 relative"
+              >
+                <!-- Half-hour dashed divider -->
+                <div class="absolute top-[36px] inset-x-0 border-b border-dashed border-slate-100"></div>
+              </div>
+
+              <!-- Reservation Cards inside this day -->
+              <div
+                v-for="row in day.reservations"
+                :key="row.id"
+                @click="selectedStudent = row"
+                class="absolute inset-x-1.5 z-10 flex flex-col justify-center gap-0.5 overflow-hidden rounded-xl border px-2 py-1.5 shadow-2xs transition-all hover:shadow-md hover:z-20 cursor-pointer group"
+                :title="`${row.studentName} · ${row.topic || cleanSubjectTitle(row.subject)} · ${formatPrimaryTime(row)}`"
+                :class="[
+                  getSubjectCardTheme(row.subject).bg,
+                  row.id === teacher.nextReservation?.id ? 'ring-2 ring-brighture-gold' : ''
+                ]"
+                :style="getReservationPosition(row)"
+              >
+                <div class="flex min-w-0 items-center gap-1.5">
+                  <span
+                    class="inline-flex shrink-0 items-center rounded px-1 py-0.5 text-[8px] font-extrabold leading-none"
+                    :class="getSubjectCardTheme(row.subject).badge"
+                  >
+                    {{ extractSubjectCode(row.subject) }}
+                  </span>
+                  <p class="min-w-0 flex-1 truncate text-[11px] font-extrabold leading-tight text-slate-900 group-hover:text-blue-700">
+                    {{ row.studentName }}
+                  </p>
+                  <span v-if="row.substitution && calendarPeriodType === 'day'" class="flex h-4 w-4 shrink-0 items-center justify-center rounded-full bg-amber-400 text-[8px] font-black leading-none text-slate-900" title="Substitution">
+                    S
+                  </span>
+                </div>
+
+                <div class="flex min-w-0 items-center gap-1.5 text-[10px] leading-tight">
+                  <AppImage
+                    v-if="calendarPeriodType === 'day'"
+                    :src="row.studentPhoto"
+                    :alt="row.studentName"
+                    class="h-4 w-4 shrink-0 rounded-full object-cover ring-1 ring-white"
+                  />
+                  <span class="shrink-0 font-bold text-slate-500 tabular-nums">{{ formatCardTime(row) }}</span>
+                  <span v-if="row.topic && calendarPeriodType === 'day'" class="truncate font-medium text-slate-500">{{ row.topic }}</span>
+                  <a
+                    v-if="row.meetLink"
+                    :href="row.meetLink"
+                    target="_blank"
+                    rel="noopener"
+                    @click.stop
+                    class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-500 text-[9px] text-white shadow-2xs transition hover:bg-emerald-600"
+                    title="Join Google Meet"
+                  >
+                    <i class="fa-solid fa-video"></i>
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ================================================================= -->
+    <!-- MAIN CONTENT: Grouped by Date (When viewMode === 'table' | 'grid')-->
+    <!-- ================================================================= -->
+    <div v-else-if="groupedReservations.length" class="space-y-8">
       <section
         v-for="group in groupedReservations"
         :key="group.dateKey"
@@ -695,26 +953,162 @@ import { useTeacherStore } from '../../stores/useTeacherStore';
 const teacher = useTeacherStore();
 
 // --- View Preferences --------------------------------------------------------
-const viewMode = ref('table'); // 'table' | 'grid'
+const viewMode = ref('table'); // 'table' | 'grid' | 'calendar'
 const searchQuery = ref('');
 const activeTab = ref('all');
 const selectedStudent = ref(null);
 
-// --- Stats Computeds ---------------------------------------------------------
-const freeConversationCount = computed(() =>
-  teacher.reservations.filter((r) => r.category === 'Free Conversation').length
-);
+// --- Calendar View State & Navigation ----------------------------------------
+const calendarNavDate = ref(new Date());
+
+const calendarPeriodType = ref('week'); // 'day' | 'week'
+
+/** One column per day on show, behind a fixed gutter for the hour labels. */
+const calendarGridStyle = computed(() => ({
+  gridTemplateColumns: `68px repeat(${calendarDays.value.length}, minmax(0, 1fr))`,
+}));
+
+const calendarDays = computed(() => {
+  const current = new Date(calendarNavDate.value);
+  const dayMode = calendarPeriodType.value === 'day';
+
+  // Week view starts on Sunday; day view is simply the date being looked at.
+  const start = new Date(current);
+  if (!dayMode) start.setDate(current.getDate() - current.getDay());
+
+  const days = [];
+  const dayNames = ['SUN', 'MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT'];
+
+  for (let i = 0; i < (dayMode ? 1 : 7); i++) {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+
+    const year = d.getFullYear();
+    const month = d.toLocaleDateString('en-US', { month: 'short' });
+    const dayNum = d.getDate();
+    const dateKey = `${month} ${dayNum}, ${year}`;
+
+    const now = new Date();
+    const isToday = d.toDateString() === now.toDateString();
+
+    // Find reservations for this day
+    const dayReservations = calendarReservations.value.filter((r) => {
+      const parts = r.startManila.split(' ');
+      const rKey = parts.slice(0, 3).join(' ');
+      return rKey === dateKey;
+    });
+
+    days.push({
+      dateObj: d,
+      dateKey,
+      dayName: dayNames[d.getDay()],
+      dayNum,
+      isToday,
+      reservations: dayReservations,
+    });
+  }
+  return days;
+});
+
+const calendarPeriodTitle = computed(() => {
+  const days = calendarDays.value;
+  const start = days[0]?.dateObj;
+  const end = days[days.length - 1]?.dateObj;
+  if (!start || !end) return '';
+  if (calendarPeriodType.value === 'day') {
+    return start.toLocaleDateString('en-US', {
+      weekday: 'long', month: 'long', day: 'numeric', year: 'numeric',
+    });
+  }
+  const startMonth = start.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  const endMonth = end.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  if (startMonth === endMonth) return startMonth;
+  return `${start.toLocaleDateString('en-US', { month: 'short' })} – ${end.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`;
+});
+
+const shiftCalendar = (dir) => {
+  const d = new Date(calendarNavDate.value);
+  // A day view that jumped a week would skip six days the arrow implies.
+  d.setDate(d.getDate() + dir * (calendarPeriodType.value === 'day' ? 1 : 7));
+  calendarNavDate.value = d;
+};
+
+const goToCalendarToday = () => {
+  calendarNavDate.value = new Date();
+};
+
+const calendarHours = [
+  '7 AM', '8 AM', '9 AM', '10 AM', '11 AM', '12 PM',
+  '1 PM', '2 PM', '3 PM', '4 PM', '5 PM', '6 PM', '7 PM', '8 PM', '9 PM', '10 PM'
+];
+
+/** Parse reservation time into top offset and height inside timetable (7 AM to 11 PM = 16 hours) */
+const getReservationPosition = (row) => {
+  // Extract 24h hour & min from row.startManila, e.g. "Sep 2, 2026 18:00"
+  const m = row.startManila.match(/(\d{1,2}):(\d{2})$/);
+  if (!m) return { top: 0, height: 60 };
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+
+  // Calendar starts at 7 AM (hour 7)
+  const startHour = 7;
+  const totalMinutesFromStart = Math.max(0, (h - startHour) * 60 + min);
+  // Each hour row is 72px tall (1.2px per minute)
+  const pxPerMinute = 1.2;
+  const top = totalMinutesFromStart * pxPerMinute;
+  const height = 30 * pxPerMinute; // 30-min lesson is 36px, minimum 52px for card readability
+  return {
+    top: `${top}px`,
+    height: `${Math.max(54, height)}px`,
+  };
+};
+
+const getSubjectCardTheme = (subject) => {
+  const code = (subject.match(/\[(.*?)\]/) || [])[1] || '';
+  if (code === 'SF') {
+    return {
+      bg: 'bg-blue-50/90 hover:bg-blue-100/90 border-blue-200 text-blue-950',
+      badge: 'bg-blue-100 text-blue-700',
+      icon: 'fa-solid fa-microphone',
+      iconBg: 'bg-blue-500 text-white',
+    };
+  }
+  if (code.startsWith('PP')) {
+    return {
+      bg: 'bg-purple-50/90 hover:bg-purple-100/90 border-purple-200 text-purple-950',
+      badge: 'bg-purple-100 text-purple-700',
+      icon: 'fa-solid fa-waveform-lines',
+      iconBg: 'bg-purple-500 text-white',
+    };
+  }
+  if (code === 'DC' || code === 'FC') {
+    return {
+      bg: 'bg-emerald-50/90 hover:bg-emerald-100/90 border-emerald-200 text-emerald-950',
+      badge: 'bg-emerald-100 text-emerald-700',
+      icon: 'fa-solid fa-comments',
+      iconBg: 'bg-emerald-500 text-white',
+    };
+  }
+  if (code === 'RW') {
+    return {
+      bg: 'bg-amber-50/90 hover:bg-amber-100/90 border-amber-200 text-amber-950',
+      badge: 'bg-amber-100 text-amber-700',
+      icon: 'fa-solid fa-pen-nib',
+      iconBg: 'bg-amber-500 text-white',
+    };
+  }
+  return {
+    bg: 'bg-indigo-50/90 hover:bg-indigo-100/90 border-indigo-200 text-indigo-950',
+    badge: 'bg-indigo-100 text-indigo-700',
+    icon: 'fa-solid fa-headphones',
+    iconBg: 'bg-indigo-500 text-white',
+  };
+};
 
 // --- Filter Tabs -------------------------------------------------------------
 const tabs = computed(() => [
   { key: 'all', label: 'All upcoming', count: teacher.reservations.length },
   { key: 'today', label: 'Today', count: teacher.todaysReservations.length },
-  {
-    key: 'later',
-    label: 'Tomorrow & Later',
-    count: teacher.reservations.filter((r) => !teacher.todaysReservations.some((t) => t.id === r.id)).length,
-  },
-  { key: 'fc', label: 'Free Conversation', count: freeConversationCount.value },
   {
     key: 'sub',
     label: 'Substitutions',
@@ -723,34 +1117,96 @@ const tabs = computed(() => [
 ]);
 
 // --- Filtering Logic ---------------------------------------------------------
+const matchesSearch = (list) => {
+  const q = searchQuery.value.trim().toLowerCase();
+  if (!q) return list;
+  return list.filter(
+    (r) =>
+      r.studentName.toLowerCase().includes(q) ||
+      (r.subject && r.subject.toLowerCase().includes(q)) ||
+      (r.topic && r.topic.toLowerCase().includes(q)) ||
+      String(r.studentId).includes(q) ||
+      (r.note && r.note.toLowerCase().includes(q))
+  );
+};
+
+/**
+ * What the calendar draws: the search, but not the chips.
+ *
+ * The chips are hidden in calendar view, and a filter you cannot see is worse
+ * than one you can — a chip left on "Substitutions" would quietly empty the
+ * very dates the calendar had just been navigated to. The search box is still
+ * on screen there, so the search still counts.
+ */
+const calendarReservations = computed(() => matchesSearch(teacher.reservations));
+
+/* ---- Jump to a date ----------------------------------------------------- *
+ * The chips answer "which kind"; a list has no other way to answer "show me
+ * the 23rd". Picking a date is a filter like any other, so it becomes the
+ * active chip and clears the same way.
+ * ------------------------------------------------------------------------ */
+const jumpOpen = ref(false);
+const jumpMonth = ref(new Date());
+const jumpDate = ref('');
+
+const jumpMonthTitle = computed(() =>
+  jumpMonth.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+);
+const shiftJumpMonth = (dir) => {
+  const d = new Date(jumpMonth.value);
+  d.setMonth(d.getMonth() + dir, 1);
+  jumpMonth.value = d;
+};
+
+const dateKeyOf = (d) =>
+  `${d.toLocaleDateString('en-US', { month: 'short' })} ${d.getDate()}, ${d.getFullYear()}`;
+
+const jumpDays = computed(() => {
+  const anchor = jumpMonth.value;
+  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const start = new Date(first);
+  start.setDate(first.getDate() - first.getDay());
+  const todayKey = dateKeyOf(new Date());
+
+  return Array.from({ length: 35 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const key = dateKeyOf(d);
+    return {
+      key,
+      dayNum: d.getDate(),
+      inMonth: d.getMonth() === anchor.getMonth(),
+      isToday: key === todayKey,
+      // An empty date is still pickable; the dot just saves a wasted trip.
+      hasLessons: teacher.reservations.some((r) => r.startManila.startsWith(`${key} `)),
+      isPicked: key === jumpDate.value,
+    };
+  });
+});
+
+const pickJumpDate = (cell) => {
+  jumpDate.value = cell.key;
+  activeTab.value = 'date';
+  jumpOpen.value = false;
+};
+
+const clearJumpDate = () => {
+  jumpDate.value = '';
+  if (activeTab.value === 'date') activeTab.value = 'all';
+};
+
 const filteredReservations = computed(() => {
   let list = teacher.reservations;
 
-  // Tab filter
   if (activeTab.value === 'today') {
     list = teacher.todaysReservations;
-  } else if (activeTab.value === 'later') {
-    list = list.filter((r) => !teacher.todaysReservations.some((t) => t.id === r.id));
-  } else if (activeTab.value === 'fc') {
-    list = list.filter((r) => r.category === 'Free Conversation');
   } else if (activeTab.value === 'sub') {
     list = list.filter((r) => r.substitution);
+  } else if (activeTab.value === 'date' && jumpDate.value) {
+    list = list.filter((r) => r.startManila.startsWith(`${jumpDate.value} `));
   }
 
-  // Search query filter
-  if (searchQuery.value.trim()) {
-    const q = searchQuery.value.toLowerCase().trim();
-    list = list.filter(
-      (r) =>
-        r.studentName.toLowerCase().includes(q) ||
-        (r.subject && r.subject.toLowerCase().includes(q)) ||
-        (r.topic && r.topic.toLowerCase().includes(q)) ||
-        String(r.studentId).includes(q) ||
-        (r.note && r.note.toLowerCase().includes(q))
-    );
-  }
-
-  return list;
+  return matchesSearch(list);
 });
 
 // --- Date Grouping -----------------------------------------------------------
@@ -809,6 +1265,26 @@ const formatGroupHeaderDate = (dateKey) => {
  * say JST while the table still read PHT — two controls for one question.
  */
 const formatPrimaryTime = (row) => teacher.localRange(row) || row.rangeManila || row.startManila;
+
+/**
+ * The range, said the short way: "9:00 - 9:30 AM".
+ *
+ * The long form repeats whatever the two halves share. When both sit in the
+ * same half of the day the meridiem is carried once, at the end, and the zone
+ * is dropped entirely because the hour gutter beside the card already names
+ * it. The full string stays on the card's tooltip and in the detail panel.
+ */
+const formatCardTime = (row) => {
+  const [from = '', to = ''] = formatPrimaryTime(row).split('\u2013');
+  const start = from.trim();
+  // "9:30 AM PHT" -> "9:30 AM"
+  const end = to.trim().replace(/\s+[A-Z]{2,4}$/, '');
+  if (!start || !end) return start || end;
+  const meridiem = (t) => (t.match(/[AP]M$/i) || [''])[0];
+  return meridiem(start) && meridiem(start) === meridiem(end)
+    ? `${start.replace(/\s*[AP]M$/i, '')} \u2013 ${end}`
+    : `${start} \u2013 ${end}`;
+};
 
 /** The student's own clock: the one zone the picker cannot stand in for. */
 const formatSecondaryTime = (row) => `Student: ${row.startStudent}`;

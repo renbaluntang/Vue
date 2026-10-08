@@ -29,14 +29,6 @@
                 The hours you teach in a normal week. Every week starts from this, until you change
                 that week on its own.
               </p>
-              <button
-                type="button"
-                @click="clearTemplate"
-                :disabled="isEmpty"
-                class="mt-1.5 cursor-pointer text-[11px] font-bold text-rose-600 transition hover:text-rose-700 hover:underline disabled:cursor-not-allowed disabled:text-slate-300 disabled:no-underline"
-              >
-                {{ pendingClear ? 'Clear every hour? Tap again' : 'Clear template' }}
-              </button>
             </div>
 
             <button
@@ -52,14 +44,17 @@
           <!-- How to use the board on the left, what it currently holds on the
                right — both at the foot of the header, reading as a caption for
                the thing directly beneath them. -->
-          <div class="mt-2 flex flex-wrap items-center justify-between gap-2 text-[11px]">
-            <p class="text-slate-500">Drag across the board to pick hours, then open or reserve them.</p>
+          <div class="mt-2.5 flex flex-wrap items-center justify-between gap-2 text-[11px]">
+            <p class="text-slate-500 flex items-center gap-1.5">
+              <i class="fa-regular fa-hand-pointer text-[10px] text-slate-400"></i>
+              <span>Drag across the board to pick hours, then open or reserve them.</span>
+            </p>
             <div class="flex items-center gap-2">
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 font-bold text-emerald-800">
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-2.5 py-0.5 font-bold text-emerald-800 ring-1 ring-emerald-200/50">
                 <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>{{ openCount }} open
               </span>
-              <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2 py-0.5 font-bold text-indigo-800">
-              <span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>{{ reservedCount }} reserved
+              <span class="inline-flex items-center gap-1.5 rounded-full bg-indigo-50 px-2.5 py-0.5 font-bold text-indigo-800 ring-1 ring-indigo-200/50">
+                <span class="h-1.5 w-1.5 rounded-full bg-indigo-500"></span>{{ reservedCount }} reserved
               </span>
             </div>
           </div>
@@ -353,35 +348,54 @@
             </div>
           </div>
 
-        <!-- A week edited on its own stops following the template, so a change
-             here would appear not to reach it. Saying so, and offering to put
-             those weeks back, is what makes "every week" true. -->
-        <label
-          v-if="editedWeekCount && repeatSpan === 'always'"
-          class="flex shrink-0 cursor-pointer items-start gap-2.5 border-t border-amber-200 bg-amber-50 px-6 py-2.5 text-[11px] text-amber-900"
+        <!-- The template sets when you are free; it does not cancel what you
+             have promised. The old control asked about "weeks you edited by
+             hand", which named neither the class at stake nor the risk, and
+             defaulted to destroying it. This names them and keeps them. -->
+        <div
+          v-if="heldHours.length"
+          class="shrink-0 border-t px-6 py-2.5 text-[11px]"
+          :class="replaceHolds ? 'border-rose-200 bg-rose-50 text-rose-900' : 'border-slate-200 bg-slate-50 text-slate-600'"
         >
-          <input type="checkbox" v-model="replaceEditedWeeks" class="mt-0.5 h-3.5 w-3.5 accent-amber-600 cursor-pointer" />
-          <span>
+          <p>
             <strong class="font-bold">
-              Apply to the {{ editedWeekCount }} upcoming {{ editedWeekCount === 1 ? 'week' : 'weeks' }} you edited by hand
+              {{ heldHours.length }} reserved {{ heldHours.length === 1 ? 'hour' : 'hours' }}
+              in {{ heldWeekCount }} upcoming {{ heldWeekCount === 1 ? 'week' : 'weeks' }}
             </strong>
-            — those weeks stopped following the template; ticking this gives them these hours and
-            discards their own. Weeks already past are left alone.
-          </span>
-        </label>
+            <template v-if="replaceHolds"> will be cleared by this template.</template>
+            <template v-else> stay where they are. The template only changes the hours you are open.</template>
+            <template v-if="heldNames"> ({{ heldNames }})</template>
+          </p>
+          <label class="mt-1 inline-flex cursor-pointer items-center gap-2">
+            <input type="checkbox" v-model="replaceHolds" class="h-3.5 w-3.5 cursor-pointer accent-rose-600" />
+            <span class="font-semibold">Clear them too</span>
+          </label>
+        </div>
 
         <!-- Footer -->
-        <div class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 px-6 py-3">
-          <p class="min-w-0 truncate text-[11px] text-slate-400">{{ primaryAction.hint }}</p>
+        <div class="flex shrink-0 items-center justify-between gap-3 border-t border-slate-200 px-6 py-3 bg-slate-50/70">
+          <div class="flex items-center gap-2">
+            <!-- Clear template button moved to footer -->
+            <button
+              type="button"
+              @click="promptClearTemplate"
+              :disabled="isEmpty"
+              class="group flex cursor-pointer items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-rose-600 shadow-2xs transition hover:border-rose-300 hover:bg-rose-50 active:scale-95 disabled:cursor-not-allowed disabled:border-transparent disabled:bg-transparent disabled:text-slate-300 disabled:shadow-none"
+              title="Remove all scheduled slots from this template"
+            >
+              <i class="fa-regular fa-trash-can text-xs text-rose-500 group-hover:text-rose-600 group-disabled:text-slate-300"></i>
+              <span>Clear template</span>
+            </button>
+            <span v-if="!isEmpty" class="hidden sm:inline text-[11px] text-slate-400">
+              ({{ openCount }} open · {{ reservedCount }} reserved)
+            </span>
+          </div>
 
           <div class="flex items-center gap-2">
-            <!-- Nothing to save until something changes, so the button is not
-                 there to be pressed pointlessly — and its presence is the only
-                 notice the modal gives that there is unsaved work. -->
             <button
               type="button"
               @click="close"
-              class="cursor-pointer rounded-full px-4 py-1.5 text-xs font-bold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+              class="cursor-pointer rounded-full px-4 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-200/70 hover:text-slate-900"
             >
               {{ isDirty ? 'Cancel' : 'Close' }}
             </button>
@@ -396,6 +410,60 @@
             </button>
           </div>
         </div>
+
+        <!-- Clear Template Confirmation Modal -->
+        <Transition
+          enter-active-class="transition duration-150 ease-out"
+          enter-from-class="opacity-0"
+          leave-active-class="transition duration-100 ease-in"
+          leave-to-class="opacity-0"
+        >
+          <div
+            v-if="showClearConfirm"
+            class="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-2xs p-4"
+            @click.self="cancelClearTemplate"
+          >
+            <div
+              role="dialog"
+              aria-modal="true"
+              class="w-full max-w-sm rounded-2xl bg-white shadow-2xl ring-1 ring-slate-900/10 p-5 animate-in fade-in zoom-in-95 duration-150"
+            >
+              <div class="flex items-start gap-3.5">
+                <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-rose-50 text-rose-600 ring-1 ring-rose-100">
+                  <i class="fa-regular fa-trash-can text-lg"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <h3 class="text-sm font-bold text-slate-900">
+                    Clear all template hours?
+                  </h3>
+                  <p class="mt-1 text-xs leading-relaxed text-slate-500">
+                    This will remove all <strong class="text-slate-700">{{ openCount }} open</strong> and <strong class="text-slate-700">{{ reservedCount }} reserved</strong> slots from your weekly template board.
+                  </p>
+                  <p class="mt-1 text-[11px] text-slate-400">
+                    Changes take effect once you tap <em>Apply</em>.
+                  </p>
+                </div>
+              </div>
+
+              <div class="mt-4 flex items-center justify-end gap-2 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  @click="cancelClearTemplate"
+                  class="cursor-pointer rounded-lg px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-100 transition"
+                >
+                  Keep hours
+                </button>
+                <button
+                  type="button"
+                  @click="confirmClearTemplate"
+                  class="cursor-pointer rounded-lg bg-rose-600 px-4 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-rose-700 active:scale-95 transition"
+                >
+                  Clear all hours
+                </button>
+              </div>
+            </div>
+          </div>
+        </Transition>
       </div>
     </div>
   </Transition>
@@ -765,7 +833,6 @@ let resizeOffset = 0;
 
 const beginDrag = () => {
   dragging = true;
-  pendingClear.value = false;
   askingLabel.value = false;
   window.addEventListener('mousemove', onMove);
   window.addEventListener('mouseup', onUp);
@@ -908,16 +975,21 @@ const savedPrint = ref('');
 const isDirty = computed(() => fingerprint(draft.value) !== savedPrint.value || pendingOps.value.length > 0);
 
 const isEmpty = computed(() => !Object.keys(draft.value).length);
-const pendingClear = ref(false);
+const showClearConfirm = ref(false);
 
-const clearTemplate = () => {
-  if (!pendingClear.value) {
-    pendingClear.value = true;
-    return;
-  }
+const promptClearTemplate = () => {
+  if (isEmpty.value) return;
+  showClearConfirm.value = true;
+};
+
+const confirmClearTemplate = () => {
   draft.value = {};
   selection.value = null;
-  pendingClear.value = false;
+  showClearConfirm.value = false;
+};
+
+const cancelClearTemplate = () => {
+  showClearConfirm.value = false;
 };
 
 watch(askingLabel, (asking) => {
@@ -935,8 +1007,18 @@ const close = () => {
   emit('close');
 };
 
-const editedWeekCount = computed(() => teacher.upcomingEditedWeeks.length);
-const replaceEditedWeeks = ref(true);
+/* What a template change would destroy if nothing stopped it: hours a later
+   week has reserved that the template never gave it. Kept by default, because
+   losing a booked class to a template edit is not a recoverable mistake. */
+const heldHours = computed(() => teacher.upcomingHolds);
+const heldWeekCount = computed(() => new Set(heldHours.value.map((h) => h.weekStartIso)).size);
+const heldNames = computed(() => {
+  const names = [...new Set(heldHours.value.map((h) => h.reason).filter((r) => r && r !== 'Reserved'))];
+  if (!names.length) return '';
+  if (names.length <= 2) return names.join(' and ');
+  return `${names.slice(0, 2).join(', ')} and ${names.length - 2} more`;
+});
+const replaceHolds = ref(false);
 
 /**
  * What the footer button will do, which depends on the span.
@@ -963,7 +1045,9 @@ const primaryAction = computed(() => {
       key: 'save',
       label: 'Apply',
       enabled: true,
-      hint: 'Saved as your weekly template, from now on.',
+      hint: heldHours.value.length && !replaceHolds.value
+        ? `Saved as your weekly template. ${heldHours.value.length} reserved ${heldHours.value.length === 1 ? 'hour stays' : 'hours stay'} where they are.`
+        : 'Saved as your weekly template, from now on.',
     };
   }
   return {
@@ -981,6 +1065,13 @@ const applyToCalendar = () => {
       const slotKey = teacher.scheduleSlots[sl]?.key;
       if (!slotKey) continue;
       const status = statusOf(dayKey, sl);
+      // A dated run writes whole days, so without this it flattens any hold
+      // those days already carry — which is the one thing it must not do.
+      if (
+        !replaceHolds.value
+        && status !== 'reserved'
+        && teacher.getSlotStatusOn(weekStartIso, dayKey, slotKey) === 'reserved'
+      ) continue;
       const v = draft.value[keyOf(dayKey, sl)];
       const reason = status === 'reserved' && typeof v === 'object' && v ? v.reason || '' : '';
       teacher.setSlotStatusOn(weekStartIso, dayKey, slotKey, status, reason);
@@ -1014,8 +1105,7 @@ const writePendingOps = () => {
 };
 
 const save = () => {
-  teacher.setPattern(draft.value);
-  if (replaceEditedWeeks.value) teacher.resetWeeksToPattern();
+  teacher.republishPattern(draft.value, { keepHolds: !replaceHolds.value });
   // Dated runs are written after the weeks are put back under the template,
   // so a bounded run sits on top of it rather than being wiped by it.
   writePendingOps();
@@ -1031,9 +1121,9 @@ watch(
     savedPrint.value = fingerprint(draft.value);
     selection.value = null;
     reserveLabel.value = '';
-    pendingClear.value = false;
+    showClearConfirm.value = false;
     askingLabel.value = false;
-    replaceEditedWeeks.value = true;
+    replaceHolds.value = false;
     repeatSpan.value = 'always';
     repeatWeeks.value = 5;
     repeatUntil.value = '';
@@ -1050,7 +1140,7 @@ watch(
 const onKey = (e) => {
   if (!props.isOpen) return;
   if (e.key !== 'Escape') return;
-  if (pendingClear.value) pendingClear.value = false;
+  if (showClearConfirm.value) showClearConfirm.value = false;
   else if (askingLabel.value) askingLabel.value = false;
   else if (selection.value) selection.value = null;
   else close();

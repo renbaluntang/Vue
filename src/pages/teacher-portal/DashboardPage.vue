@@ -23,85 +23,39 @@
       </div>
     </header>
 
-    <!-- ===== Metrics: one primary metric big, three secondary small ===== -->
-    <!-- Equal cards read as a spreadsheet with padding — nothing tells the eye
-         where to land. Today's load is the hero because it is the only figure
-         the instructor acts on in the next few hours; the rest are reference. -->
-    <!-- No pastel tiles: hairline border, white ground, the number does the work. -->
-    <section class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
-      <!-- Primary: today's load -->
-      <div class="lg:col-span-5 rounded-xl border border-slate-200 bg-white p-5 flex flex-col justify-between">
-        <div>
-          <span class="text-xs font-semibold uppercase tracking-wider text-slate-500">Lessons today</span>
-
-          <div class="mt-3 flex items-baseline justify-between gap-4">
+    <!-- ===== Today, in one line ===== -->
+    <!-- Four boxes, and two of them were month-to-date figures that change no
+         decision before tonight — one of them a rating the page says sixty
+         lines down it deliberately does not expose. What is left is the three
+         things an instructor opens this page to find out: how long they are on
+         for, how long until it starts, and what is still owed. One number each,
+         one supporting line each, no box around any of them. -->
+    <section class="rounded-xl border border-slate-200 bg-white">
+      <div class="flex flex-col divide-y divide-slate-200 sm:flex-row sm:divide-x sm:divide-y-0">
+        <div v-for="cell in todayCells" :key="cell.key" class="min-w-0 flex-1 basis-0">
+          <component
+            :is="cell.to ? 'RouterLink' : 'div'"
+            :to="cell.to"
+            class="group flex h-full flex-col justify-between gap-2 p-5"
+            :class="cell.to ? 'transition-colors hover:bg-slate-50' : ''"
+          >
+            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">{{ cell.label }}</p>
             <div class="min-w-0">
-              <p class="text-4xl sm:text-5xl font-black tracking-tight text-slate-900 tabular-nums">
-                {{ teacher.todaysReservations.length }}<span class="ml-1.5 align-baseline text-base font-semibold text-slate-400">scheduled</span>
+              <p
+                class="truncate text-2xl font-bold tracking-tight tabular-nums"
+                :class="cell.urgent ? 'text-rose-700' : 'text-slate-900'"
+              >
+                {{ cell.value }}<span v-if="cell.unit" class="ml-1.5 text-sm font-semibold text-slate-400">{{ cell.unit }}</span>
               </p>
-              <p class="mt-1.5 truncate text-xs text-slate-500">
-                {{ todayStudents || 'Nobody booked yet' }}
+              <p class="mt-1 truncate text-xs text-slate-500" :title="cell.detail">
+                {{ cell.detail }}
+                <i
+                  v-if="cell.to"
+                  class="fa-solid fa-arrow-right ml-0.5 text-[9px] text-slate-400 transition-transform group-hover:translate-x-0.5"
+                ></i>
               </p>
             </div>
-
-            <!-- The shape of the day, not a repeat of the next-lesson card below. -->
-            <ul v-if="todayTimes.length" class="flex shrink-0 flex-col items-end gap-1">
-              <li
-                v-for="time in todayTimes"
-                :key="time"
-                class="rounded-md border border-slate-200 bg-slate-50 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-slate-700"
-              >
-                {{ time }}
-              </li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between gap-3 text-xs text-slate-500">
-          <span class="truncate tabular-nums">{{ todaySpan || 'Nothing scheduled today' }}</span>
-          <RouterLink to="/reservations" class="shrink-0 font-semibold text-slate-700 hover:text-slate-950">View reservations &rarr;</RouterLink>
-        </div>
-      </div>
-
-      <!-- Secondary: reference figures, one line each -->
-      <div class="lg:col-span-7 grid grid-cols-1 gap-3 sm:grid-cols-3">
-        <div class="rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Lesson logs due</p>
-            <p class="mt-2 text-2xl font-bold tracking-tight tabular-nums" :class="teacher.pendingFeedback.length ? 'text-amber-700' : 'text-slate-900'">
-              {{ teacher.pendingFeedback.length }}
-              <span class="text-xs font-normal text-slate-500">to complete</span>
-            </p>
-          </div>
-          <RouterLink to="/lessons" class="mt-3 text-xs font-medium text-brighture-bronze hover:underline border-t border-slate-100 pt-2 block">
-            Complete logs &rarr;
-          </RouterLink>
-        </div>
-
-        <div class="rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Hours taught</p>
-            <p class="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
-              {{ teacher.stats.hoursThisMonth }}
-              <span class="text-xs font-normal text-slate-500">hrs</span>
-            </p>
-          </div>
-          <p class="mt-3 text-xs text-slate-500 border-t border-slate-100 pt-2">
-            {{ currentMonthName }} to date
-          </p>
-        </div>
-
-        <div class="rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between">
-          <div>
-            <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Student rating</p>
-            <p class="mt-2 text-2xl font-bold tracking-tight text-slate-900 tabular-nums">
-              {{ teacher.stats.averageRating }}
-              <span class="text-xs font-normal text-slate-500">avg</span>
-            </p>
-          </div>
-          <p class="mt-3 text-xs text-slate-500 border-t border-slate-100 pt-2 tabular-nums">
-            {{ teacher.stats.lessonsThisMonth }} lessons rated
-          </p>
+          </component>
         </div>
       </div>
     </section>
@@ -408,12 +362,6 @@ const todayWeekday = computed(() => formatToday({ weekday: 'long' }));
 /** "6:00 PM – 6:30 PM PHT" -> "6:00 PM"; the end half for the day's span. */
 const rangeHalf = (row, index) => (teacher.localRange(row) || '').split('–')[index]?.trim() ?? '';
 
-const todayTimes = computed(() => teacher.todaysReservations.map((row) => rangeHalf(row, 0)));
-
-const todayStudents = computed(() =>
-  teacher.todaysReservations.map((row) => row.studentName).join(' · ')
-);
-
 /** "Sep 2, 2026 18:00" -> "18:00". */
 const timeOnly = (stamp) => stamp.split(' ').pop();
 
@@ -424,7 +372,71 @@ const todaySpan = computed(() => {
   return `${rangeHalf(rows[0], 0)} – ${rangeHalf(rows[rows.length - 1], 1)}`;
 });
 const todayDate = computed(() => formatToday({ month: 'long', day: 'numeric', year: 'numeric' }));
-const currentMonthName = computed(() => formatToday({ month: 'long', year: 'numeric' }));
+
+/* ---------------------------------------------------------------- *
+ * The three facts the strip carries. Built in one place so the three
+ * cells cannot disagree about the day between them.
+ * ---------------------------------------------------------------- */
+
+/** 148 -> "2h 28m". Durations, never a bare minute count past an hour. */
+const spanPhrase = (mins) => {
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (!h) return `${m}m`;
+  return m ? `${h}h ${m}m` : `${h}h`;
+};
+
+/** Past due first: a count is only useful if the worst of it is named. */
+const toClear = computed(() =>
+  [...teacher.attentionItems].sort((a, b) => Number(b.urgent) - Number(a.urgent))
+);
+
+const todayCells = computed(() => {
+  const rows = teacher.todaysReservations;
+  const next = teacher.nextReservation;
+  const worst = toClear.value[0];
+  const owed = toClear.value.length;
+
+  /* --- how long you are on for --- */
+  const today = rows.length
+    ? { value: rows.length, unit: rows.length === 1 ? 'lesson' : 'lessons', detail: todaySpan.value }
+    : { value: 'No lessons', unit: '', detail: 'Open hours so students can book you' };
+
+  /* --- how long until it starts --- */
+  let upNext;
+  if (!next) {
+    upNext = { value: '—', unit: '', detail: 'Nothing upcoming' };
+  } else if (next.minutesUntil <= 0) {
+    upNext = { value: 'Now', unit: '', detail: `${next.studentName} · ${rangeHalf(next, 0)}` };
+  } else {
+    // A lesson tomorrow is not "in 19h" to anyone reading it — say the day.
+    const sameDay = rows.some((row) => row.id === next.id);
+    upNext = {
+      value: spanPhrase(next.minutesUntil),
+      unit: '',
+      detail: sameDay
+        ? `${next.studentName} · ${rangeHalf(next, 0)}`
+        : `${next.studentName} · ${teacher.localStart(next).split(' ').slice(0, 2).join(' ').replace(',', '')}, ${rangeHalf(next, 0)}`,
+    };
+  }
+
+  /* --- what is still owed --- */
+  const clear = owed
+    ? {
+        value: owed,
+        unit: '',
+        detail: worst.meta ? `${worst.title} · ${worst.meta}` : worst.title,
+        urgent: !!worst.urgent,
+        to: worst.to,
+      }
+    : { value: 'All clear', unit: '', detail: 'No logs or corrections owed' };
+
+  return [
+    { key: 'today', label: 'Today', ...today },
+    { key: 'next', label: 'Next lesson', ...upNext },
+    { key: 'clear', label: 'To clear', ...clear },
+  ];
+});
 
 // Scaled against the busiest day so the tallest column always fills the track.
 const busiestDay = computed(() =>
