@@ -37,15 +37,28 @@
               </div>
             </div>
 
-            <!-- Round close button inside dark header -->
-            <button
-              type="button"
-              @click="$emit('close')"
-              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-slate-200 hover:bg-white/25 hover:text-white transition"
-              aria-label="Close modal"
-            >
-              <i class="fa-solid fa-xmark text-sm"></i>
-            </button>
+            <!-- Header Action buttons -->
+            <div class="flex items-center gap-2">
+              <router-link
+                to="/chat"
+                @click="$emit('close')"
+                class="flex items-center gap-1.5 rounded-full bg-brighture-gold/20 hover:bg-brighture-gold/30 text-amber-300 hover:text-amber-200 border border-amber-400/30 px-3 py-1.5 text-xs font-black transition"
+                title="Chat with student"
+              >
+                <i class="fa-solid fa-comments text-xs"></i>
+                <span class="hidden sm:inline">Message</span>
+              </router-link>
+
+              <!-- Round close button inside dark header -->
+              <button
+                type="button"
+                @click="$emit('close')"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/15 text-slate-200 hover:bg-white/25 hover:text-white transition"
+                aria-label="Close modal"
+              >
+                <i class="fa-solid fa-xmark text-sm"></i>
+              </button>
+            </div>
           </div>
         </div>
 

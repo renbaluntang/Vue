@@ -633,6 +633,7 @@ const navItems = [
   { path: '/lessons', label: 'Lesson Log', shortLabel: 'Log', icon: 'fa-solid fa-clock-rotate-left', badge: 'feedback' },
   { path: '/writing', label: 'Writing', shortLabel: 'Writing', icon: 'fa-solid fa-pen-nib', badge: 'writing' },
   { path: '/exams', label: 'Tests & Exams', shortLabel: 'Exams', icon: 'fa-solid fa-file-pen' },
+  { path: '/chat', label: 'Messages', shortLabel: 'Chat', icon: 'fa-solid fa-comments' },
   { path: '/analytics', label: 'Analytics', shortLabel: 'Stats', icon: 'fa-solid fa-chart-line' },
 ];
 

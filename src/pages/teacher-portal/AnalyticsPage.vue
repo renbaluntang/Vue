@@ -44,38 +44,46 @@
         <h2 class="text-base font-black text-slate-900">Class summary</h2>
         <p class="mt-0.5 text-[11px] font-medium text-slate-400 tabular-nums">{{ weekRangeLabel }}</p>
 
-        <!-- The number belongs in the middle of the ring, so it is laid over
-             the svg rather than inside it — the svg is rotated, and rotated
-             type is a thing to avoid, not to counter-rotate. -->
-        <div class="relative mx-auto mt-6 grid h-[168px] w-[168px] place-items-center">
+        <!-- The number belongs in the middle of the ring with modern multi-segment donut style from reference -->
+        <div class="relative mx-auto mt-6 grid h-[175px] w-[175px] place-items-center">
           <svg viewBox="0 0 120 120" class="h-full w-full -rotate-90" role="img" :aria-label="capacityLabel">
-            <circle cx="60" cy="60" :r="RING_R" fill="none" stroke="#FCE9A8" stroke-width="11" />
+            <!-- Background base track -->
+            <circle cx="60" cy="60" :r="RING_R" fill="none" stroke="#f1f5f9" stroke-width="12" />
+            <!-- Open available track (soft sky/cyan tone) -->
+            <circle
+              cx="60" cy="60" :r="RING_R"
+              fill="none"
+              stroke="#bae6fd"
+              stroke-width="12"
+            />
+            <!-- Booked active progress segment (vibrant blue) -->
             <circle
               v-if="capacity.booked"
               cx="60" cy="60" :r="RING_R"
               fill="none"
-              stroke="#B88600"
-              stroke-width="11"
-              stroke-linecap="butt"
+              stroke="#0284c7"
+              stroke-width="12"
+              stroke-linecap="round"
               :stroke-dasharray="capacity.dash"
               stroke-dashoffset="-1"
             />
           </svg>
 
-          <div class="absolute text-center">
-            <p class="text-3xl font-black leading-none text-slate-900">{{ capacity.open }}</p>
-            <p class="mt-1 text-[11px] font-medium text-slate-400">Slots</p>
+          <div class="absolute text-center flex flex-col items-center">
+            <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Booked Slots</span>
+            <p class="text-3xl font-black leading-none text-slate-900 mt-0.5">{{ capacity.booked }}</p>
+            <p class="mt-1 text-[11px] font-bold text-slate-400">of {{ capacity.open }} total</p>
           </div>
         </div>
 
         <ul class="mt-6 space-y-3">
           <li class="flex items-center gap-2.5">
-            <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#B88600"></span>
+            <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#0284c7"></span>
             <span class="text-xs font-black text-slate-900 tabular-nums">{{ capacity.booked }}</span>
             <span class="min-w-0 truncate text-xs font-medium text-slate-500">Booked class</span>
           </li>
           <li class="flex items-center gap-2.5">
-            <span class="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-amber-300/70" style="background:#FCE9A8"></span>
+            <span class="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-sky-300/70" style="background:#bae6fd"></span>
             <span class="text-xs font-black text-slate-900 tabular-nums">{{ capacity.free }}</span>
             <span class="min-w-0 truncate text-xs font-medium text-slate-500">Still open</span>
           </li>
@@ -85,42 +93,107 @@
           No hours opened in this period. Students cannot book you until there are some.
         </p>
       </section>
-      <!-- ===== Volume ===== -->
-      <section class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm xl:col-span-2 sm:p-6">
+      <!-- ===== Volume / Slot booking rate Bar Chart (Styled matching reference image) ===== -->
+      <section class="min-w-0 rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs xl:col-span-2">
         <div class="flex items-center justify-between gap-3">
           <div>
             <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Slots open vs booked</p>
-            <h2 class="mt-1 text-base font-black text-slate-900">Slot booking rate</h2>
+            <h2 class="mt-0.5 text-base sm:text-lg font-black text-slate-900">Slot booking rate</h2>
           </div>
-          <p class="text-xs font-bold text-slate-500">
-            {{ totalBookedSlots }} booked / {{ totalOpenSlots }} total · {{ overallBookingRate }}% booked
-          </p>
+          <div class="flex items-center gap-2">
+            <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl bg-slate-50 border border-slate-200 text-xs font-bold text-slate-600">
+              <span class="text-emerald-600 font-black">{{ overallBookingRate }}%</span> booked
+              <span class="text-slate-400 font-normal">({{ totalBookedSlots }}/{{ totalOpenSlots }})</span>
+            </span>
+          </div>
         </div>
 
-        <div class="mt-5 flex items-end justify-between gap-3">
-          <div v-for="point in data.series" :key="point.label" class="flex flex-1 flex-col items-center gap-2">
-            <!-- Numbers above bar: booked / total slots and percentage -->
-            <div class="text-center">
-              <p class="text-[11px] font-black text-slate-800 tabular-nums">
-                {{ pointBooked(point) }}
-                <span class="text-[10px] font-medium text-slate-400">/{{ pointTotal(point) }}</span>
-              </p>
-              <p class="text-[10px] font-bold text-brighture-bronze tabular-nums">
-                {{ pointPercentage(point) }}%
-              </p>
+        <!-- Chart Grid area with horizontal grid lines and styled bars matching reference -->
+        <div class="mt-6 pt-2">
+          <!-- Main Chart Layout: Y-Axis on left, Plot area on right with bars aligned flush to bottom -->
+          <div class="flex items-stretch gap-3">
+            
+            <!-- Y-Axis Labels (100% to 0%) -->
+            <div class="flex flex-col justify-between text-[11px] font-bold text-slate-400 tabular-nums w-8 text-right py-0 select-none h-48">
+              <span>100%</span>
+              <span>75%</span>
+              <span>50%</span>
+              <span>25%</span>
+              <span>0%</span>
             </div>
-            <!-- Progress bar representing booked percentage of total open slots -->
-            <div
-              class="flex h-40 w-full max-w-[56px] items-end overflow-hidden rounded-t-xl bg-slate-100"
-              :title="`${pointBooked(point)} of ${pointTotal(point)} slots booked (${pointPercentage(point)}%)`"
-            >
-              <div
-                class="w-full rounded-t-xl bg-gradient-to-t from-brighture-gold-deep to-brighture-gold transition-[height] duration-300 motion-reduce:transition-none"
-                :style="{ height: `${pointPercentage(point)}%` }"
-              ></div>
+
+            <!-- Plot Area: 5 Horizontal Gridlines + Bars sitting flush on the 0% baseline -->
+            <div class="relative flex-1 h-48">
+              
+              <!-- Background Gridlines -->
+              <div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                <div class="border-b border-slate-100 w-full"></div>
+                <div class="border-b border-slate-100 w-full"></div>
+                <div class="border-b border-slate-100 w-full"></div>
+                <div class="border-b border-slate-100 w-full"></div>
+                <div class="border-b-2 border-slate-200 w-full"></div>
+              </div>
+
+              <!-- Bars container: flex items-end ensures all bars are perfectly aligned flush to the bottom baseline -->
+              <div class="absolute inset-0 flex items-end justify-around px-2 sm:px-6">
+                <div
+                  v-for="point in data.series"
+                  :key="point.label"
+                  class="flex flex-col items-center flex-1 max-w-[38px] sm:max-w-[46px] group relative h-full justify-end"
+                >
+                  <!-- Interactive Hover Tooltip -->
+                  <div class="opacity-0 group-hover:opacity-100 transition-opacity absolute -top-8 px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[10px] font-black whitespace-nowrap z-20 pointer-events-none shadow-md">
+                    {{ pointBooked(point) }} / {{ pointTotal(point) }} slots ({{ pointPercentage(point) }}%)
+                  </div>
+
+                  <!-- Individual Bar matching image: Blue Floating Cap + Gap + Pink Pill Gradient Body -->
+                  <div
+                    class="w-full flex flex-col items-center justify-end transition-all duration-300"
+                    :style="{ height: `${Math.max(16, Math.round((pointPercentage(point) / 100) * 190))}px` }"
+                  >
+                    <!-- 1. Floating horizontal accent cap: vibrant blue rounded line sitting directly over bar -->
+                    <div class="w-full h-[3.5px] rounded-full bg-[#1877f2] shadow-xs shrink-0"></div>
+
+                    <!-- 2. Distinct whitespace gap between blue cap and bar body -->
+                    <div class="h-[3px] shrink-0"></div>
+
+                    <!-- 3. Rounded top gradient pillar matching exact pink-to-fade colors in reference -->
+                    <div
+                      class="w-full flex-1 rounded-t-[7px] bg-gradient-to-b from-[#e579b7] via-[#eb91c4] to-[#fcebf4]/30"
+                    ></div>
+                  </div>
+                </div>
+              </div>
             </div>
-            <p class="text-[11px] font-bold text-slate-500">{{ point.label }}</p>
           </div>
+
+          <!-- X-Axis Labels aligned directly below each bar column -->
+          <div class="flex items-center pl-11 pr-2 sm:pr-6 mt-3">
+            <div
+              v-for="point in data.series"
+              :key="point.label"
+              class="flex-1 text-center"
+            >
+              <p class="text-xs font-bold text-slate-700">{{ point.label }}</p>
+              <p class="text-[10px] font-black text-blue-600 tabular-nums mt-0.5">{{ pointPercentage(point) }}%</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Legend Footer -->
+        <div class="mt-8 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold text-slate-500">
+          <div class="flex items-center gap-3">
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-pink-400"></span> Primary Bookings
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span> Repeat Sessions
+            </span>
+            <span class="flex items-center gap-1.5">
+              <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> Standard Slots
+            </span>
+          </div>
+          <span class="text-slate-400 font-medium">Auto-updated from live schedule</span>
         </div>
       </section>
 
