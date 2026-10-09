@@ -55,7 +55,7 @@
           class="mt-5 rounded-2xl border border-emerald-500/40 bg-emerald-500/10 p-4 text-left"
         >
           <p class="text-[11px] font-black uppercase tracking-wider text-emerald-300">
-            Lesson starts in {{ teacher.imminentReservation.minutesUntil }} min
+            Lesson starts in {{ teacher.countdownLabel(teacher.imminentReservation.minutesUntil) }}
           </p>
           <p class="mt-1 truncate text-sm font-bold text-white">
             {{ teacher.imminentReservation.studentName }}
@@ -68,7 +68,8 @@
             rel="noopener"
             class="mt-3 flex items-center justify-center gap-2 rounded-xl border border-transparent bg-emerald-500 px-4 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-emerald-400 active:scale-95"
           >
-            📹 Enter Google Meet
+            <i class="fa-solid fa-video text-xs"></i>
+            <span>Enter Google Meet</span>
           </a>
         </div>
 

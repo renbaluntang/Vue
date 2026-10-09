@@ -14,7 +14,7 @@
             class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-200/60"
           >
             <span class="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
-            Next lesson in {{ teacher.nextReservation.minutesUntil }} mins
+            Next lesson in {{ teacher.countdownLabel(teacher.nextReservation.minutesUntil) }}
           </span>
         </div>
         <p class="mt-1 text-xs sm:text-sm text-slate-500 max-w-2xl">
@@ -79,9 +79,8 @@
 
           <div class="min-w-0">
             <div class="flex flex-wrap items-center gap-2">
-              <span class="inline-flex items-center gap-1 rounded-full bg-brighture-gold px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-brighture-ink shadow-xs">
-                <span class="h-1.5 w-1.5 rounded-full bg-slate-900 animate-ping"></span>
-                Up Next • In {{ teacher.nextReservation.minutesUntil }} mins
+              <span class="inline-flex items-center rounded-full bg-brighture-gold px-2.5 py-0.5 text-[10px] font-black uppercase tracking-wider text-brighture-ink shadow-xs">
+                Up Next • In {{ teacher.countdownLabel(teacher.nextReservation.minutesUntil) }}
               </span>
               <span class="rounded-full bg-white/10 px-2.5 py-0.5 text-[11px] font-semibold text-slate-200">
                 {{ teacher.localRange(teacher.nextReservation) }}
@@ -113,7 +112,7 @@
             rel="noopener"
             class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-md transition-all active:scale-95 whitespace-nowrap"
           >
-            <span>📹</span>
+            <i class="fa-solid fa-video text-[11px]"></i>
             <span>Join Room</span>
           </a>
           <button
@@ -325,12 +324,12 @@
           >
             Today
           </button>
-          <div class="flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-0.5 shadow-2xs">
+          <div class="relative flex items-center gap-1 rounded-xl border border-slate-200 bg-white p-0.5 shadow-2xs">
             <button
               type="button"
               @click="shiftCalendar(-1)"
               class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-              title="Previous Week"
+              :title="calendarPeriodType === 'day' ? 'Previous day' : 'Previous week'"
             >
               <i class="fa-solid fa-chevron-left text-xs"></i>
             </button>
@@ -338,10 +337,72 @@
               type="button"
               @click="shiftCalendar(1)"
               class="flex h-7 w-7 items-center justify-center rounded-lg text-slate-600 hover:bg-slate-100 transition cursor-pointer"
-              title="Next Week"
+              :title="calendarPeriodType === 'day' ? 'Next day' : 'Next week'"
             >
               <i class="fa-solid fa-chevron-right text-xs"></i>
             </button>
+
+            <!-- The arrows walk; this lands. Same cluster, because they are
+                 the same job at two distances. -->
+            <span class="mx-0.5 h-4 w-px bg-slate-200" aria-hidden="true"></span>
+            <button
+              type="button"
+              @click="calJumpOpen = !calJumpOpen"
+              aria-haspopup="dialog"
+              :aria-expanded="calJumpOpen ? 'true' : 'false'"
+              :aria-label="calendarPeriodType === 'day' ? 'Jump to a date' : 'Jump to a week'"
+              :title="calendarPeriodType === 'day' ? 'Jump to a date' : 'Jump to a week'"
+              class="flex h-7 w-7 items-center justify-center rounded-lg transition cursor-pointer"
+              :class="calJumpOpen ? 'bg-slate-900 text-white' : 'text-slate-600 hover:bg-slate-100'"
+            >
+              <i class="fa-regular fa-calendar text-xs"></i>
+            </button>
+
+            <div v-if="calJumpOpen" class="fixed inset-0 z-40" @click="calJumpOpen = false"></div>
+
+            <div
+              v-if="calJumpOpen"
+              role="dialog"
+              :aria-label="calendarPeriodType === 'day' ? 'Jump to a date' : 'Jump to a week'"
+              class="absolute left-0 top-full z-50 mt-2 w-64 rounded-2xl border border-slate-200 bg-white p-3 shadow-xl"
+            >
+              <div class="flex items-center justify-between">
+                <button type="button" @click="shiftCalJumpMonth(-1)" class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Previous month">
+                  <i class="fa-solid fa-chevron-left text-[10px]"></i>
+                </button>
+                <span class="text-xs font-extrabold text-slate-800">{{ calJumpTitle }}</span>
+                <button type="button" @click="shiftCalJumpMonth(1)" class="flex h-6 w-6 cursor-pointer items-center justify-center rounded-lg text-slate-400 transition hover:bg-slate-100 hover:text-slate-700" aria-label="Next month">
+                  <i class="fa-solid fa-chevron-right text-[10px]"></i>
+                </button>
+              </div>
+
+              <div class="mt-2 grid grid-cols-7 gap-1 text-center text-[10px] font-bold text-slate-400">
+                <span v-for="(d, i) in ['S','M','T','W','T','F','S']" :key="`cj-h-${i}`">{{ d }}</span>
+              </div>
+
+              <div class="mt-1 grid grid-cols-7 gap-1 text-center">
+                <div v-for="cell in calJumpDays" :key="`cj-${cell.key}`" class="relative py-0.5">
+                  <button
+                    type="button"
+                    @click="pickCalJumpDate(cell)"
+                    class="relative mx-auto flex aspect-square w-full max-w-7 items-center justify-center rounded-full text-[11px] font-semibold transition cursor-pointer"
+                    :class="calJumpCellClass(cell)"
+                  >
+                    {{ cell.dayNum }}
+                  </button>
+                  <span
+                    v-if="cell.hasLessons && !cell.isToday"
+                    aria-hidden="true"
+                    class="pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-1 w-1 rounded-full bg-blue-500"
+                  ></span>
+                </div>
+              </div>
+
+              <p class="mt-2 border-t border-slate-100 pt-2 text-[10px] text-slate-400">
+                <span class="mr-1 inline-block h-1 w-1 rounded-full bg-blue-500 align-middle"></span>
+                Days with lessons booked
+              </p>
+            </div>
           </div>
           <h3 class="text-sm sm:text-base font-extrabold text-slate-900 tracking-tight ml-1">
             {{ calendarPeriodTitle }}
@@ -648,7 +709,7 @@
                         class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-3 py-2 text-xs font-black text-slate-950 shadow-2xs transition hover:scale-105 active:scale-95"
                         title="Open Google Meet room"
                       >
-                        <span>📹</span>
+                        <i class="fa-solid fa-video text-[11px]"></i>
                         <span>Meet</span>
                       </a>
                       <span
@@ -773,7 +834,7 @@
                 rel="noopener"
                 class="flex-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 py-2 px-3 text-center text-xs font-extrabold text-slate-950 transition active:scale-95 shadow-2xs"
               >
-                📹 Join Meet
+                <i class="fa-solid fa-video text-[11px]"></i> Join Meet
               </a>
               <span
                 v-else
@@ -874,7 +935,7 @@
                 rel="noopener"
                 class="flex-1 rounded-xl border border-transparent bg-emerald-500 py-3 px-3 text-center text-xs font-extrabold text-slate-950 transition hover:bg-emerald-400 active:scale-95 shadow-2xs"
               >
-                📹 Join Meet
+                <i class="fa-solid fa-video text-[11px]"></i> Join Meet
               </a>
               <span
                 v-else
@@ -945,7 +1006,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import AppImage from '../../components/AppImage.vue';
 import StudentDetailModal from '../../components/teacher/StudentDetailModal.vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
@@ -1035,6 +1096,66 @@ const shiftCalendar = (dir) => {
 
 const goToCalendarToday = () => {
   calendarNavDate.value = new Date();
+};
+
+/* The arrows walk a week at a time; this lands on one. A month away is six
+   clicks otherwise, and six clicks past an empty stretch tells you nothing
+   about where the lessons are — the dots do. */
+const calJumpOpen = ref(false);
+const calJumpMonth = ref(new Date());
+
+const calJumpTitle = computed(() =>
+  calJumpMonth.value.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+);
+
+const shiftCalJumpMonth = (dir) => {
+  const d = new Date(calJumpMonth.value);
+  d.setMonth(d.getMonth() + dir, 1);
+  calJumpMonth.value = d;
+};
+
+// Opening on a stale month would make the picker argue with the header.
+watch(calJumpOpen, (open) => {
+  if (open) calJumpMonth.value = new Date(calendarDays.value[0]?.dateObj ?? calendarNavDate.value);
+});
+
+const calJumpDays = computed(() => {
+  const anchor = calJumpMonth.value;
+  const first = new Date(anchor.getFullYear(), anchor.getMonth(), 1);
+  const start = new Date(first);
+  start.setDate(first.getDate() - first.getDay());
+  const todayKey = dateKeyOf(new Date());
+  const shown = calendarDays.value.map((d) => d.dateKey);
+
+  return Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(start);
+    d.setDate(start.getDate() + i);
+    const key = dateKeyOf(d);
+    return {
+      key,
+      dateObj: d,
+      dayNum: d.getDate(),
+      inMonth: d.getMonth() === anchor.getMonth(),
+      isToday: key === todayKey,
+      // What the board is already showing, so the picker says where you are
+      // before it asks where you want to be.
+      inView: shown.includes(key),
+      hasLessons: teacher.reservations.some((r) => r.startManila.startsWith(`${key} `)),
+    };
+  });
+});
+
+/* Three states in one slot, so they are decided in one place rather than
+   stacked as Tailwind classes that fight over which colour wins. */
+const calJumpCellClass = (cell) => {
+  if (cell.isToday) return 'bg-blue-600 text-white font-black';
+  if (cell.inView) return `bg-blue-50 font-black ${cell.inMonth ? 'text-blue-900' : 'text-blue-400'}`;
+  return `hover:bg-slate-100 ${cell.inMonth ? 'text-slate-800' : 'text-slate-300'}`;
+};
+
+const pickCalJumpDate = (cell) => {
+  calendarNavDate.value = new Date(cell.dateObj);
+  calJumpOpen.value = false;
 };
 
 const calendarHours = [

@@ -102,50 +102,50 @@ function deleteMaterial(index) {
 </script>
 
 <template>
-  <div class="space-y-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-700">
-    <p class="m-0 font-semibold text-slate-800">Class Materials</p>
-    <div class="overflow-x-auto rounded border border-slate-200 bg-white">
-      <table class="min-w-full border-collapse text-xs sm:text-sm">
-        <thead class="bg-slate-100 text-slate-600">
+  <div class="space-y-3 rounded-2xl border border-slate-100 bg-[#f8fafc] p-4 text-xs text-slate-700">
+    <p class="m-0 text-[11px] font-bold uppercase tracking-wider text-slate-400">Class Materials</p>
+    <div class="overflow-x-auto rounded-2xl border border-slate-100 bg-white">
+      <table class="min-w-full border-collapse text-xs">
+        <thead class="bg-[#f8fafc]">
           <tr>
-            <th class="border-b border-slate-200 px-3 py-2 text-left">Date Created</th>
-            <th class="border-b border-slate-200 px-3 py-2 text-left">Title</th>
-            <th class="border-b border-slate-200 px-3 py-2 text-left">Link</th>
-            <th class="border-b border-slate-200 px-3 py-2 text-left" />
+            <th class="border-b border-slate-100 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">Date Created</th>
+            <th class="border-b border-slate-100 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">Title</th>
+            <th class="border-b border-slate-100 px-3 py-2.5 text-left text-[11px] font-bold uppercase tracking-wider text-slate-400">Link</th>
+            <th class="border-b border-slate-100 px-3 py-2.5 text-left" />
           </tr>
         </thead>
         <tbody>
           <tr v-for="(item, index) in materials" :key="`${item.title}-${index}`">
-            <td :class="`${index < materials.length - 1 ? 'border-b border-slate-100' : ''} px-3 py-2`">
+            <td :class="`${index < materials.length - 1 ? 'border-b border-slate-100' : ''} px-3 py-3`">
               <input
                 v-if="editingIndex === index"
                 type="date"
                 v-model="editingDraft.createdAt"
-                class="w-full rounded border border-slate-300 px-2 py-1 text-xs outline-none focus:border-primary sm:text-sm"
+                class="w-full rounded border border-slate-300 px-2 py-1 text-xs outline-none focus:border-primary"
               />
               <template v-else>{{ new Date(item.createdAt).toLocaleDateString("en-US") }}</template>
             </td>
-            <td :class="`${index < materials.length - 1 ? 'border-b border-slate-100' : ''} px-3 py-2`">
+            <td :class="`${index < materials.length - 1 ? 'border-b border-slate-100' : ''} px-3 py-3`">
               <input
                 v-if="editingIndex === index"
                 type="text"
                 v-model="editingDraft.title"
-                class="w-full rounded border border-slate-300 px-2 py-1 text-xs outline-none focus:border-primary sm:text-sm"
+                class="w-full rounded border border-slate-300 px-2 py-1 text-xs outline-none focus:border-primary"
               />
               <template v-else>{{ item.title }}</template>
             </td>
             <td
-              :class="`${index < materials.length - 1 ? 'border-b border-slate-100' : ''} px-3 py-2 text-primary-dark`"
+              :class="`${index < materials.length - 1 ? 'border-b border-slate-100' : ''} px-3 py-3 text-primary-dark`"
             >
               <input
                 v-if="editingIndex === index"
                 type="text"
                 v-model="editingDraft.link"
-                class="w-full rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 outline-none focus:border-primary sm:text-sm"
+                class="w-full rounded border border-slate-300 px-2 py-1 text-xs text-slate-700 outline-none focus:border-primary"
               />
               <template v-else>{{ item.link }}</template>
             </td>
-            <td :class="`${index < materials.length - 1 ? 'border-b border-slate-100' : ''} px-3 py-2`">
+            <td :class="`${index < materials.length - 1 ? 'border-b border-slate-100' : ''} px-3 py-3`">
               <div v-if="editingIndex === index" class="flex items-center gap-1">
                 <button
                   type="button"
@@ -170,7 +170,7 @@ function deleteMaterial(index) {
                   :aria-label="`Actions for ${item.title}`"
                   title="Show actions"
                 >
-                  <span class="material-symbols-outlined text-base">more_horiz</span>
+                  <span class="material-symbols-outlined text-sm">more_horiz</span>
                 </button>
                 <template v-if="activeActionIndex === index">
                   <button
@@ -194,8 +194,8 @@ function deleteMaterial(index) {
         </tbody>
       </table>
     </div>
-    <div v-if="draft" class="rounded border border-slate-200 bg-white p-3">
-      <p class="m-0 mb-2 text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">
+    <div v-if="draft" class="rounded-2xl border border-slate-100 bg-white p-3">
+      <p class="m-0 mb-2 text-[11px] font-bold uppercase tracking-wider text-slate-400">
         New Material
       </p>
       <div class="grid gap-2 sm:grid-cols-2">
@@ -203,13 +203,13 @@ function deleteMaterial(index) {
           type="text"
           placeholder="Title"
           v-model="draft.title"
-          class="rounded border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-primary"
+          class="rounded border border-slate-300 px-2 py-1.5 text-xs outline-none focus:border-primary"
         />
         <input
           type="text"
           placeholder="Link"
           v-model="draft.link"
-          class="rounded border border-slate-300 px-2 py-1.5 text-sm outline-none focus:border-primary"
+          class="rounded border border-slate-300 px-2 py-1.5 text-xs outline-none focus:border-primary"
         />
       </div>
     </div>
@@ -217,7 +217,7 @@ function deleteMaterial(index) {
       <button
         type="button"
         @click="handlePrimaryAction"
-        class="rounded-lg bg-primary px-3 py-1.5 text-sm font-semibold text-white transition hover:bg-primary-dark"
+        class="rounded-lg bg-primary px-3.5 py-1.5 text-xs font-semibold text-white transition hover:bg-primary-dark"
       >
         {{ hasDraftChanges ? "Save" : "Add Materials" }}
       </button>

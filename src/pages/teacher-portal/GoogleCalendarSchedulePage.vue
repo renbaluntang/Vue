@@ -82,21 +82,6 @@
     <div class="flex-1 flex min-h-0 bg-white overflow-hidden">
       <!-- Left Mini Calendar Sidebar -->
       <aside class="hidden xl:flex w-64 flex-col border-r border-slate-200 p-4 shrink-0 overflow-y-auto space-y-5">
-        <!-- Floating + Create Action Button -->
-        <!-- A template is edited the same way hours are: by sweeping the board.
-             The form this used to open asked for the same thing in a worse
-             place, and nothing it produced could be seen until it was saved. -->
-        <button
-          type="button"
-          @click="isTemplateOpen = true"
-          class="w-full flex items-center justify-center gap-3 py-3 px-4 rounded-2xl bg-white hover:bg-slate-50 text-slate-800 font-black text-sm shadow-md hover:shadow-lg border border-slate-200 transition-all active:scale-98 group cursor-pointer"
-        >
-          <div class="w-6 h-6 shrink-0 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 text-white flex items-center justify-center text-xs shadow-xs group-hover:rotate-90 transition-transform">
-            <i class="fa-solid fa-plus"></i>
-          </div>
-          <span>Create Schedule Template</span>
-        </button>
-
         <!-- Mini Month Calendar Picker -->
         <div class="bg-white rounded-2xl border border-slate-100 p-3 shadow-2xs">
           <div class="flex items-center justify-between mb-2">
@@ -149,6 +134,28 @@
               </button>
             </div>
           </div>
+        </div>
+
+        <!-- The board's own marks, named. Without this the band is decoration. -->
+        <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
+          <h4 class="text-[11px] font-black uppercase tracking-wider text-slate-500">On the board</h4>
+          <ul class="space-y-1.5">
+            <li class="flex items-center gap-2">
+              <span class="relative flex h-5 w-[4.25rem] shrink-0 items-center overflow-hidden rounded-md border border-emerald-500 bg-emerald-50 pl-[19px] pr-1.5 text-[9px] font-extrabold uppercase tracking-wide text-emerald-800">
+                <span class="absolute inset-y-0 left-0 flex w-[15px] items-center justify-center bg-emerald-200" aria-hidden="true">
+                  <i class="fa-solid fa-rotate text-[8px] leading-none"></i>
+                </span>
+                Open
+              </span>
+              <span class="text-[11px] leading-tight text-slate-500">Repeats every week</span>
+            </li>
+            <li class="flex items-center gap-2">
+              <span class="flex h-5 w-[4.25rem] shrink-0 items-center rounded-md border border-dashed border-emerald-500 bg-emerald-50 pl-2 pr-1.5 text-[9px] font-extrabold uppercase tracking-wide text-emerald-800">
+                Open
+              </span>
+              <span class="text-[11px] leading-tight text-slate-500">This week only</span>
+            </li>
+          </ul>
         </div>
 
         <!-- The toggle that used to live here decided what a drag would do
@@ -323,10 +330,13 @@
                   v-if="!liftedOut(dayIdx, event.slotIndex)"
                   @click.stop="onEventClick(event)"
                   :data-locked="event.canDelete ? null : 'true'"
-                  class="absolute inset-x-1 rounded-lg px-2 py-1 overflow-hidden shadow-xs transition-all z-10 text-xs border"
-                  :class="isSlotEditable(day, event.slotIndex)
-                    ? 'hover:shadow-md hover:ring-2 hover:ring-indigo-400/80 hover:brightness-105 cursor-pointer'
-                    : 'opacity-45 saturate-50 cursor-default'"
+                  class="absolute inset-x-1 rounded-lg pr-2 py-1 overflow-hidden shadow-xs transition-all z-10 text-xs border"
+                  :class="[
+                    isSlotEditable(day, event.slotIndex)
+                      ? 'hover:shadow-md hover:ring-2 hover:ring-indigo-400/80 hover:brightness-105 cursor-pointer'
+                      : 'opacity-45 saturate-50 cursor-default',
+                    event.repeats ? 'pl-[19px]' : 'pl-2 border-dashed',
+                  ]"
                   :style="{
                     top: `${event.top}px`,
                     height: `${event.height}px`,
@@ -334,17 +344,32 @@
                     borderColor: event.borderColor,
                     color: event.textColor,
                   }"
-                  :title="`${event.title} • ${event.timeRange}`"
+                  :title="`${event.title} • ${event.timeRange} • ${event.repeats ? 'repeats every week' : 'this week only'}`"
                 >
                   <!-- A hold with a note is called by its note; without one it
                        falls back to the status word. The time is never dropped,
                        because two identical labels an hour apart are otherwise
                        indistinguishable. -->
+                  <!-- An hour that is in the template wears a ↻ in a band down
+                       its leading edge. The band is a darker step of the
+                       block's own fill, so no new colour enters the board, and
+                       it is absolute: it takes 3px from the label rather than
+                       the 12px an inline glyph took, which cut "OPEN" to "O…"
+                       at week column widths. An hour put on this week alone
+                       has no band and a dashed outline — so the two states
+                       differ by a mark each, not by one mark's absence. -->
+                  <span
+                    v-if="event.repeats"
+                    class="pointer-events-none absolute inset-y-0 left-0 flex w-[15px] items-center justify-center rounded-l-lg"
+                    :style="{ backgroundColor: event.bandColor }"
+                    aria-hidden="true"
+                  >
+                    <i class="fa-solid fa-rotate text-[8px] leading-none"></i>
+                  </span>
                   <div class="flex items-center justify-between gap-1 leading-tight h-full pointer-events-none">
                     <span
                       class="truncate text-[11px]"
                       :class="event.label ? 'font-bold tracking-normal' : 'font-extrabold uppercase tracking-wide'"
-                      :title="event.label ? `${event.label} · ${event.timeRange}` : event.title"
                     >{{ event.title }}</span>
                     <!-- A named hold shows only its start time. The full range
                          took more than half the block and left the label as
@@ -960,14 +985,15 @@
                           <div class="min-w-0 flex-1">
                             <div class="flex items-center justify-between gap-1">
                               <span class="text-xs font-semibold text-slate-900 group-hover:text-rose-700">
-                                Every {{ selectionWeekdayLong }} (Template)
+                                Every {{ selectionWeekdayLong }}
                               </span>
                               <span class="text-[10px] font-semibold text-rose-600 bg-rose-50 border border-rose-200/60 px-1.5 py-0.5 rounded">
                                 Recurring
                               </span>
                             </div>
                             <p class="mt-0.5 text-[11px] leading-relaxed text-slate-500 group-hover:text-slate-600">
-                              Permanently removes {{ selectionSummary?.timeRange }} from your weekly schedule template.
+                              Removes {{ selectionSummary?.timeRange }} from every upcoming {{ selectionWeekdayLong }} — the
+                              template's and any a repeat rule wrote.
                             </p>
                           </div>
                         </div>
@@ -1061,7 +1087,7 @@
                 rel="noopener"
                 class="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-sm"
               >
-                <span>📹</span>
+                <i class="fa-solid fa-video text-sm"></i>
                 <span>Join Video Class</span>
               </a>
             </div>
@@ -2000,7 +2026,7 @@ const selectionRepeats = computed(() => {
       const slotKey = teacher.scheduleSlots[sl]?.key;
       if (!slotKey) continue;
       if (teacher.getSlotStatus(day.dayKey, slotKey) === 'closed') continue;
-      if (!teacher.patternHasSlot(day.dayKey, slotKey)) return false;
+      if (!teacher.slotRepeats(day.dayKey, slotKey)) return false;
       any = true;
     }
   }
@@ -2032,6 +2058,9 @@ const clearSelectionEveryWeek = () => {
     }
   }
   teacher.clearPatternSlots(pairs);
+  // A rule's hours are not in the template, so dropping it from there leaves
+  // them standing in every week the rule reached.
+  teacher.clearRecurringSlots(pairs);
   // The week in view may hold its own copy of those hours, and the instructor
   // is looking straight at it.
   writePlan('closed', '');
@@ -2343,12 +2372,19 @@ const customPreview = computed(() => (showCustomRecurrence.value ? planSummary.v
 const writePlan = (status, reason) => {
   const r = selectionRect.value;
   if (!r) return 0;
+  // A rule that writes more than one date is what makes an hour recur. The
+  // board reads this back, so an hour set to repeat says so straight away
+  // rather than waiting to be compared against next week.
+  const recurs = status !== 'closed' && recurrencePlan.value.writable.length > 1;
   let written = 0;
 
   recurrencePlan.value.writable.forEach(({ weekStartIso, dayKey }) => {
     for (let sl = r.s0; sl <= r.s1; sl += 1) {
       const slotKey = teacher.scheduleSlots[sl]?.key;
-      if (slotKey) written += teacher.setSlotStatusOn(weekStartIso, dayKey, slotKey, status, reason);
+      if (!slotKey) continue;
+      const n = teacher.setSlotStatusOn(weekStartIso, dayKey, slotKey, status, reason);
+      if (n && recurs) teacher.markRecurring(weekStartIso, dayKey, slotKey);
+      written += n;
     }
   });
   return written;
@@ -2486,6 +2522,9 @@ const getEventsForDay = (day) => {
     if (!slotKey) continue;
 
     const status = teacher.getSlotStatus(dayKey, slotKey);
+    // Whether this hour comes back — from the weekly template, or from a
+    // repeat rule that wrote it into the weeks ahead.
+    const repeats = teacher.slotRepeats(dayKey, slotKey);
     const top = s * 32;
     const height = 31;
     const timeRange = `${formatSlotTime(s)} – ${formatSlotTime(s + 1)}`;
@@ -2501,11 +2540,13 @@ const getEventsForDay = (day) => {
         title: 'open',
         timeRange,
         bgColor: '#ecfdf5',
+        bandColor: '#a7f3d0',
         borderColor: '#10b981',
         textColor: '#065f46',
         modalHeaderBg: '#059669',
         typeLabel: 'Open',
         fullDateLabel: `${day.dayName}, ${day.iso}`,
+        repeats,
         canDelete: true,
       });
     } else if (status === 'reserved') {
@@ -2527,11 +2568,13 @@ const getEventsForDay = (day) => {
         reason,
         timeRange,
         bgColor: '#eef2ff',
+        bandColor: '#c7d2fe',
         borderColor: '#6366f1',
         textColor: '#3730a3',
         modalHeaderBg: '#4f46e5',
         typeLabel: 'Reserve',
         fullDateLabel: `${day.dayName}, ${day.iso}`,
+        repeats,
         canDelete: true,
       });
     }

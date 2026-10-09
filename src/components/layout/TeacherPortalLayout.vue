@@ -331,7 +331,7 @@
       >
         <p class="min-w-0 flex-1 truncate leading-5">
           <strong class="text-[11px] font-extrabold uppercase tracking-wide text-slate-300">
-            <span class="hidden sm:inline">Next lesson in </span>{{ teacher.nextReservation.minutesUntil }}m
+            <span class="hidden sm:inline">Next lesson in </span>{{ teacher.countdownLabel(teacher.nextReservation.minutesUntil) }}
           </strong>
           <span class="mx-1.5 text-slate-600">•</span>
           {{ teacher.nextReservation.studentName }}
@@ -344,7 +344,7 @@
           rel="noopener"
           class="shrink-0 inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] sm:text-xs transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
         >
-          <span>📹</span>
+          <i class="fa-solid fa-video text-[11px]"></i>
           <span class="hidden sm:inline">Start Lesson</span>
           <span class="sm:hidden">Start</span>
         </a>
@@ -632,6 +632,7 @@ const navItems = [
   { path: '/calendar', label: 'Scheduling', shortLabel: 'Schedule', icon: 'fa-regular fa-calendar-days' },
   { path: '/lessons', label: 'Lesson Log', shortLabel: 'Log', icon: 'fa-solid fa-clock-rotate-left', badge: 'feedback' },
   { path: '/writing', label: 'Writing', shortLabel: 'Writing', icon: 'fa-solid fa-pen-nib', badge: 'writing' },
+  { path: '/exams', label: 'Tests & Exams', shortLabel: 'Exams', icon: 'fa-solid fa-file-pen' },
   { path: '/analytics', label: 'Analytics', shortLabel: 'Stats', icon: 'fa-solid fa-chart-line' },
 ];
 

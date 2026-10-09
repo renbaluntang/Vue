@@ -70,7 +70,7 @@
     >
       <div class="flex flex-wrap items-center gap-2">
         <span class="rounded-md bg-emerald-950/90 border border-emerald-500/40 px-2.5 py-1 text-xs font-bold uppercase tracking-wider text-emerald-300 tabular-nums">
-          Next lesson • starts in {{ next.minutesUntil }} mins
+          Next lesson • starts in {{ teacher.countdownLabel(next.minutesUntil) }}
         </span>
         <span class="rounded-md bg-slate-800 border border-slate-700/80 px-2.5 py-1 text-xs font-medium text-slate-300 tabular-nums">
           {{ teacher.localRange(next) }}
@@ -129,7 +129,10 @@
             @click="selectedStudent = next"
             class="inline-flex items-center justify-center gap-1.5 rounded-lg border border-slate-700 bg-slate-800/80 hover:bg-slate-800 px-5 py-2.5 text-xs font-medium text-slate-200 transition active:scale-[0.98]"
           >
-            Lesson Details
+            <!-- The same glyph the Reservations hero puts on Details, because
+                 both buttons open the same panel. -->
+            <i class="fa-solid fa-circle-info text-xs"></i>
+            <span>Lesson Details</span>
           </button>
         </div>
       </div>
@@ -379,13 +382,6 @@ const todayDate = computed(() => formatToday({ month: 'long', day: 'numeric', ye
  * ---------------------------------------------------------------- */
 
 /** 148 -> "2h 28m". Durations, never a bare minute count past an hour. */
-const spanPhrase = (mins) => {
-  const h = Math.floor(mins / 60);
-  const m = mins % 60;
-  if (!h) return `${m}m`;
-  return m ? `${h}h ${m}m` : `${h}h`;
-};
-
 /** Past due first: a count is only useful if the worst of it is named. */
 const toClear = computed(() =>
   [...teacher.attentionItems].sort((a, b) => Number(b.urgent) - Number(a.urgent))
@@ -412,7 +408,7 @@ const todayCells = computed(() => {
     // A lesson tomorrow is not "in 19h" to anyone reading it — say the day.
     const sameDay = rows.some((row) => row.id === next.id);
     upNext = {
-      value: spanPhrase(next.minutesUntil),
+      value: teacher.countdownLabel(next.minutesUntil),
       unit: '',
       detail: sameDay
         ? `${next.studentName} · ${rangeHalf(next, 0)}`

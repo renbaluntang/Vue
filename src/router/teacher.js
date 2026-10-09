@@ -11,6 +11,7 @@ const routes = [
       { path: 'calendar', name: 't-calendar', component: () => import('../pages/teacher-portal/GoogleCalendarSchedulePage.vue') },
       { path: 'lessons', name: 't-lessons', component: () => import('../pages/teacher-portal/LessonLogPage.vue') },
       { path: 'writing', name: 't-writing', component: () => import('../pages/teacher-portal/WritingPage.vue') },
+      { path: 'exams', name: 't-exams', component: () => import('../pages/teacher-portal/ExamPage.vue') },
       { path: 'analytics', name: 't-analytics', component: () => import('../pages/teacher-portal/AnalyticsPage.vue') },
       { path: 'profile', name: 't-profile', component: () => import('../pages/teacher-portal/ProfilePage.vue') },
       // Anything retired lands on the reservation list rather than an empty view.

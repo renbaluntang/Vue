@@ -85,6 +85,26 @@ export const useTeacherStore = defineStore('teacher', () => {
     return `${shiftDateText(parts[1], converted.dayShift)} ${converted.time24}`;
   };
 
+  /**
+   * How long until something, split into the units people actually think in.
+   *
+   * "273 mins" is a number you have to divide before it tells you anything,
+   * and past a day it stops meaning anything at all — "2680 mins" is a wait
+   * nobody can picture.
+   */
+  const countdownLabel = (minutes) => {
+    const total = Math.max(0, Math.round(Number(minutes) || 0));
+    if (total < 60) return `${total}m`;
+    const parts = [];
+    const days = Math.floor(total / 1440);
+    const hours = Math.floor((total % 1440) / 60);
+    const mins = total % 60;
+    if (days) parts.push(`${days}d`);
+    if (hours) parts.push(`${hours}h`);
+    if (mins) parts.push(`${mins}m`);
+    return parts.join(' ');
+  };
+
   /** "6:00 PM – 6:30 PM PHT" in the viewed zone. */
   const localRange = (row) => {
     const raw = row?.rangeManila ?? '';
@@ -791,6 +811,54 @@ Nice to meet you all and I hope we can work together well.`,
     weekPattern.value = next;
   };
 
+  /**
+   * Hours a repeat rule wrote, kept per week as `{ [weekStart]: { id: true } }`.
+   *
+   * A daily or custom rule does not touch the weekly template: it writes real
+   * hours into each week it covers, and those weeks' own maps say nothing
+   * about where the hours came from. Without this record the board cannot tell
+   * an hour that comes back from one put down on its own.
+   */
+  const recurringSlots = ref({});
+
+  const markRecurring = (weekStartIso, dayKey, slotKey, on = true) => {
+    const week = weekStartOf(weekStartIso);
+    const id = `${dayKey}-${slotKey}`;
+    const current = recurringSlots.value[week];
+    if (on) {
+      recurringSlots.value[week] = { ...(current || {}), [id]: true };
+      return;
+    }
+    if (!current?.[id]) return;
+    const next = { ...current };
+    delete next[id];
+    if (Object.keys(next).length) recurringSlots.value[week] = next;
+    else delete recurringSlots.value[week];
+  };
+
+  const isRecurringOn = (weekStartIso, dayKey, slotKey) =>
+    !!recurringSlots.value[weekStartOf(weekStartIso)]?.[`${dayKey}-${slotKey}`];
+
+  /**
+   * Whether an hour on the week in view comes back — because the template
+   * carries it, or because a repeat rule wrote it. Both answers mean the same
+   * thing to the instructor, so the board asks one question.
+   */
+  const slotRepeats = (dayKey, slotKey) =>
+    patternHasSlot(dayKey, slotKey) || isRecurringOn(activeWeekStart.value, dayKey, slotKey);
+
+  /** Take hours out of every upcoming week a rule wrote them into. */
+  const clearRecurringSlots = (pairs) => {
+    Object.keys(recurringSlots.value)
+      .filter((iso) => iso >= thisWeekStart.value)
+      .forEach((iso) => {
+        pairs.forEach(({ dayKey, slotKey }) => {
+          if (!isRecurringOn(iso, dayKey, slotKey)) return;
+          setSlotStatusOn(iso, dayKey, slotKey, 'closed');
+        });
+      });
+  };
+
   const clonePattern = () => copyMap(weekPattern.value);
   const setPattern = (map) => { weekPattern.value = copyMap(map); };
 
@@ -1010,6 +1078,8 @@ Nice to meet you all and I hope we can work together well.`,
     beginWeekEdit();
     const id = `${dayKey}-${slotKey}`;
     if (status === 'closed') {
+      // The hour is gone, so the record of what put it there goes with it.
+      markRecurring(activeWeekStart.value, dayKey, slotKey, false);
       delete availability.value[id];
     } else if (status === 'reserved') {
       availability.value[id] = { status: 'reserved', reason: reason || 'Reserved' };
@@ -1322,7 +1392,7 @@ Nice to meet you all and I hope we can work together well.`,
     profile, fullName, isAway, toggleAway, teachesFreeConversation, googleCalendarLinked,
     googleCalendarAccount, googleCalendarSyncedAt, calendarSettingsOpen,
     linkGoogleCalendar, unlinkGoogleCalendar,
-    usesTokyo, localStart, localRange, viewZoneId, viewZoneAbbr, awaySince, imminentReservation,
+    usesTokyo, localStart, localRange, countdownLabel, viewZoneId, viewZoneAbbr, awaySince, imminentReservation,
     viewTimezone, viewTimezones, timezoneSettingsOpen,
     reservations, nextReservation, laterReservations, canJoin,
     writingTasks, pendingWritingCount, sendWritingReply, completeWritingTask,
@@ -1335,6 +1405,7 @@ Nice to meet you all and I hope we can work together well.`,
     goToWeek, shiftWeek, goToThisWeek, weekStartOf,
     manilaNow, isPastSlot, freeConversationNow, thisWeekOpenSlots,
     clonePattern, setPattern, upcomingEditedWeeks, republishPattern, upcomingHolds, getSlotStatusOn,
+    recurringSlots, markRecurring, isRecurringOn, slotRepeats, clearRecurringSlots,
     patternHasSlot, clearPatternSlots,
     getSlotReason, setSlotStatus, cycleSlot, toggleSlot, setDay, setDayStatus, setSlotRow, setSlotRowStatus,
     openSlotCount, reservedSlotCount, openHours, reservedHours, SLOT_MINUTES, SLOTS_PER_HOUR,
