@@ -8,7 +8,7 @@
   >
     <div
       v-if="isOpen"
-      class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+      class="fixed inset-0 z-50 !m-0 flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
       @click.self="close"
       role="dialog"
       aria-modal="true"

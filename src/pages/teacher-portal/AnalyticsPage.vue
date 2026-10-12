@@ -113,16 +113,12 @@
           <!-- Main Chart Layout: Y-Axis on left, Plot area on right with bars aligned flush to bottom -->
           <div class="flex items-stretch gap-3">
             
-            <!-- Y-Axis Labels (100% to 0%) -->
+            <!-- Y-Axis Labels: Number of Open Slots instead of percentage -->
             <div class="flex flex-col justify-between text-[11px] font-bold text-slate-400 tabular-nums w-8 text-right py-0 select-none h-48">
-              <span>100%</span>
-              <span>75%</span>
-              <span>50%</span>
-              <span>25%</span>
-              <span>0%</span>
+              <span v-for="tick in axisSlotsTicks" :key="tick">{{ tick }}</span>
             </div>
 
-            <!-- Plot Area: 5 Horizontal Gridlines + Bars sitting flush on the 0% baseline -->
+            <!-- Plot Area: 5 Horizontal Gridlines + Bars sitting flush on the 0 slots baseline -->
             <div class="relative flex-1 h-48">
               
               <!-- Background Gridlines -->
@@ -146,21 +142,31 @@
                     {{ pointBooked(point) }} / {{ pointTotal(point) }} slots ({{ pointPercentage(point) }}%)
                   </div>
 
-                  <!-- Individual Bar matching image: Blue Floating Cap + Gap + Pink Pill Gradient Body -->
-                  <div
-                    class="w-full flex flex-col items-center justify-end transition-all duration-300"
-                    :style="{ height: `${Math.max(16, Math.round((pointPercentage(point) / 100) * 190))}px` }"
-                  >
-                    <!-- 1. Floating horizontal accent cap: vibrant blue rounded line sitting directly over bar -->
-                    <div class="w-full h-[3.5px] rounded-full bg-[#1877f2] shadow-xs shrink-0"></div>
+                  <!-- Stacked Bar: The open slot pillar height is 100% mathematically proportional to maxSlotsAxis -->
+                  <div class="w-full flex flex-col items-center justify-end relative">
+                    <!-- Floating Slot Count Tag (e.g. 5/10) directly above the cap line -->
+                    <div class="absolute -top-6 inset-x-0 text-center whitespace-nowrap pointer-events-none">
+                      <span class="text-xs font-black text-slate-800 tabular-nums">
+                        {{ pointBooked(point) }}<span class="text-[10px] text-slate-400 font-bold">/{{ pointTotal(point) }}</span>
+                      </span>
+                    </div>
 
-                    <!-- 2. Distinct whitespace gap between blue cap and bar body -->
-                    <div class="h-[3px] shrink-0"></div>
+                    <!-- 1. Floating horizontal accent cap line -->
+                    <div class="w-full h-[3.5px] rounded-full bg-[#1875f0] shadow-xs mb-[2px]"></div>
 
-                    <!-- 3. Rounded top gradient pillar matching exact pink-to-fade colors in reference -->
+                    <!-- 2. Vertical Bar Pillar representing Total Open Slots (light blue track) -->
+                    <!-- Height is EXACTLY (pointTotal / maxSlotsAxis) * 192px so 10 slots matches the 10-line precisely -->
                     <div
-                      class="w-full flex-1 rounded-t-[7px] bg-gradient-to-b from-[#e579b7] via-[#eb91c4] to-[#fcebf4]/30"
-                    ></div>
+                      class="w-full rounded-t-[7px] bg-[#c2e7fd] relative flex flex-col justify-end overflow-hidden shadow-inner"
+                      :style="{ height: `${Math.round((pointTotal(point) / maxSlotsAxis) * 180)}px` }"
+                      :title="`${pointBooked(point)} booked of ${pointTotal(point)} open slots (${pointPercentage(point)}%)`"
+                    >
+                      <!-- Booked portion filling from the bottom up in rich vibrant blue (same as donut meter) -->
+                      <div
+                        class="w-full rounded-t-[5px] bg-[#1976d2] transition-all duration-500 shadow-sm"
+                        :style="{ height: `${pointPercentage(point)}%` }"
+                      ></div>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -174,23 +180,26 @@
               :key="point.label"
               class="flex-1 text-center"
             >
-              <p class="text-xs font-bold text-slate-700">{{ point.label }}</p>
-              <p class="text-[10px] font-black text-blue-600 tabular-nums mt-0.5">{{ pointPercentage(point) }}%</p>
+              <p class="text-xs font-black text-slate-800">{{ point.label }}</p>
+              <p class="text-[11px] font-bold text-slate-500 tabular-nums">
+                {{ pointBooked(point) }} of {{ pointTotal(point) }}
+              </p>
+              <p class="text-[10px] font-black text-[#1877f2] tabular-nums mt-0.5">{{ pointPercentage(point) }}%</p>
             </div>
           </div>
         </div>
 
         <!-- Legend Footer -->
         <div class="mt-8 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold text-slate-500">
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-4">
             <span class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-pink-400"></span> Primary Bookings
+              <span class="w-2.5 h-2.5 rounded-full bg-[#1976d2]"></span> Booked Slots
             </span>
             <span class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-sky-400"></span> Repeat Sessions
+              <span class="w-2.5 h-2.5 rounded-full bg-[#c2e7fd]"></span> Open Capacity
             </span>
             <span class="flex items-center gap-1.5">
-              <span class="w-2.5 h-2.5 rounded-full bg-slate-300"></span> Standard Slots
+              <span class="w-2.5 h-1 rounded-full bg-[#1875f0]"></span> Capacity Cap
             </span>
           </div>
           <span class="text-slate-400 font-medium">Auto-updated from live schedule</span>
@@ -345,10 +354,25 @@ const overallBookingRate = computed(() => {
   return Math.round((totalBookedSlots.value / totalOpenSlots.value) * 100);
 });
 
-const bucketNoun = computed(() => (activeRange.value === 'This month' ? 'week' : 'period'));
-const averagePerBucket = computed(() =>
-  Math.round(data.value.lessons / Math.max(1, data.value.series.length))
-);
+const maxSlotsAxis = computed(() => {
+  const max = Math.max(...data.value.series.map(p => pointTotal(p)), 1);
+  if (max <= 12) return 12; // Gives clean ticks: 12, 9, 6, 3, 0 (so 10 and 11 slots clearly rise past 8/9!)
+  if (max <= 16) return 16; // Ticks: 16, 12, 8, 4, 0
+  if (max <= 20) return 20; // Ticks: 20, 15, 10, 5, 0
+  return Math.ceil(max / 4) * 4;
+});
+
+const axisSlotsTicks = computed(() => {
+  const max = maxSlotsAxis.value;
+  const step = max / 4;
+  return [
+    max,
+    Math.round(step * 3),
+    Math.round(step * 2),
+    Math.round(step * 1),
+    0,
+  ];
+});
 
 /* The ring: one arc against a capacity, inset 1px at each end so the fill
    never butts straight into its own track. */

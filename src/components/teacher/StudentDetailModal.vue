@@ -5,7 +5,7 @@
   >
     <div
       v-if="student"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-2 sm:p-5 backdrop-blur-xs overflow-y-auto"
+      class="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-slate-900/60 p-2 sm:p-5 backdrop-blur-xs overflow-y-auto"
       @click.self="$emit('close')"
     >
       <!-- Landscape Rectangle Modal Container: wide aspect layout, self-contained card matching user image -->

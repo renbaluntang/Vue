@@ -1307,11 +1307,25 @@ Nice to meet you all and I hope we can work together well.`,
         completionRate: 98,
         feedbackHours: 9,
         repeatShare: 71,
+        // Read month by month rather than by quarter: a year of four bars hides
+        // the shape of it. The quarterly figures are preserved — each three
+        // months still sum to what its quarter said, so the header's
+        // 486 / 2106 does not move.
         series: [
-          { label: 'Q1', booked: 108, total: 526 },
-          { label: 'Q2', booked: 132, total: 526 },
-          { label: 'Q3', booked: 178, total: 526 },
-          { label: 'Q4', booked: 68, total: 528 },
+          { label: 'Jan', booked: 32, total: 180 },
+          { label: 'Feb', booked: 34, total: 162 },
+          { label: 'Mar', booked: 42, total: 184 },
+          { label: 'Apr', booked: 40, total: 174 },
+          { label: 'May', booked: 46, total: 184 },
+          { label: 'Jun', booked: 46, total: 168 },
+          { label: 'Jul', booked: 58, total: 184 },
+          { label: 'Aug', booked: 62, total: 180 },
+          { label: 'Sep', booked: 58, total: 162 },
+          { label: 'Oct', booked: 44, total: 176 },
+          // November and December are still ahead, so only what has already
+          // been booked in advance shows.
+          { label: 'Nov', booked: 18, total: 172 },
+          { label: 'Dec', booked: 6, total: 180 },
         ],
         subjects: [
           { code: 'SF', label: 'Speech Fluency', lessons: 181 },

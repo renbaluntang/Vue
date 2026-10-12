@@ -556,7 +556,7 @@
     <!-- ======================================================== -->
     <div
       v-if="previewExamData"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto"
+      class="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto"
       @click.self="previewExamData = null"
     >
       <div class="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden my-8">
