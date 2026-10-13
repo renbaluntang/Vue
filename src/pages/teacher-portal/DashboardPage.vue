@@ -143,7 +143,7 @@
       <RouterLink to="/schedule" class="font-bold text-brighture-bronze hover:underline">Scheduling</RouterLink>.
     </p>
 
-    <!-- ===== Main Workspace: Today's Lessons + Week at a Glance vs Attention Items ===== -->
+    <!-- ===== Main Workspace: Today's Lessons vs Attention Items ===== -->
     <div class="grid gap-6 xl:grid-cols-3">
       <!-- Left Column: Today + Week load -->
       <section class="min-w-0 space-y-4 xl:col-span-2">
@@ -206,57 +206,6 @@
         <p v-else class="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center text-sm text-slate-500">
           Nothing scheduled today.
         </p>
-
-        <!-- ===== Week at a glance ===== -->
-        <!-- Tell 1: Flat solid accent bar fill (no gradient). -->
-        <!-- Tell 4: Hairline borders, no floating drop shadow. -->
-        <div class="rounded-xl border border-slate-200 bg-white p-5">
-          <div class="flex items-center justify-between gap-3">
-            <div>
-              <h3 class="text-xs font-semibold uppercase tracking-wider text-slate-500">Week at a glance</h3>
-              <p class="mt-1 text-xs text-slate-500">
-                <strong class="font-bold text-slate-900 tabular-nums">{{ teacher.weeklyBooked }}</strong> booked of
-                <strong class="font-bold text-slate-900 tabular-nums">{{ teacher.weeklyOpen }}</strong> slots opened
-              </p>
-            </div>
-            <RouterLink to="/schedule" class="text-xs font-medium text-brighture-bronze hover:underline">
-              Edit availability &rarr;
-            </RouterLink>
-          </div>
-
-          <div class="mt-5 flex items-end justify-between gap-2">
-            <div v-for="day in teacher.weeklyLoad" :key="day.key" class="flex flex-1 flex-col items-center gap-1.5">
-              <div class="flex h-24 w-full max-w-[32px] flex-col justify-end overflow-hidden rounded-md bg-slate-100">
-                <div
-                  v-if="day.free"
-                  class="w-full bg-slate-200"
-                  :style="{ height: `${barHeight(day.free)}%` }"
-                  :title="`${day.free} slots still open`"
-                ></div>
-                <!-- Flat accent solid fill, no gradient -->
-                <div
-                  v-if="day.booked"
-                  class="w-full bg-brighture-gold"
-                  :style="{ height: `${barHeight(day.booked)}%` }"
-                  :title="`${day.booked} lessons booked`"
-                ></div>
-              </div>
-              <p class="text-[10px] font-medium text-slate-500">{{ day.label }}</p>
-              <p class="text-[10px] font-bold text-slate-800 tabular-nums">{{ day.booked }}</p>
-            </div>
-          </div>
-
-          <div class="mt-4 flex items-center gap-4 border-t border-slate-100 pt-3 text-xs text-slate-500">
-            <span class="flex items-center gap-1.5">
-              <span class="h-2.5 w-2.5 rounded-xs bg-brighture-gold"></span>
-              Booked
-            </span>
-            <span class="flex items-center gap-1.5">
-              <span class="h-2.5 w-2.5 rounded-xs bg-slate-200"></span>
-              Open slots
-            </span>
-          </div>
-        </div>
       </section>
 
       <!-- Right Column: Needs attention and recent feedback -->
@@ -433,10 +382,4 @@ const todayCells = computed(() => {
     { key: 'clear', label: 'To clear', ...clear },
   ];
 });
-
-// Scaled against the busiest day so the tallest column always fills the track.
-const busiestDay = computed(() =>
-  Math.max(1, ...teacher.weeklyLoad.map((day) => Math.max(day.open, day.booked)))
-);
-const barHeight = (value) => Math.round((value / busiestDay.value) * 100);
 </script>

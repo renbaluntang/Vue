@@ -633,7 +633,7 @@ const navItems = [
   { path: '/lessons', label: 'Lesson Log', shortLabel: 'Log', icon: 'fa-solid fa-clock-rotate-left', badge: 'feedback' },
   { path: '/writing', label: 'Writing', shortLabel: 'Writing', icon: 'fa-solid fa-pen-nib', badge: 'writing' },
   { path: '/exams', label: 'Tests & Exams', shortLabel: 'Exams', icon: 'fa-solid fa-file-pen' },
-  { path: '/chat', label: 'Messages', shortLabel: 'Chat', icon: 'fa-solid fa-comments' },
+  { path: '/chat', label: 'Messages', shortLabel: 'Chat', icon: 'fa-solid fa-comments', badge: 'chat' },
   { path: '/analytics', label: 'Analytics', shortLabel: 'Stats', icon: 'fa-solid fa-chart-line' },
 ];
 
@@ -649,6 +649,7 @@ const offNavTitles = { '/profile': 'Profile Setting', '/schedule': 'Availability
 const badgeFor = (item) => {
   if (item.badge === 'writing') return teacher.pendingWritingCount || 0;
   if (item.badge === 'feedback') return teacher.pendingFeedback.length || 0;
+  if (item.badge === 'chat') return 1; // 1 unread message from Aiko Tanaka
   return 0;
 };
 

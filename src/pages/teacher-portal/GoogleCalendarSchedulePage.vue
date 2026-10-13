@@ -329,8 +329,10 @@
                 <div
                   v-if="!liftedOut(dayIdx, event.slotIndex)"
                   @click.stop="onEventClick(event)"
+                  @mouseenter="hoveredEvent = event"
+                  @mouseleave="hoveredEvent = null"
                   :data-locked="event.canDelete ? null : 'true'"
-                  class="absolute inset-x-1 rounded-lg pr-2 py-1 overflow-hidden shadow-xs transition-all z-10 text-xs border"
+                  class="group absolute inset-x-1 rounded-lg pr-2 py-1 overflow-hidden shadow-xs transition-all z-10 text-xs border"
                   :class="[
                     isSlotEditable(day, event.slotIndex)
                       ? 'hover:shadow-md hover:ring-2 hover:ring-indigo-400/80 hover:brightness-105 cursor-pointer'
@@ -344,7 +346,7 @@
                     borderColor: event.borderColor,
                     color: event.textColor,
                   }"
-                  :title="`${event.title} • ${event.timeRange} • ${event.repeats ? 'repeats every week' : 'this week only'}`"
+                  :title="event.status === 'reserved' ? null : `${event.title} • ${event.timeRange} • ${event.repeats ? 'repeats every week' : 'this week only'}`"
                 >
                   <!-- A hold with a note is called by its note; without one it
                        falls back to the status word. The time is never dropped,
@@ -375,12 +377,62 @@
                          took more than half the block and left the label as
                          "De…", which is no label at all; the block's position
                          and the hour column already say where it sits. -->
-                    <span class="text-[10px] opacity-80 shrink-0 tabular-nums font-mono font-bold">
+                    <span
+                      class="text-[10px] opacity-80 shrink-0 tabular-nums font-mono font-bold"
+                      :class="event.status === 'reserved' && isSlotEditable(day, event.slotIndex) ? 'group-hover:invisible' : ''"
+                    >
                       {{ event.label ? event.startTime : event.timeRange }}
                     </span>
                   </div>
+
+                  <!-- Clears the hold in one move. It takes the start time's
+                       place on hover rather than sitting beside it, so the
+                       label keeps its width at narrow week columns. -->
+                  <button
+                    v-if="event.status === 'reserved' && isSlotEditable(day, event.slotIndex)"
+                    type="button"
+                    @mousedown.stop
+                    @click.stop="deleteEvent(event); hoveredEvent = null"
+                    class="absolute right-1 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full opacity-0 transition group-hover:opacity-100 hover:bg-indigo-200 cursor-pointer"
+                    :aria-label="`Remove ${event.title} at ${event.timeRange}`"
+                  >
+                    <i class="fa-solid fa-xmark text-[10px]"></i>
+                  </button>
                 </div>
               </template>
+
+              <!-- Hover card for a reserved hour. A sibling of the block, not a
+                   child, because the block clips its overflow. It opens below
+                   the hour, or above it near the bottom of the day, and hugs
+                   the right edge on the last columns so it stays on screen. -->
+              <div
+                v-if="hoveredEvent && hoveredEvent.status === 'reserved' && hoveredEvent.dayKey === day.dayKey && !isDragging"
+                class="pointer-events-none absolute z-40 w-56 rounded-xl border border-slate-200 bg-white p-3 text-xs shadow-lg"
+                :class="dayIdx >= viewDays.length - 2 && viewDays.length > 2 ? 'right-1' : 'left-1'"
+                :style="hoveredEvent.slotIndex > 40
+                  ? { bottom: `${1536 - hoveredEvent.top + 4}px` }
+                  : { top: `${hoveredEvent.top + hoveredEvent.height + 4}px` }"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="h-2.5 w-2.5 shrink-0 rounded-full" :style="{ backgroundColor: hoveredEvent.borderColor }"></span>
+                  <p class="truncate text-sm font-bold text-slate-900">{{ hoveredEvent.label || 'Reserved' }}</p>
+                </div>
+                <div class="mt-2 space-y-1.5 text-slate-600">
+                  <p class="flex items-center gap-2">
+                    <i class="fa-regular fa-calendar w-3.5 text-center text-slate-400"></i>
+                    {{ hoveredEvent.fullDateLabel }}
+                  </p>
+                  <p class="flex items-center gap-2">
+                    <i class="fa-regular fa-clock w-3.5 text-center text-slate-400"></i>
+                    <span class="tabular-nums">{{ hoveredEvent.timeRange }}</span>
+                    <span class="text-slate-400">{{ activeZoneInfo.abbr }}</span>
+                  </p>
+                  <p class="flex items-center gap-2">
+                    <i class="fa-solid fa-rotate w-3.5 text-center text-slate-400"></i>
+                    {{ hoveredEvent.repeats ? 'Repeats every week' : 'This week only' }}
+                  </p>
+                </div>
+              </div>
 
               <!-- The run in hand: the same blocks, at the hours they would
                    land on, lifted off the board with a shadow. -->
@@ -1157,6 +1209,8 @@ const viewModeLabels = {
 const anchorDate = ref(new Date());
 const scrollContainer = ref(null);
 const selectedEvent = ref(null);
+// The reserved block under the pointer, for its hover card.
+const hoveredEvent = ref(null);
 
 // Modal state
 const isCreateModalOpen = ref(false);
@@ -2573,6 +2627,7 @@ const getEventsForDay = (day) => {
         textColor: '#3730a3',
         modalHeaderBg: '#4f46e5',
         typeLabel: 'Reserve',
+        status: 'reserved',
         fullDateLabel: `${day.dayName}, ${day.iso}`,
         repeats,
         canDelete: true,

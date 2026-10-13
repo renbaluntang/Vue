@@ -44,30 +44,31 @@
         <h2 class="text-base font-black text-slate-900">Class summary</h2>
         <p class="mt-0.5 text-[11px] font-medium text-slate-400 tabular-nums">{{ weekRangeLabel }}</p>
 
-        <!-- The number belongs in the middle of the ring with modern multi-segment donut style from reference -->
-        <div class="relative mx-auto mt-6 grid h-[175px] w-[175px] place-items-center">
+        <!-- Two thick rounded segments with a gap between them, set in a
+             faint outer ring around a raised white disc. Booked is hatched so
+             it reads apart from the open share by pattern, not by shade alone. -->
+        <div class="relative mx-auto mt-6 grid h-[175px] w-[175px] place-items-center rounded-full border border-slate-100">
           <svg viewBox="0 0 120 120" class="h-full w-full -rotate-90" role="img" :aria-label="capacityLabel">
-            <!-- Background base track -->
-            <circle cx="60" cy="60" :r="RING_R" fill="none" stroke="#f1f5f9" stroke-width="12" />
-            <!-- Open available track (soft sky/cyan tone) -->
+            <defs>
+              <pattern id="bookedHatch" width="5" height="5" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <rect width="5" height="5" fill="#ffffff" />
+                <rect width="2.6" height="5" fill="#1d7bf0" />
+              </pattern>
+            </defs>
             <circle
+              v-for="seg in capacity.segments"
+              :key="seg.key"
               cx="60" cy="60" :r="RING_R"
               fill="none"
-              stroke="#bae6fd"
-              stroke-width="12"
-            />
-            <!-- Booked active progress segment (vibrant blue) -->
-            <circle
-              v-if="capacity.booked"
-              cx="60" cy="60" :r="RING_R"
-              fill="none"
-              stroke="#0284c7"
-              stroke-width="12"
+              :stroke="seg.stroke"
+              :stroke-width="RING_W"
               stroke-linecap="round"
-              :stroke-dasharray="capacity.dash"
-              stroke-dashoffset="-1"
+              :stroke-dasharray="seg.dash"
+              :stroke-dashoffset="seg.offset"
             />
           </svg>
+
+          <div class="absolute h-[115px] w-[115px] rounded-full border border-slate-100 bg-white"></div>
 
           <div class="absolute text-center flex flex-col items-center">
             <span class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Booked Slots</span>
@@ -78,7 +79,10 @@
 
         <ul class="mt-6 space-y-3">
           <li class="flex items-center gap-2.5">
-            <span class="h-2.5 w-2.5 shrink-0 rounded-full" style="background:#0284c7"></span>
+            <span
+              class="h-2.5 w-2.5 shrink-0 rounded-full ring-1 ring-[#1d7bf0]/40"
+              style="background: repeating-linear-gradient(135deg, #1d7bf0 0 1.5px, #ffffff 1.5px 3px)"
+            ></span>
             <span class="text-xs font-black text-slate-900 tabular-nums">{{ capacity.booked }}</span>
             <span class="min-w-0 truncate text-xs font-medium text-slate-500">Booked class</span>
           </li>
@@ -206,6 +210,255 @@
         </div>
       </section>
 
+      <!-- ===== PEAK DEMAND: PEAK HOURS & PEAK DAYS SECTION ===== -->
+      <!-- Peak Day Analytics (Donut/Bar Card) -->
+      <section class="min-w-0 rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs flex flex-col justify-between">
+        <div>
+          <div class="flex items-center justify-between gap-2">
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-[0.16em] text-brighture-bronze">Weekly Demand Pattern</p>
+              <h2 class="mt-0.5 text-base sm:text-lg font-black text-slate-900">Peak Day</h2>
+            </div>
+            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-800 text-[11px] font-black">
+              <i class="fa-solid fa-fire text-amber-500"></i>
+              {{ data.peakDay?.name || 'Thursday' }}
+            </span>
+          </div>
+
+          <!-- Peak Day Highlight Banner -->
+          <div class="mt-4 p-3.5 rounded-2xl bg-gradient-to-br from-amber-50/80 to-amber-100/50 border border-amber-200/60 flex items-center justify-between">
+            <div>
+              <p class="text-[11px] font-bold text-amber-800">Busiest Day Rate</p>
+              <p class="text-xl font-black text-slate-900 mt-0.5">{{ data.peakDay?.share || '25%' }} <span class="text-xs font-semibold text-slate-500">of bookings</span></p>
+            </div>
+            <div class="text-right">
+              <span class="text-[10px] uppercase font-black tracking-wider text-amber-700">Insight</span>
+              <p class="text-xs font-bold text-slate-700 max-w-[150px] leading-tight">{{ data.peakDay?.note || 'Highest booking rate' }}</p>
+            </div>
+          </div>
+
+          <!-- Peak Day Breakdown: one column per weekday. Every day but the
+               peak is a hatched ghost, so the eye lands on the one solid bar;
+               the dotted line is the daily average, tagged in the left gutter
+               so the tag never sits on a bar. -->
+          <div class="mt-6">
+            <div class="relative h-40 pl-14">
+              <div
+                class="pointer-events-none absolute inset-x-0 z-20 flex translate-y-1/2 items-center"
+                :style="{ bottom: `${peakChart.avgPct}%` }"
+              >
+                <span class="avg-tag relative shrink-0 rounded-l-md bg-slate-900 py-0.5 pl-1.5 pr-2.5 text-[10px] font-bold text-white tabular-nums">
+                  Avg {{ peakChart.avg }}
+                </span>
+                <span class="flex-1 border-t-2 border-dotted border-slate-400/80"></span>
+              </div>
+
+              <div class="flex h-full items-end justify-between gap-1.5">
+                <div
+                  v-for="d in data.peakDays"
+                  :key="d.day"
+                  class="relative flex h-full flex-1 items-end justify-center"
+                >
+                  <span
+                    v-if="d.isPeak"
+                    class="absolute z-30 whitespace-nowrap text-xs font-black text-slate-900 tabular-nums"
+                    :style="{ bottom: `calc(${peakChart.pct(d.lessons)}% + 6px)` }"
+                  >{{ d.lessons }} classes</span>
+                  <div
+                    class="w-full max-w-[34px] rounded-t-lg transition-all duration-500"
+                    :class="d.isPeak ? 'bar-peak' : 'bar-ghost'"
+                    :style="{ height: `${Math.max(3, peakChart.pct(d.lessons))}%` }"
+                    :title="`${d.full}: ${d.lessons} classes`"
+                  ></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-2 flex justify-between gap-1.5 pl-14">
+              <span
+                v-for="d in data.peakDays"
+                :key="d.day"
+                class="flex-1 text-center text-[11px] font-bold"
+                :class="d.isPeak ? 'text-[#4285f4]' : 'text-slate-400'"
+              >{{ d.day }}</span>
+            </div>
+          </div>
+        </div>
+
+        <p class="mt-4 pt-3 border-t border-slate-100 text-[11px] text-slate-400 font-medium">
+          Opening more slots on <strong class="text-slate-700">{{ data.peakDay?.name }}</strong> typically fills in &lt; 24h.
+        </p>
+      </section>
+
+      <!-- Peak Hours Area Graph (2 Columns Wide on XL - Styled matching user's reference image) -->
+      <section class="min-w-0 rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs xl:col-span-2 flex flex-col justify-between">
+        <div>
+          <!-- Header with Title & Legend in top-right like user's reference -->
+          <div class="flex items-center justify-between gap-3">
+            <div>
+              <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Time-of-day traffic</p>
+              <h2 class="mt-0.5 text-base sm:text-lg font-black text-slate-900">Peak Hours</h2>
+              <!-- Says outright that the curve is a total over the whole range,
+                   not one day: a single day never holds 64 classes at 2PM. -->
+              <p class="mt-0.5 text-xs font-medium text-slate-500">
+                Classes at each hour, all days {{ rangePhrase }} added together
+              </p>
+            </div>
+
+            <!-- Legend, naming the range so the chart reads with the switch -->
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-700 bg-slate-50 border border-slate-200/70 px-3 py-1 rounded-xl shadow-2xs">
+                <span class="w-3 h-3 rounded-full bg-[#4285f4] shadow-xs"></span>
+                <span>Classes · {{ weekRangeLabel }}</span>
+              </span>
+            </div>
+          </div>
+
+          <!-- Main Chart Container matching user reference image -->
+          <div class="mt-6 pt-2">
+            <div class="flex items-stretch gap-2 sm:gap-3">
+              <!-- Y-Axis Labels: 75, 50, 25, 0 (Identical to reference image) -->
+              <div class="flex flex-col justify-between text-[11px] font-bold text-slate-400 tabular-nums w-6 sm:w-7 text-right select-none h-48 py-0.5">
+                <span>75</span>
+                <span>50</span>
+                <span>25</span>
+                <span>0</span>
+              </div>
+
+              <!-- Plot Area with horizontal gridlines and SVG area wave -->
+              <div class="relative flex-1 h-48">
+                <!-- Horizontal Gridlines matching reference -->
+                <div class="absolute inset-0 flex flex-col justify-between pointer-events-none">
+                  <div class="border-b border-slate-200/70 w-full"></div>
+                  <div class="border-b border-slate-200/70 w-full"></div>
+                  <div class="border-b border-slate-200/70 w-full"></div>
+                  <div class="border-b border-slate-300 w-full"></div>
+                </div>
+
+                <!-- SVG Area and Line Curve (Exact match to reference) -->
+                <svg
+                  viewBox="0 0 1000 220"
+                  preserveAspectRatio="none"
+                  class="absolute inset-0 h-full w-full overflow-visible"
+                >
+                  <defs>
+                    <!-- Soft light blue fill matching reference -->
+                    <linearGradient id="peakAreaGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stop-color="#4285f4" stop-opacity="0.22" />
+                      <stop offset="100%" stop-color="#4285f4" stop-opacity="0.08" />
+                    </linearGradient>
+                  </defs>
+
+                  <!-- Shaded Area polygon under curve -->
+                  <path
+                    :d="peakAreaPath"
+                    fill="url(#peakAreaGradient)"
+                  />
+
+                  <!-- Smooth Solid Blue Stroke line -->
+                  <path
+                    :d="peakLinePath"
+                    fill="none"
+                    stroke="#4285f4"
+                    stroke-width="3"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+
+                  <!-- Data Point Nodes (Interactive on Hover) -->
+                  <g v-for="(pt, idx) in peakSvgCoords" :key="idx">
+                    <!-- Invisible wider hover hit target -->
+                    <circle
+                      :cx="pt.x"
+                      :cy="pt.y"
+                      r="12"
+                      fill="transparent"
+                      class="cursor-pointer"
+                      @mouseenter="hoveredPeakPoint = pt"
+                      @mouseleave="hoveredPeakPoint = null"
+                    />
+                  </g>
+                </svg>
+
+                <!-- Point dots for the peak and the hovered hour. Drawn in HTML,
+                     not in the SVG, because the SVG stretches to fit and would
+                     squash a circle into an oval. -->
+                <span
+                  v-for="pt in peakSvgCoords.filter((p) => p.isPeak || hoveredPeakPoint?.time === p.time)"
+                  :key="`dot-${pt.time}`"
+                  class="pointer-events-none absolute z-30 h-2.5 w-2.5 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[#4285f4] ring-2 ring-white"
+                  :style="{ left: `${pt.x / 10}%`, top: `${(pt.y / 220) * 100}%` }"
+                ></span>
+
+                <!-- The peak, marked the way the Peak Day bars mark theirs: a
+                     dotted line at its height, tagged on the left where the
+                     night hours leave the plot empty, and its count above the
+                     point. Hidden while hovering so it does not collide with
+                     the tooltip. -->
+                <template v-if="peakMark && !hoveredPeakPoint">
+                  <div
+                    class="pointer-events-none absolute inset-x-0 z-20 flex -translate-y-1/2 items-center"
+                    :style="{ top: `${peakMark.topPct}%` }"
+                  >
+                    <span class="avg-tag relative shrink-0 rounded-l-md bg-slate-900 py-0.5 pl-1.5 pr-2.5 text-[10px] font-bold text-white tabular-nums">
+                      Peak {{ peakMark.time }}
+                    </span>
+                    <span class="flex-1 border-t-2 border-dotted border-slate-400/80"></span>
+                  </div>
+                  <span
+                    class="pointer-events-none absolute z-30 -translate-x-1/2 whitespace-nowrap text-xs font-black text-slate-900 tabular-nums"
+                    :style="{ left: `${peakMark.leftPct}%`, bottom: `calc(${100 - peakMark.topPct}% + 10px)` }"
+                  >{{ peakMark.value }} classes</span>
+                </template>
+
+                <!-- Floating Tooltip on Hover -->
+                <div
+                  v-if="hoveredPeakPoint"
+                  class="absolute -top-9 px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[10px] font-black pointer-events-none shadow-md whitespace-nowrap transition-all -translate-x-1/2 z-30"
+                  :style="{ left: `${hoveredPeakPoint.x / 10}%` }"
+                >
+                  {{ hoveredPeakPoint.time }}: {{ hoveredPeakPoint.value }} {{ hoveredPeakPoint.value === 1 ? 'class' : 'classes' }}
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom X-Axis Ticks & Labels matching reference: 1AM, 4AM, 7AM, 10AM, 1PM, 4PM, 7PM, 10PM -->
+            <div class="relative pl-8 sm:pl-10 mt-1">
+              <!-- Subtle tick marks row -->
+              <div class="flex justify-between px-0.5 text-slate-300 pointer-events-none">
+                <span v-for="(pt, idx) in peakSvgCoords" :key="idx" class="w-[1px] h-1.5 bg-slate-200"></span>
+              </div>
+
+              <!-- Main Labels placed at key intervals matching user image -->
+              <div class="flex justify-between text-[10px] sm:text-[11px] font-semibold text-slate-500 pt-1 select-none">
+                <span>1AM</span>
+                <span>4AM</span>
+                <span>7AM</span>
+                <span>10AM</span>
+                <span>1PM</span>
+                <span>4PM</span>
+                <span>7PM</span>
+                <span>10PM</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Footer Note with Quick Metrics -->
+        <div class="mt-6 pt-3 border-t border-slate-100 flex flex-wrap items-center justify-between gap-3 text-[11px] font-bold text-slate-500">
+          <div class="flex items-center gap-3">
+            <span class="text-slate-700">
+              Peak Volume: <strong class="text-[#4285f4] font-black">{{ data.peakHour?.slot || '2PM (64 classes)' }}</strong>
+            </span>
+            <span class="text-slate-300">&bull;</span>
+            <span class="text-slate-600">
+              Active Window: <strong>{{ data.peakHour?.window || '2PM – 4PM' }}</strong>
+            </span>
+          </div>
+          <span class="text-slate-400 font-medium">Total per hour, {{ rangePhrase }}</span>
+        </div>
+      </section>
+
       <!-- ===== Ratings ===== -->
       <section class="min-w-0 rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm sm:p-6">
         <p class="text-[10px] font-black uppercase tracking-[0.16em] text-slate-400">Student voice</p>
@@ -311,10 +564,10 @@ const kpis = computed(() => [
     label: 'Hours taught', value: data.value.hours, icon: 'fa-solid fa-clock text-indigo-600', iconBg: 'bg-indigo-50',
   },
   {
-    label: 'Feedback turnaround',
-    value: `${data.value.feedbackHours}h`,
-    hint: 'median after a lesson',
-    icon: 'fa-solid fa-comment-dots text-rose-500',
+    label: 'Students',
+    value: data.value.students,
+    hint: 'taught in this period',
+    icon: 'fa-solid fa-user-group text-rose-500',
     iconBg: 'bg-rose-50',
   },
   {
@@ -325,6 +578,16 @@ const kpis = computed(() => [
     iconBg: 'bg-emerald-50',
   },
 ]);
+
+// Peak Day columns. The busiest day reaches 78% of the track, leaving headroom
+// for the count printed above it.
+const peakChart = computed(() => {
+  const days = data.value.peakDays || [];
+  const max = Math.max(1, ...days.map((d) => d.lessons));
+  const pct = (n) => (n / max) * 78;
+  const mean = days.length ? days.reduce((sum, d) => sum + d.lessons, 0) / days.length : 0;
+  return { pct, avg: mean.toFixed(1), avgPct: pct(mean) };
+});
 
 const totalRatings = computed(() => data.value.ratings.reduce((sum, row) => sum + row.count, 0));
 const attendanceTotal = computed(() => data.value.attendance.reduce((sum, row) => sum + row.count, 0));
@@ -374,10 +637,20 @@ const axisSlotsTicks = computed(() => {
   ];
 });
 
-/* The ring: one arc against a capacity, inset 1px at each end so the fill
-   never butts straight into its own track. */
-const RING_R = 44;
+/* The ring: booked and still-open as two separate arcs with a gap between
+   them. Round caps reach half the stroke past each end of a dash, so each
+   dash is shortened by a full stroke width on top of the gap. */
+// Snug between the outer outline (r 60 in viewBox units) and the white
+// disc (115px of 175px), leaving the same ~3px gap inside and out.
+const RING_R = 49.5;
+const RING_W = 16;
 const RING_C = 2 * Math.PI * RING_R;
+const RING_GAP = 2;
+
+/** The selected range as it reads mid-sentence: "all days this week". */
+const rangePhrase = computed(() => (
+  activeRange.value === 'Last 3 months' ? 'in the last 3 months' : activeRange.value.toLowerCase()
+));
 
 /** The dates behind "This week"; the longer ranges name themselves. */
 const weekRangeLabel = computed(() => {
@@ -398,14 +671,35 @@ const capacity = computed(() => {
   const open = data.value.capacity?.open ?? 0;
   const booked = Math.min(data.value.capacity?.booked ?? 0, open);
   const free = Math.max(0, open - booked);
-  const len = open && booked ? Math.max(0, (booked / open) * RING_C - 2) : 0;
   const hours = open / 2;
+
+  const parts = [
+    { key: 'booked', value: booked, stroke: 'url(#bookedHatch)' },
+    { key: 'open', value: free, stroke: '#bae6fd' },
+  ].filter((p) => p.value > 0);
+
+  // A lone share is a closed ring and needs no gap or caps.
+  let start = 0;
+  const segments = parts.map((p) => {
+    const arc = (p.value / open) * RING_C;
+    const seg = parts.length === 1
+      ? { key: p.key, stroke: p.stroke, dash: `${RING_C} 0`, offset: 0 }
+      : {
+        key: p.key,
+        stroke: p.stroke,
+        dash: `${Math.max(0.01, arc - RING_GAP - RING_W)} ${RING_C}`,
+        offset: -(start + (RING_GAP + RING_W) / 2),
+      };
+    start += arc;
+    return seg;
+  });
+
   return {
     open,
     booked,
     free,
     hours: Number.isInteger(hours) ? `${hours}h` : `${hours.toFixed(1)}h`,
-    dash: `${len} ${RING_C - len}`,
+    segments,
   };
 });
 
@@ -415,4 +709,79 @@ const toneBg = {
   amber: 'bg-amber-400',
   slate: 'bg-slate-300',
 };
+
+// SVG Area Chart calculations for Peak Hours (Matching reference exactly)
+const hoveredPeakPoint = ref(null);
+
+const peakPoints = computed(() => {
+  return data.value?.peakHours || [];
+});
+
+const peakSvgCoords = computed(() => {
+  const points = peakPoints.value;
+  if (!points || !points.length) return [];
+  const W = 1000;
+  const H = 220;
+  const maxY = 75; // 75 classes scale matching reference image Y-axis
+  const n = points.length;
+
+  return points.map((p, i) => {
+    const x = Math.round((i / (n - 1)) * W);
+    // Y-axis inverted in SVG: 0 at top, H at bottom
+    const y = Math.round(H - (Math.min(maxY, p.value) / maxY) * H);
+    return { ...p, x, y };
+  });
+});
+
+// The hour flagged as the peak, or the highest one if none is flagged, in
+// percentages of the plot so the HTML overlay lines up with the SVG.
+const peakMark = computed(() => {
+  const coords = peakSvgCoords.value;
+  if (!coords.length) return null;
+  const pt = coords.find((p) => p.isPeak)
+    || coords.reduce((best, p) => (p.value > best.value ? p : best));
+  return { ...pt, leftPct: pt.x / 10, topPct: (pt.y / 220) * 100 };
+});
+
+const peakLinePath = computed(() => {
+  const coords = peakSvgCoords.value;
+  if (!coords.length) return '';
+  return coords.reduce((acc, pt, idx) => {
+    return idx === 0 ? `M ${pt.x} ${pt.y}` : `${acc} L ${pt.x} ${pt.y}`;
+  }, '');
+});
+
+const peakAreaPath = computed(() => {
+  const line = peakLinePath.value;
+  if (!line) return '';
+  const W = 1000;
+  const H = 220;
+  return `${line} L ${W} ${H} L 0 ${H} Z`;
+});
 </script>
+
+<style scoped>
+/* Non-peak days: diagonal hatching on a pale track, as a ghost of a bar. */
+.bar-ghost {
+  background-color: #f1f5f9;
+  background-image: repeating-linear-gradient(135deg, #cbd5e1 0 1.5px, transparent 1.5px 7px);
+}
+
+/* The peak: solid blue with a faint version of the same hatching, so it
+   reads as the same kind of bar, filled in. */
+.bar-peak {
+  background-color: #4285f4;
+  background-image: repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.22) 0 1.5px, transparent 1.5px 7px);
+}
+
+/* The average tag's arrow, pointing along the dotted line. */
+.avg-tag::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: -8px;
+  border-style: solid;
+  border-width: 9px 0 9px 8px;
+  border-color: transparent transparent transparent #0f172a;
+}
+</style>

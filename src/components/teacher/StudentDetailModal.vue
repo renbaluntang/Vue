@@ -5,16 +5,16 @@
   >
     <div
       v-if="student"
-      class="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-slate-900/60 p-2 sm:p-5 backdrop-blur-xs overflow-y-auto"
+      class="fixed inset-0 z-50 !m-0 flex items-start justify-center bg-slate-900/60 px-2 pt-6 pb-2 sm:px-5 sm:pt-12 sm:pb-5 backdrop-blur-xs overflow-y-auto"
       @click.self="$emit('close')"
     >
       <!-- Landscape Rectangle Modal Container: wide aspect layout, self-contained card matching user image -->
       <div
-        class="relative w-full max-w-4xl overflow-hidden rounded-[26px] bg-white shadow-2xl transition-all border border-slate-200 max-h-[92vh] flex flex-col"
+        class="relative w-full max-w-4xl overflow-hidden rounded-[26px] bg-white shadow-2xl transition-all border border-slate-200 max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4.25rem)] flex flex-col"
         @click.stop
       >
         <!-- Dark Header Block with Student Avatar and Close Button (Exact styling from reference image) -->
-        <div class="relative bg-[#1e2738] p-5 sm:p-6 text-white shrink-0">
+        <div class="relative bg-[#1e2738] px-5 pt-5 sm:px-6 sm:pt-6 text-white shrink-0">
           <div class="flex items-center justify-between gap-3">
             <div class="flex items-center gap-3.5 min-w-0">
               <!-- Rounded square avatar with golden border -->
@@ -40,7 +40,7 @@
             <!-- Header Action buttons -->
             <div class="flex items-center gap-2">
               <router-link
-                to="/chat"
+                :to="{ path: '/chat', query: { student: student.studentId || student.id } }"
                 @click="$emit('close')"
                 class="flex items-center gap-1.5 rounded-full bg-brighture-gold/20 hover:bg-brighture-gold/30 text-amber-300 hover:text-amber-200 border border-amber-400/30 px-3 py-1.5 text-xs font-black transition"
                 title="Chat with student"
@@ -60,11 +60,54 @@
               </button>
             </div>
           </div>
+
+          <!-- A folder stack, packed to the left: each tab lies over the
+               one before it, and whichever is open comes to the front. The
+               overlap is what makes them read as one set of dividers rather
+               than five loose buttons, and the dark seam between them is the
+               header showing through the gap. -->
+          <div
+            class="-ml-5 mt-5 flex items-end overflow-x-auto pr-4 sm:-ml-6"
+            role="tablist"
+            aria-label="Student detail sections"
+          >
+            <button
+              v-for="(tab, i) in tabs"
+              :key="tab.key"
+              :ref="el => setTabEl(el, i)"
+              type="button"
+              role="tab"
+              :aria-selected="activeTab === tab.key"
+              :tabindex="activeTab === tab.key ? 0 : -1"
+              @click="activeTab = tab.key"
+              @keydown="onTabKey($event, i)"
+              class="relative flex w-[11.25rem] shrink-0 items-center justify-center gap-2 rounded-t-2xl px-3 text-xs font-bold transition-all outline-none focus:outline-none focus-visible:outline-none"
+              :class="[
+                i === 0 ? '' : '-ml-4',
+                activeTab === tab.key
+                  ? 'bg-white py-2.5 text-slate-900'
+                  : 'bg-[var(--tab-bg)] py-2.5 text-slate-700 hover:bg-slate-100',
+              ]"
+              :style="{
+                zIndex: activeTab === tab.key ? tabs.length + 1 : i + 1,
+                '--tab-bg': tabShade(i),
+              }"
+            >
+              <i
+                v-if="tab.icon"
+                :class="[tab.icon, activeTab === tab.key ? tab.iconOn : 'text-slate-500']"
+                class="text-[11px]"
+              ></i>
+              <span class="whitespace-nowrap">{{ tab.label }}</span>
+            </button>
+          </div>
         </div>
 
         <!-- Scrollable Modal Body: Wide Landscape Content Grid -->
-        <div class="flex-1 overflow-y-auto p-5 sm:p-6 space-y-4 bg-white">
-          
+        <div class="flex-1 overflow-y-auto p-5 sm:p-6 bg-white">
+
+          <!-- TAB 1: CLASS DETAILS -->
+          <div v-if="activeTab === 'class'" class="space-y-4">
           <!-- Row 1: SUBJECT beside LESSON TIME. Points were the student's
                side of the booking — what it cost them — and say nothing the
                instructor acts on. -->
@@ -132,77 +175,9 @@
             </button>
           </div>
 
-          <!-- Row 5: Navigation Pills (Exact layout from user screenshot) -->
-          <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-1">
-            <!-- Basic Info Pill -->
-            <button
-              type="button"
-              @click="toggleTab('basic')"
-              class="flex items-center justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition"
-              :class="activeTab === 'basic'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-[#edf2f7] hover:bg-[#e2e8f0] text-slate-700'"
-            >
-              <i class="fa-solid fa-user text-[11px]" :class="activeTab === 'basic' ? 'text-[#e6b95c]' : 'text-slate-500'"></i>
-              <span>Basic Info</span>
-            </button>
-
-            <!-- Lesson Logs Pill -->
-            <button
-              type="button"
-              @click="toggleTab('logs')"
-              class="flex items-center justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition"
-              :class="activeTab === 'logs'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-[#edf2f7] hover:bg-[#e2e8f0] text-slate-700'"
-            >
-              <i class="fa-solid fa-clock-rotate-left text-[11px]" :class="activeTab === 'logs' ? 'text-blue-400' : 'text-slate-500'"></i>
-              <span>Lesson Logs</span>
-              <span
-                class="rounded-full px-1.5 py-0.2 text-[10px] font-black"
-                :class="activeTab === 'logs' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'"
-              >
-                {{ studentLogs.length }}
-              </span>
-            </button>
-
-            <!-- Reservation List Pill -->
-            <button
-              type="button"
-              @click="toggleTab('reservations')"
-              class="flex items-center justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition"
-              :class="activeTab === 'reservations'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-[#edf2f7] hover:bg-[#e2e8f0] text-slate-700'"
-            >
-              <i class="fa-regular fa-calendar-check text-[11px]" :class="activeTab === 'reservations' ? 'text-emerald-400' : 'text-slate-500'"></i>
-              <span>Reservation List</span>
-              <span
-                class="rounded-full px-1.5 py-0.2 text-[10px] font-black"
-                :class="activeTab === 'reservations' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-600'"
-              >
-                {{ studentReservations.length }}
-              </span>
-            </button>
-
-            <!-- Materials Pill -->
-            <button
-              type="button"
-              @click="toggleTab('materials')"
-              class="flex items-center justify-center gap-2 rounded-2xl px-3.5 py-2.5 text-xs font-bold transition"
-              :class="activeTab === 'materials'
-                ? 'bg-slate-900 text-white shadow-xs'
-                : 'bg-[#edf2f7] hover:bg-[#e2e8f0] text-slate-700'"
-            >
-              <i class="fa-regular fa-folder-open text-[11px]" :class="activeTab === 'materials' ? 'text-purple-400' : 'text-slate-500'"></i>
-              <span>Materials</span>
-            </button>
           </div>
 
-          <!-- Expandable Detail Panels (Revealed when a tab is selected) -->
-          <div v-if="activeTab" class="pt-2 animate-in fade-in duration-200 border-t border-slate-100">
-            
-            <!-- TAB 1: BASIC INFO -->
+          <!-- TAB 2: BASIC INFO -->
             <div v-if="activeTab === 'basic'" class="space-y-4">
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                 <!-- Personal Details -->
@@ -400,8 +375,6 @@
             <div v-if="activeTab === 'materials'" class="pt-1">
               <EditableMaterials :entry="studentAsEntry" />
             </div>
-
-          </div>
         </div>
       </div>
     </div>
@@ -409,7 +382,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import AppImage from '../AppImage.vue';
 import EditableMaterials from '@/pages/app-panel/EditableMaterials.vue';
 import studentImage from '@/assets/student-1.svg';
@@ -423,12 +396,51 @@ const props = defineProps({
 });
 defineEmits(['close']);
 
-// Tab navigation: initially null so the card looks exactly like the image, and clicking a pill expands it
-const activeTab = ref(null);
+/**
+* Tabs. The lesson itself is the first one and the one the modal opens on —
+* the button that opens this is called Lesson Details, so that is what has to
+* be on screen when it appears. Opening a second student reopens on it too,
+* rather than keeping whichever tab was left open on the last one.
+*/
+const activeTab = ref('class');
 
-const toggleTab = (tab) => {
-  activeTab.value = activeTab.value === tab ? null : tab;
+watch(
+  () => props.student && (props.student.id ?? props.student.studentId),
+  (id) => { if (id) activeTab.value = 'class'; }
+);
+
+/* Solid steps down one grey ramp, never opacity: tints let the tab behind
+   show through the one in front, and two overlapping translucent tabs read as
+   a single merged shape instead of two sheets of paper. */
+const TAB_SHADES = ['#e8edf2', '#dde3ea', '#cfd7e0', '#c1cad5', '#b3becb'];
+const tabShade = (i) => TAB_SHADES[Math.min(i, TAB_SHADES.length - 1)];
+
+/* Arrow keys walk the stack, the way a real tablist does — with the tabs
+   overlapping, reaching the one behind with a mouse is fiddly. */
+const tabEls = ref([]);
+const setTabEl = (el, i) => { if (el) tabEls.value[i] = el; };
+
+const onTabKey = (event, index) => {
+  const last = tabs.value.length - 1;
+  const next = {
+    ArrowRight: index === last ? 0 : index + 1,
+    ArrowLeft: index === 0 ? last : index - 1,
+    Home: 0,
+    End: last,
+  }[event.key];
+  if (next === undefined) return;
+  event.preventDefault();
+  activeTab.value = tabs.value[next].key;
+  tabEls.value[next]?.focus();
 };
+
+const tabs = computed(() => [
+  { key: 'class', label: 'Class Details', icon: 'fa-solid fa-chalkboard-user', iconOn: 'text-amber-500' },
+  { key: 'basic', label: 'Basic Info', icon: 'fa-solid fa-user', iconOn: 'text-[#c5a059]' },
+  { key: 'logs', label: 'Lesson Logs', icon: 'fa-solid fa-clock-rotate-left', iconOn: 'text-blue-500' },
+  { key: 'reservations', label: 'Reservation List', icon: 'fa-regular fa-calendar-check', iconOn: 'text-emerald-600' },
+  { key: 'materials', label: 'Materials', icon: 'fa-regular fa-folder-open', iconOn: 'text-purple-500' },
+]);
 
 // Filter state for Lesson Logs
 const logTeacherFilter = ref('');
