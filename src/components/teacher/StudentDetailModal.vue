@@ -61,7 +61,7 @@
             </div>
           </div>
 
-          <!-- A folder stack, packed to the left: each tab lies over the
+          <!-- A folder stack, packed to the left: each tab tucks behind the
                one before it, and whichever is open comes to the front. The
                overlap is what makes them read as one set of dividers rather
                than five loose buttons, and the dark seam between them is the
@@ -89,7 +89,7 @@
                   : 'bg-[var(--tab-bg)] py-2.5 text-slate-700 hover:bg-slate-100',
               ]"
               :style="{
-                zIndex: activeTab === tab.key ? tabs.length + 1 : i + 1,
+                zIndex: activeTab === tab.key ? tabs.length + 1 : tabs.length - i,
                 '--tab-bg': tabShade(i),
               }"
             >
@@ -104,7 +104,12 @@
         </div>
 
         <!-- Scrollable Modal Body: Wide Landscape Content Grid -->
-        <div class="flex-1 overflow-y-auto p-5 sm:p-6 bg-white">
+        <div class="flex-1 overflow-y-auto p-5 sm:p-6 bg-white [perspective:1400px]">
+          <!-- Each tab's page drops down from a hinge along its top edge, like
+               turning the page of a flip-over notebook. The outgoing page just
+               fades, so the motion reads once, top to bottom. -->
+          <Transition name="page-flip" mode="out-in">
+          <div :key="activeTab" class="page-flip-sheet">
 
           <!-- TAB 1: CLASS DETAILS -->
           <div v-if="activeTab === 'class'" class="space-y-4">
@@ -375,6 +380,8 @@
             <div v-if="activeTab === 'materials'" class="pt-1">
               <EditableMaterials :entry="studentAsEntry" />
             </div>
+          </div>
+          </Transition>
         </div>
       </div>
     </div>
@@ -393,20 +400,22 @@ const teacher = useTeacherStore();
 const props = defineProps({
   /** A reservation row or student reference; null closes the modal. */
   student: { type: Object, default: null },
+  /** The tab to open on: 'class' from a Class Details button, 'basic' from
+   *  the student's photo. */
+  initialTab: { type: String, default: 'class' },
 });
 defineEmits(['close']);
 
 /**
-* Tabs. The lesson itself is the first one and the one the modal opens on —
-* the button that opens this is called Lesson Details, so that is what has to
-* be on screen when it appears. Opening a second student reopens on it too,
-* rather than keeping whichever tab was left open on the last one.
+* Tabs. The modal opens on whatever the opener asked for — the lesson by
+* default. Opening a second student reopens on that tab too, rather than
+* keeping whichever tab was left open on the last one.
 */
-const activeTab = ref('class');
+const activeTab = ref(props.initialTab);
 
 watch(
   () => props.student && (props.student.id ?? props.student.studentId),
-  (id) => { if (id) activeTab.value = 'class'; }
+  (id) => { if (id) activeTab.value = props.initialTab; }
 );
 
 /* Solid steps down one grey ramp, never opacity: tints let the tab behind
@@ -665,3 +674,35 @@ const studentReservations = computed(() => {
   }));
 });
 </script>
+
+<style scoped>
+.page-flip-sheet {
+  transform-origin: top center;
+  backface-visibility: hidden;
+}
+
+.page-flip-enter-active {
+  transition: transform 0.42s cubic-bezier(0.22, 1.2, 0.36, 1), opacity 0.2s ease-out;
+}
+.page-flip-enter-from {
+  transform: rotateX(-88deg);
+  opacity: 0;
+}
+
+.page-flip-leave-active {
+  transition: opacity 0.1s ease-in;
+}
+.page-flip-leave-to {
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-flip-enter-active,
+  .page-flip-leave-active {
+    transition: opacity 0.12s linear;
+  }
+  .page-flip-enter-from {
+    transform: none;
+  }
+}
+</style>

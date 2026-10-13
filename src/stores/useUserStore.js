@@ -23,6 +23,8 @@ export const useUserStore = defineStore('user', () => {
     pointsBalance: 120,
     pointsExpiry: '2026-09-30',
     planId: 'sub-40',
+    // Last day the current subscription period covers.
+    planEndsOn: '2026-10-17',
   });
 
   const stats = ref({
@@ -574,6 +576,16 @@ This is a good start. The only change is the last sentence: when we use "look fo
   const planName = computed(() => plan.value?.name ?? 'No active plan');
   const planIsSubscription = computed(() => isSubscription(profile.value.planId));
 
+  /** Whole days until the subscription ends; 0 on the last day, negative once
+   *  it has lapsed, null without a subscription to end. */
+  const subscriptionDaysLeft = computed(() => {
+    if (!planIsSubscription.value || !profile.value.planEndsOn) return null;
+    const [y, m, d] = profile.value.planEndsOn.split('-').map(Number);
+    const today = new Date();
+    const start = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    return Math.round((new Date(y, m - 1, d) - start) / 86400000);
+  });
+
   /** Refunds are excluded — they never left the student's wallet. */
   const totalSpent = computed(() =>
     purchaseHistory.value
@@ -609,6 +621,7 @@ This is a good start. The only change is the last sentence: when we use "look fo
     plan,
     planName,
     planIsSubscription,
+    subscriptionDaysLeft,
     fullName,
     setBanner,
     clearBanner,

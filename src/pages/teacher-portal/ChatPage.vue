@@ -24,7 +24,7 @@
       <!-- Quick status indicator & stats -->
       <div class="flex items-center gap-2 text-xs font-bold text-slate-600 flex-wrap">
         <span class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-white border border-slate-200 shadow-xs">
-          <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
           <span>Online as Jirvy Dela Torre</span>
         </span>
         <span v-if="totalUnreadCount > 0" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-500 text-slate-950 font-black shadow-xs">
@@ -104,23 +104,13 @@
               ? 'bg-amber-500/10 border border-amber-300/80 shadow-xs'
               : 'hover:bg-slate-50 border border-transparent'"
           >
-            <!-- Avatar with online indicator -->
+            <!-- Avatar -->
             <div class="relative shrink-0">
               <AppImage
                 :src="student.photo"
                 :alt="student.name"
                 class="w-11 h-11 rounded-2xl object-cover ring-1 ring-slate-200"
               />
-              <span
-                v-if="student.online"
-                class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white"
-                title="Online now"
-              ></span>
-              <span
-                v-else
-                class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-slate-300 ring-2 ring-white"
-                title="Offline"
-              ></span>
             </div>
 
             <!-- Student info & preview message -->
@@ -214,10 +204,6 @@
                   :alt="activeStudent.name"
                   class="w-11 h-11 rounded-2xl object-cover ring-1 ring-slate-200"
                 />
-                <span
-                  v-if="activeStudent.online"
-                  class="absolute -bottom-0.5 -right-0.5 w-3.5 h-3.5 rounded-full bg-emerald-500 ring-2 ring-white"
-                ></span>
               </div>
 
               <div class="min-w-0">
@@ -227,13 +213,6 @@
                   </h3>
                   <span class="text-[10px] font-black text-amber-700 bg-amber-100 px-2 py-0.5 rounded-md">
                     Student #{{ activeStudent.id }}
-                  </span>
-                  <span
-                    class="hidden sm:inline-flex items-center gap-1 text-[11px] font-bold"
-                    :class="activeStudent.online ? 'text-emerald-600' : 'text-slate-400'"
-                  >
-                    <span class="w-1.5 h-1.5 rounded-full" :class="activeStudent.online ? 'bg-emerald-500' : 'bg-slate-300'"></span>
-                    {{ activeStudent.online ? 'Active now' : 'Offline' }}
                   </span>
                 </div>
                 <p class="text-[11px] text-slate-500 truncate font-medium">

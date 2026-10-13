@@ -14,6 +14,7 @@ const routes = [
       { path: 'exams', name: 't-exams', component: () => import('../pages/teacher-portal/ExamPage.vue') },
       { path: 'chat', name: 't-chat', component: () => import('../pages/teacher-portal/ChatPage.vue') },
       { path: 'analytics', name: 't-analytics', component: () => import('../pages/teacher-portal/AnalyticsPage.vue') },
+      { path: 'materials', name: 't-materials', component: () => import('../pages/portal/MaterialsPage.vue') },
       { path: 'profile', name: 't-profile', component: () => import('../pages/teacher-portal/ProfilePage.vue') },
       // Anything retired lands on the reservation list rather than an empty view.
       { path: ':pathMatch(.*)*', redirect: '/' },

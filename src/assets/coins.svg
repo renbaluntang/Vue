@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 72 64" fill="none">
+  <defs>
+    <!-- Edge: the coin's thickness, dark bronze rolling to a lighter lip. -->
+    <linearGradient id="coinEdge" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#8a4b00"/>
+      <stop offset="0.35" stop-color="#c47a08"/>
+      <stop offset="0.6" stop-color="#e09a1a"/>
+      <stop offset="1" stop-color="#7a4200"/>
+    </linearGradient>
+
+    <!-- Rim: banded light and dark, the way polished metal catches a room. -->
+    <linearGradient id="coinRim" x1="0.15" y1="0" x2="0.85" y2="1">
+      <stop offset="0" stop-color="#fff3b0"/>
+      <stop offset="0.25" stop-color="#ffd23f"/>
+      <stop offset="0.5" stop-color="#e59400"/>
+      <stop offset="0.72" stop-color="#ffcc33"/>
+      <stop offset="1" stop-color="#b86a00"/>
+    </linearGradient>
+
+    <!-- Face: lit from the top left. -->
+    <radialGradient id="coinFace" cx="0.35" cy="0.3" r="0.8">
+      <stop offset="0" stop-color="#fff1a8"/>
+      <stop offset="0.45" stop-color="#ffc928"/>
+      <stop offset="1" stop-color="#e08600"/>
+    </radialGradient>
+
+    <!-- Groove between rim and face: shadowed at the top, lit at the bottom,
+         so the face reads as recessed. -->
+    <linearGradient id="coinGroove" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#a85c00"/>
+      <stop offset="1" stop-color="#ffe17a"/>
+    </linearGradient>
+
+    <!-- Raised mark: the reverse of the groove, lit on top. -->
+    <linearGradient id="coinMark" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#fff4c2"/>
+      <stop offset="0.5" stop-color="#ffcf3a"/>
+      <stop offset="1" stop-color="#c97800"/>
+    </linearGradient>
+
+    <!-- Gloss sweep across the upper face. -->
+    <linearGradient id="coinGloss" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.75"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0"/>
+    </linearGradient>
+
+    <clipPath id="faceClip">
+      <circle cx="0" cy="0" r="12.4"/>
+    </clipPath>
+
+    <g id="coin">
+      <ellipse cx="0" cy="3.4" rx="17" ry="17" fill="url(#coinEdge)"/>
+      <circle cx="0" cy="0" r="17" fill="url(#coinRim)"/>
+      <circle cx="0" cy="0" r="13.6" fill="url(#coinGroove)"/>
+      <circle cx="0" cy="0" r="12.4" fill="url(#coinFace)"/>
+
+      <!-- Raised star, with a drop shadow under it -->
+      <path transform="translate(0.5 0.9)" d="M0 -7.4 L2.2 -2.6 L7.2 -2.2 L3.4 1.2 L4.5 6.2 L0 3.6 L-4.5 6.2 L-3.4 1.2 L-7.2 -2.2 L-2.2 -2.6 Z" fill="#b86a00" opacity="0.55"/>
+      <path d="M0 -7.4 L2.2 -2.6 L7.2 -2.2 L3.4 1.2 L4.5 6.2 L0 3.6 L-4.5 6.2 L-3.4 1.2 L-7.2 -2.2 L-2.2 -2.6 Z" fill="url(#coinMark)" stroke="#e69a10" stroke-width="0.5" stroke-linejoin="round"/>
+
+      <!-- Gloss across the top of the face -->
+      <g clip-path="url(#faceClip)">
+        <ellipse cx="-2" cy="-9" rx="15" ry="7.5" fill="url(#coinGloss)" opacity="0.55"/>
+      </g>
+
+      <!-- Specular glint on the rim -->
+      <path d="M-13.2 -7.4 A15.3 15.3 0 0 1 -5.2 -14.4" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" opacity="0.9"/>
+    </g>
+
+    <radialGradient id="groundShadow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#1e1b4b" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#1e1b4b" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Soft contact shadow under the pile -->
+  <ellipse cx="36" cy="60" rx="26" ry="3.5" fill="url(#groundShadow)"/>
+
+  <!-- Back to front: two behind, one in front. -->
+  <use href="#coin" transform="translate(21 19)"/>
+  <use href="#coin" transform="translate(51 21)"/>
+  <use href="#coin" transform="translate(36 39)"/>
+
+  <!-- Sparkle off the front coin's shoulder -->
+  <path d="M60 41 L61.1 43.9 L64 45 L61.1 46.1 L60 49 L58.9 46.1 L56 45 L58.9 43.9 Z" fill="#fff8d6"/>
+  <path d="M8 34 L8.7 35.8 L10.5 36.5 L8.7 37.2 L8 39 L7.3 37.2 L5.5 36.5 L7.3 35.8 Z" fill="#fff8d6" opacity="0.85"/>
+</svg>

@@ -38,6 +38,65 @@
       </div>
     </section>
 
+    <!-- Subscription reminder: from five days out until it is renewed, and
+         stronger once it has lapsed. Dismissing hides it for this visit only,
+         so it is back on the next one while the date still stands. -->
+    <!-- Subscription reminder: from five days out until it is renewed, and
+         stronger once it has lapsed. Dismissing hides it for this visit only,
+         so it is back on the next one while the date still stands. -->
+    <div
+      v-if="showRenewalReminder"
+      role="status"
+      class="group relative flex flex-col gap-3.5 sm:gap-4 overflow-hidden rounded-[20px] sm:rounded-[22px] bg-gradient-to-r from-[#3e47c9] via-[#4852d4] to-[#515ee0] px-4 py-3 sm:px-6 sm:py-3.5 text-white shadow-lg shadow-indigo-600/20 sm:flex-row sm:items-center sm:justify-between transition-all duration-300 border border-white/10"
+    >
+      <!-- Subtle ambient background glow and glossy gradient overlay -->
+      <div class="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-white/10 blur-2xl"></div>
+      <div class="pointer-events-none absolute left-0 top-0 h-full w-full bg-gradient-to-b from-white/[0.08] to-transparent"></div>
+
+      <!-- Left content: Coins icon + message -->
+      <div class="relative z-10 flex items-center gap-3 sm:gap-4 min-w-0 flex-1">
+        <div class="relative shrink-0 flex items-center justify-center">
+          <img
+            :src="coinsImage"
+            alt="Subscription Coins"
+            class="h-10 sm:h-11 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.25)] transition-transform duration-300 group-hover:scale-105"
+          />
+        </div>
+
+        <p class="min-w-0 text-[13px] sm:text-sm font-medium leading-normal text-indigo-50/95 tracking-[-0.01em]">
+          <template v-if="user.subscriptionDaysLeft < 0">
+            Your subscription <strong class="font-extrabold text-white">has ended</strong>. Renew it to keep booking classes.
+          </template>
+          <template v-else-if="user.subscriptionDaysLeft === 0">
+            Your subscription <strong class="font-extrabold text-white">ends today</strong>. Renew it to keep booking classes.
+          </template>
+          <template v-else>
+            Your subscription ends in
+            <strong class="font-extrabold text-white">{{ user.subscriptionDaysLeft }} day{{ user.subscriptionDaysLeft === 1 ? '' : 's' }}</strong>.
+            Renew it to keep booking classes.
+          </template>
+        </p>
+      </div>
+
+      <!-- Right actions: Pill button + close mark -->
+      <div class="relative z-10 flex shrink-0 items-center justify-end gap-2.5 sm:gap-3">
+        <RouterLink
+          to="/purchase"
+          class="inline-flex items-center justify-center rounded-full bg-white px-5 sm:px-6 py-2 text-[13px] sm:text-sm font-extrabold text-[#3b44c4] shadow-sm transition-all duration-200 hover:bg-slate-50 hover:shadow-md hover:scale-[1.02] active:scale-[0.98]"
+        >
+          Renew
+        </RouterLink>
+        <button
+          type="button"
+          @click="renewalReminderDismissed = true"
+          class="flex h-7 w-7 sm:h-8 sm:w-8 items-center justify-center rounded-full text-white/70 transition-colors hover:bg-white/15 hover:text-white cursor-pointer active:scale-95"
+          aria-label="Dismiss reminder"
+        >
+          <i class="fa-solid fa-xmark text-xs sm:text-sm"></i>
+        </button>
+      </div>
+    </div>
+
     <!-- The week is the dashboard's one primary metric; the rest is supporting evidence. -->
     <section aria-label="Learning progress" class="border-y border-slate-200 py-5 sm:py-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,0.6fr))] gap-5 lg:gap-0">
       <div class="lg:pr-8">
@@ -696,6 +755,7 @@ import AppImage from '../../components/AppImage.vue';
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
 import brightureLogo from '@/assets/logo-black.svg';
+import coinsImage from '@/assets/coins.svg';
 import { useUserStore } from '../../stores/useUserStore';
 import FreeConversationModal from '../../components/FreeConversationModal.vue';
 import ClassDetailsModal from '../../components/ClassDetailsModal.vue';
@@ -708,6 +768,14 @@ const router = useRouter();
 const user = useUserStore();
 
 const showFreeConversationModal = ref(false);
+
+// Five days' warning before a subscription ends, and on after it lapses.
+const RENEWAL_WARNING_DAYS = 5;
+const renewalReminderDismissed = ref(false);
+const showRenewalReminder = computed(() => {
+  const days = user.subscriptionDaysLeft;
+  return days !== null && days <= RENEWAL_WARNING_DAYS && !renewalReminderDismissed.value;
+});
 const selectedTeacherForModal = ref(null);
 
 // The spotlight already shows the next class, so the table lists the ones after it.
