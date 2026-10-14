@@ -23,14 +23,175 @@
 
 
     <!-- ========================================================================= -->
-    <!-- 2. HIGH-IMPACT COMMAND METRIC CARDS (BENTO RIBBON)                        -->
+    <!-- 2. NEXT LESSON SPOTLIGHT (COCKPIT FLIGHT COMMAND)                         -->
+    <!-- ========================================================================= -->
+    <section
+      v-if="next"
+      class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-[#111927] border border-slate-800 text-white p-5 sm:p-7 shadow-2xl shadow-slate-950/30"
+    >
+      <!-- Decorative background aura -->
+      <div class="pointer-events-none absolute -right-20 -bottom-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl"></div>
+      <div class="pointer-events-none absolute -left-20 -top-20 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl"></div>
+
+      <!-- Top Strip: Status Bar & Clocks -->
+      <div class="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
+        <div class="flex flex-wrap items-center gap-2">
+          <!-- Live / Countdown Badge -->
+          <span
+            class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider"
+            :class="next.minutesUntil <= 15
+              ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30'
+              : 'bg-emerald-950/90 border border-emerald-500/40 text-emerald-300'"
+          >
+            <span>Next Up &bull; In {{ teacher.countdownLabel(next.minutesUntil) }}</span>
+          </span>
+
+          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-slate-200 text-xs font-bold tabular-nums">
+            <i class="fa-regular fa-clock text-amber-400 text-[11px]"></i>
+            {{ teacher.localRange(next) }}
+          </span>
+
+          <span v-if="next.substitution" class="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-xs font-bold">
+            Substitution
+          </span>
+        </div>
+
+        <div class="text-[11px] text-slate-400 font-semibold flex items-center gap-2">
+          <span>Student zone:</span>
+          <span class="text-slate-200 font-bold bg-white/5 px-2 py-0.5 rounded-md">{{ next.startStudent }}</span>
+        </div>
+      </div>
+
+      <!-- Main Body: Student Card + Topic Prep + Join CTAs -->
+      <div class="relative z-10 mt-5 grid grid-cols-1 lg:grid-cols-[minmax(0,2.6fr)_minmax(0,4.4fr)_minmax(0,3fr)] gap-6 items-center">
+        <!-- Student Info Column -->
+        <div class="min-w-0 flex items-center gap-4">
+          <button
+            type="button"
+            @click="openStudentModal(next, 'basic')"
+            class="relative group shrink-0"
+            title="View student's basic info"
+          >
+            <AppImage
+              :src="next.studentPhoto"
+              :alt="next.studentName"
+              eager
+              class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-[#c5a059] shadow-lg transition duration-200 group-hover:scale-105"
+            />
+            <div class="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
+              <i class="fa-solid fa-eye"></i>
+            </div>
+          </button>
+
+          <div class="min-w-0">
+            <span class="text-[10px] font-black uppercase tracking-wider text-amber-400">
+              Student #{{ next.studentId }}
+            </span>
+            <h2 class="text-lg sm:text-xl font-black text-white truncate hover:text-amber-300 transition-colors cursor-pointer" @click="openStudentModal(next)">
+              {{ next.studentName }}
+            </h2>
+            <p class="text-xs text-slate-400 font-medium truncate mt-0.5">
+              {{ next.membership }} &bull; {{ next.lessonClass || 'Online 1-on-1' }}
+            </p>
+
+            <div class="flex items-center gap-2 mt-2">
+              <RouterLink
+                :to="{ path: '/chat', query: { student: next.studentId } }"
+                class="text-[11px] font-bold text-slate-300 hover:text-white flex items-center gap-1"
+              >
+                <i class="fa-solid fa-comments text-amber-400 text-[10px]"></i> Message
+              </RouterLink>
+            </div>
+          </div>
+        </div>
+
+        <!-- Subject & Topic Focus Column -->
+        <div class="min-w-0 space-y-2 border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-0.5 rounded-md bg-amber-400/20 text-amber-300 text-xs font-black">
+              {{ next.subject }}
+            </span>
+            <span class="text-xs text-slate-400">Lesson Curriculum</span>
+          </div>
+
+          <h3 class="text-base sm:text-lg font-bold text-white leading-snug">
+            {{ next.topic }}
+          </h3>
+
+          <!-- Student Request / Note -->
+          <div v-if="next.note" class="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300">
+            <span class="font-bold text-amber-300 mr-1.5"><i class="fa-solid fa-quote-left text-[10px]"></i> Student Request:</span>
+            <span class="italic text-slate-200">{{ next.note }}</span>
+          </div>
+        </div>
+
+        <!-- Join Meeting & Actions Column -->
+        <div class="min-w-0 flex flex-col gap-2.5 justify-center border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6">
+          <a
+            v-if="next.meetLink"
+            :href="next.meetLink"
+            target="_blank"
+            rel="noopener"
+            class="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm py-3 px-4 shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-[0.98] group"
+          >
+            <i class="fa-solid fa-video text-base transition-transform group-hover:scale-110"></i>
+            <span>Join Google Meet</span>
+          </a>
+
+          <p
+            v-else
+            class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-950/40 px-3 py-2.5 text-center text-xs font-medium text-rose-300"
+          >
+            <i class="fa-solid fa-triangle-exclamation"></i>
+            <span>No meeting link yet</span>
+          </p>
+
+          <button
+            type="button"
+            @click="openStudentModal(next)"
+            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 text-xs font-bold py-2.5 px-3 transition active:scale-[0.98]"
+          >
+            <i class="fa-solid fa-circle-info text-amber-400"></i>
+            <span>Class Details</span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Empty Next State -->
+    <div
+      v-else
+      class="rounded-3xl border border-slate-200 bg-white p-8 text-center space-y-3 shadow-xs"
+    >
+      <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto text-lg">
+        <i class="fa-solid fa-mug-saucer"></i>
+      </div>
+      <h3 class="text-base font-black text-slate-900">No Immediate Upcoming Lessons</h3>
+      <p class="text-xs text-slate-500 max-w-md mx-auto">
+        Your current schedule is clear. Check open availability or configure additional lesson slots for students to reserve.
+      </p>
+      <RouterLink
+        to="/schedule"
+        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brighture-gold text-slate-900 text-xs font-black shadow-sm transition hover:brightness-105"
+      >
+        <span>Open Class Slots</span>
+        <i class="fa-solid fa-arrow-right text-[10px]"></i>
+      </RouterLink>
+    </div>
+
+
+    <!-- ========================================================================= -->
+    <!-- 3. HIGH-IMPACT COMMAND METRIC CARDS (BENTO RIBBON)                        -->
     <!-- ========================================================================= -->
     <section class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
       <!-- Metric 1: Today's Teaching Load -->
-      <div class="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between">
+      <RouterLink
+        to="/reservations"
+        class="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
+      >
         <div class="flex items-center justify-between gap-2">
           <p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Today's Load</p>
-          <span class="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-xs font-bold">
+          <span class="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
             <i class="fa-solid fa-chalkboard-user"></i>
           </span>
         </div>
@@ -41,12 +202,13 @@
               {{ teacher.todaysReservations.length === 1 ? 'Lesson' : 'Lessons' }}
             </span>
           </p>
-          <p class="mt-0.5 text-[11px] font-semibold text-slate-500 truncate" :title="todaySpan">
+          <p class="mt-0.5 text-[11px] font-semibold text-slate-500 truncate group-hover:text-sky-700 transition-colors" :title="todaySpan">
             <i class="fa-regular fa-clock text-slate-400 mr-1"></i>
             {{ todaySpan || 'No classes booked today' }}
+            <i class="fa-solid fa-arrow-right text-[10px] ml-1"></i>
           </p>
         </div>
-      </div>
+      </RouterLink>
 
       <!-- Metric 2: Open slots still ahead today — what students can still
            book before the day ends, and when the next one starts. -->
@@ -133,164 +295,6 @@
         </div>
       </RouterLink>
     </section>
-
-
-    <!-- ========================================================================= -->
-    <!-- 3. NEXT LESSON SPOTLIGHT (COCKPIT FLIGHT COMMAND)                         -->
-    <!-- ========================================================================= -->
-    <section
-      v-if="next"
-      class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-[#111927] border border-slate-800 text-white p-5 sm:p-7 shadow-2xl shadow-slate-950/30"
-    >
-      <!-- Decorative background aura -->
-      <div class="pointer-events-none absolute -right-20 -bottom-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-3xl"></div>
-      <div class="pointer-events-none absolute -left-20 -top-20 w-60 h-60 bg-amber-500/10 rounded-full blur-3xl"></div>
-
-      <!-- Top Strip: Status Bar & Clocks -->
-      <div class="relative z-10 flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-4">
-        <div class="flex flex-wrap items-center gap-2">
-          <!-- Live / Countdown Badge -->
-          <span
-            class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider"
-            :class="next.minutesUntil <= 15
-              ? 'bg-emerald-500 text-slate-950 shadow-md shadow-emerald-500/30'
-              : 'bg-emerald-950/90 border border-emerald-500/40 text-emerald-300'"
-          >
-            <span>Next Up &bull; In {{ teacher.countdownLabel(next.minutesUntil) }}</span>
-          </span>
-
-          <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/10 border border-white/15 text-slate-200 text-xs font-bold tabular-nums">
-            <i class="fa-regular fa-clock text-amber-400 text-[11px]"></i>
-            {{ teacher.localRange(next) }}
-          </span>
-
-          <span v-if="next.substitution" class="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-400/30 text-amber-300 text-xs font-bold">
-            Substitution
-          </span>
-        </div>
-
-        <div class="text-[11px] text-slate-400 font-semibold flex items-center gap-2">
-          <span>Student zone:</span>
-          <span class="text-slate-200 font-bold bg-white/5 px-2 py-0.5 rounded-md">{{ next.startStudent }}</span>
-        </div>
-      </div>
-
-      <!-- Main Body: Student Card + Topic Prep + Join CTAs -->
-      <div class="relative z-10 mt-5 grid grid-cols-1 lg:grid-cols-10 gap-6 items-center">
-        <!-- Student Info Column -->
-        <div class="lg:col-span-3 flex items-center gap-4">
-          <button
-            type="button"
-            @click="openStudentModal(next, 'basic')"
-            class="relative group shrink-0"
-            title="View student's basic info"
-          >
-            <AppImage
-              :src="next.studentPhoto"
-              :alt="next.studentName"
-              eager
-              class="w-16 h-16 sm:w-20 sm:h-20 rounded-2xl object-cover ring-2 ring-[#c5a059] shadow-lg transition duration-200 group-hover:scale-105"
-            />
-            <div class="absolute inset-0 bg-black/40 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white text-xs font-bold">
-              <i class="fa-solid fa-eye"></i>
-            </div>
-          </button>
-
-          <div class="min-w-0">
-            <span class="text-[10px] font-black uppercase tracking-wider text-amber-400">
-              Student #{{ next.studentId }}
-            </span>
-            <h2 class="text-lg sm:text-xl font-black text-white truncate hover:text-amber-300 transition-colors cursor-pointer" @click="openStudentModal(next)">
-              {{ next.studentName }}
-            </h2>
-            <p class="text-xs text-slate-400 font-medium truncate mt-0.5">
-              {{ next.membership }} &bull; {{ next.lessonClass || 'Online 1-on-1' }}
-            </p>
-
-            <div class="flex items-center gap-2 mt-2">
-              <RouterLink
-                :to="{ path: '/chat', query: { student: next.studentId } }"
-                class="text-[11px] font-bold text-slate-300 hover:text-white flex items-center gap-1"
-              >
-                <i class="fa-solid fa-comments text-amber-400 text-[10px]"></i> Message
-              </RouterLink>
-            </div>
-          </div>
-        </div>
-
-        <!-- Subject & Topic Focus Column -->
-        <div class="lg:col-span-4 space-y-2 border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6">
-          <div class="flex items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-md bg-amber-400/20 text-amber-300 text-xs font-black">
-              {{ next.subject }}
-            </span>
-            <span class="text-xs text-slate-400">Lesson Curriculum</span>
-          </div>
-
-          <h3 class="text-base sm:text-lg font-bold text-white leading-snug">
-            {{ next.topic }}
-          </h3>
-
-          <!-- Student Request / Note -->
-          <div v-if="next.note" class="p-3 rounded-xl bg-white/5 border border-white/10 text-xs text-slate-300">
-            <span class="font-bold text-amber-300 mr-1.5"><i class="fa-solid fa-quote-left text-[10px]"></i> Student Request:</span>
-            <span class="italic text-slate-200">{{ next.note }}</span>
-          </div>
-        </div>
-
-        <!-- Join Meeting & Actions Column -->
-        <div class="lg:col-span-3 flex flex-col gap-2.5 justify-center border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6">
-          <a
-            v-if="next.meetLink"
-            :href="next.meetLink"
-            target="_blank"
-            rel="noopener"
-            class="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm py-3 px-4 shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-[0.98] group"
-          >
-            <i class="fa-solid fa-video text-base transition-transform group-hover:scale-110"></i>
-            <span>Join Google Meet</span>
-          </a>
-
-          <p
-            v-else
-            class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-950/40 px-3 py-2.5 text-center text-xs font-medium text-rose-300"
-          >
-            <i class="fa-solid fa-triangle-exclamation"></i>
-            <span>No meeting link yet</span>
-          </p>
-
-          <button
-            type="button"
-            @click="openStudentModal(next)"
-            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 text-xs font-bold py-2.5 px-3 transition active:scale-[0.98]"
-          >
-            <i class="fa-solid fa-circle-info text-amber-400"></i>
-            <span>Class Details</span>
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- Empty Next State -->
-    <div
-      v-else
-      class="rounded-3xl border border-slate-200 bg-white p-8 text-center space-y-3 shadow-xs"
-    >
-      <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-500 flex items-center justify-center mx-auto text-lg">
-        <i class="fa-solid fa-mug-saucer"></i>
-      </div>
-      <h3 class="text-base font-black text-slate-900">No Immediate Upcoming Lessons</h3>
-      <p class="text-xs text-slate-500 max-w-md mx-auto">
-        Your current schedule is clear. Check open availability or configure additional lesson slots for students to reserve.
-      </p>
-      <RouterLink
-        to="/schedule"
-        class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brighture-gold text-slate-900 text-xs font-black shadow-sm transition hover:brightness-105"
-      >
-        <span>Open Class Slots</span>
-        <i class="fa-solid fa-arrow-right text-[10px]"></i>
-      </RouterLink>
-    </div>
 
 
     <!-- ========================================================================= -->
