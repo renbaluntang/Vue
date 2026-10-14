@@ -27,21 +27,21 @@
     <!-- ========================================================================= -->
     <section class="grid grid-cols-2 lg:grid-cols-4 gap-3.5 sm:gap-4">
       <!-- Metric 1: Today's Teaching Load -->
-      <div class="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between">
+      <div class="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between">
         <div class="flex items-center justify-between gap-2">
           <p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Today's Load</p>
-          <span class="w-8 h-8 rounded-xl bg-sky-50 text-sky-600 flex items-center justify-center text-xs font-bold">
+          <span class="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-xs font-bold">
             <i class="fa-solid fa-chalkboard-user"></i>
           </span>
         </div>
-        <div class="mt-2.5">
-          <p class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums">
+        <div class="mt-1.5">
+          <p class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums">
             {{ teacher.todaysReservations.length }}
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">
               {{ teacher.todaysReservations.length === 1 ? 'Lesson' : 'Lessons' }}
             </span>
           </p>
-          <p class="mt-1 text-[11px] font-semibold text-slate-500 truncate" :title="todaySpan">
+          <p class="mt-0.5 text-[11px] font-semibold text-slate-500 truncate" :title="todaySpan">
             <i class="fa-regular fa-clock text-slate-400 mr-1"></i>
             {{ todaySpan || 'No classes booked today' }}
           </p>
@@ -52,20 +52,20 @@
            book before the day ends, and when the next one starts. -->
       <RouterLink
         to="/calendar"
-        class="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
+        class="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
       >
         <div class="flex items-center justify-between gap-2">
           <p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Open Today</p>
-          <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
+          <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
             <i class="fa-regular fa-calendar-plus"></i>
           </span>
         </div>
-        <div class="mt-2.5 min-w-0">
-          <p class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums">
-            {{ openToday.hours }}<span class="text-lg">h</span>
-            <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">still open</span>
+        <div class="mt-1.5 min-w-0">
+          <p class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums">
+            {{ openToday.hours }}<span class="text-base">h</span>
+            <span class="ml-1.5 text-xs font-bold text-slate-500 uppercase tracking-wide">still open</span>
           </p>
-          <p class="mt-1 text-[11px] font-semibold text-slate-500 truncate group-hover:text-emerald-700 transition-colors tabular-nums">
+          <p class="mt-0.5 text-[11px] font-semibold text-slate-500 truncate group-hover:text-emerald-700 transition-colors tabular-nums">
             {{ openToday.next ? `Next open slot ${openToday.next} ${zoneShort}` : 'No open slots left today' }}
             <i class="fa-solid fa-arrow-right text-[10px] ml-1"></i>
           </p>
@@ -75,27 +75,27 @@
       <!-- Metric 3: Action Items & Corrections -->
       <RouterLink
         to="/lessons"
-        class="rounded-2xl border bg-white p-4 sm:p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
+        class="rounded-2xl border bg-white px-4 py-3 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
         :class="teacher.attentionItems.length ? 'border-amber-300/80 bg-amber-50/20' : 'border-slate-200/80'"
       >
         <div class="flex items-center justify-between gap-2">
           <p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Action Queue</p>
           <span
-            class="w-8 h-8 rounded-xl flex items-center justify-center text-xs font-bold transition group-hover:scale-110"
+            class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition group-hover:scale-110"
             :class="teacher.attentionItems.length ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'"
           >
             <i class="fa-solid fa-list-check"></i>
           </span>
         </div>
-        <div class="mt-2.5">
+        <div class="mt-1.5">
           <p
-            class="text-2xl sm:text-3xl font-black tracking-tight tabular-nums"
+            class="text-xl sm:text-2xl font-black tracking-tight tabular-nums"
             :class="hasOverdueItem ? 'text-rose-600' : (teacher.attentionItems.length ? 'text-amber-800' : 'text-slate-900')"
           >
             {{ teacher.attentionItems.length }}
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Tasks</span>
           </p>
-          <p class="mt-1 text-[11px] font-semibold text-slate-500 truncate group-hover:text-amber-700 transition-colors">
+          <p class="mt-0.5 text-[11px] font-semibold text-slate-500 truncate group-hover:text-amber-700 transition-colors">
             {{ urgentSummary }}
             <i class="fa-solid fa-arrow-right text-[10px] ml-1"></i>
           </p>
@@ -105,17 +105,17 @@
       <!-- Metric 4: Weekly Utilization -->
       <RouterLink
         to="/calendar"
-        class="rounded-2xl border border-slate-200/80 bg-white p-4 sm:p-5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
+        class="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
       >
         <div class="flex items-center justify-between gap-2">
           <p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Week Roster</p>
-          <span class="w-8 h-8 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
+          <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
             <i class="fa-solid fa-chart-pie"></i>
           </span>
         </div>
-        <div class="mt-2.5">
+        <div class="mt-1.5">
           <div class="flex items-baseline justify-between">
-            <p class="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight tabular-nums">
+            <p class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums">
               {{ weeklyBookingRate }}%
               <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Booked</span>
             </p>
@@ -124,7 +124,7 @@
             </span>
           </div>
           <!-- Mini capacity bar -->
-          <div class="mt-2 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
+          <div class="mt-1.5 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
             <div
               class="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
               :style="{ width: `${weeklyBookingRate}%` }"
@@ -176,9 +176,9 @@
       </div>
 
       <!-- Main Body: Student Card + Topic Prep + Join CTAs -->
-      <div class="relative z-10 mt-5 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+      <div class="relative z-10 mt-5 grid grid-cols-1 lg:grid-cols-10 gap-6 items-center">
         <!-- Student Info Column -->
-        <div class="lg:col-span-4 flex items-center gap-4">
+        <div class="lg:col-span-3 flex items-center gap-4">
           <button
             type="button"
             @click="openStudentModal(next, 'basic')"
@@ -219,7 +219,7 @@
         </div>
 
         <!-- Subject & Topic Focus Column -->
-        <div class="lg:col-span-5 space-y-2 border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6">
+        <div class="lg:col-span-4 space-y-2 border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6">
           <div class="flex items-center gap-2">
             <span class="px-2.5 py-0.5 rounded-md bg-amber-400/20 text-amber-300 text-xs font-black">
               {{ next.subject }}
@@ -910,7 +910,7 @@ const urgentSummary = computed(() => {
   const items = teacher.attentionItems;
   if (!items.length) return 'All caught up';
   const urgentCount = items.filter(i => i.urgent).length;
-  if (urgentCount > 0) return `${urgentCount} urgent item${urgentCount === 1 ? '' : 's'} require response`;
+  if (urgentCount > 0) return `${urgentCount} urgent item${urgentCount === 1 ? ' needs' : 's need'} a response`;
   return `${items.length} pending task${items.length === 1 ? '' : 's'}`;
 });
 
