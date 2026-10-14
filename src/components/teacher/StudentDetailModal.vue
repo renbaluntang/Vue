@@ -61,13 +61,13 @@
             </div>
           </div>
 
-          <!-- A folder stack, packed to the left: each tab tucks behind the
-               one before it, and whichever is open comes to the front. The
-               overlap is what makes them read as one set of dividers rather
-               than five loose buttons, and the dark seam between them is the
-               header showing through the gap. -->
+          <!-- A folder stack. Each tab has the same sloped edge on both
+               sides — flared out at the bottom, rounded over at the top — and
+               neighbours overlap by most of a slope, so the edges nest and
+               only a small notch of the header shows where their tops meet.
+               Left tabs sit over right ones; the open tab comes to the front. -->
           <div
-            class="-ml-5 mt-5 flex items-end overflow-x-auto pr-4 sm:-ml-6"
+            class="tab-row -ml-5 mt-5 flex items-end overflow-x-auto sm:-ml-6"
             role="tablist"
             aria-label="Student detail sections"
           >
@@ -81,12 +81,12 @@
               :tabindex="activeTab === tab.key ? 0 : -1"
               @click="activeTab = tab.key"
               @keydown="onTabKey($event, i)"
-              class="relative flex w-[11.25rem] shrink-0 items-center justify-center gap-2 rounded-t-2xl px-3 text-xs font-bold transition-all outline-none focus:outline-none focus-visible:outline-none"
+              class="folder-tab relative flex h-9 w-[11.5rem] shrink-0 items-center justify-center gap-2 px-6 text-xs font-bold transition-colors outline-none focus:outline-none focus-visible:outline-none"
               :class="[
-                i === 0 ? '' : '-ml-4',
+                i === 0 ? '' : '-ml-7',
                 activeTab === tab.key
-                  ? 'bg-white py-2.5 text-slate-900'
-                  : 'bg-[var(--tab-bg)] py-2.5 text-slate-700 hover:bg-slate-100',
+                  ? 'bg-white text-slate-900'
+                  : 'bg-[var(--tab-bg)] text-slate-700 hover:bg-slate-100',
               ]"
               :style="{
                 zIndex: activeTab === tab.key ? tabs.length + 1 : tabs.length - i,
@@ -104,12 +104,7 @@
         </div>
 
         <!-- Scrollable Modal Body: Wide Landscape Content Grid -->
-        <div class="flex-1 overflow-y-auto p-5 sm:p-6 bg-white [perspective:1400px]">
-          <!-- Each tab's page drops down from a hinge along its top edge, like
-               turning the page of a flip-over notebook. The outgoing page just
-               fades, so the motion reads once, top to bottom. -->
-          <Transition name="page-flip" mode="out-in">
-          <div :key="activeTab" class="page-flip-sheet">
+        <div class="flex-1 overflow-y-auto p-5 sm:p-6 bg-white">
 
           <!-- TAB 1: CLASS DETAILS -->
           <div v-if="activeTab === 'class'" class="space-y-4">
@@ -380,8 +375,6 @@
             <div v-if="activeTab === 'materials'" class="pt-1">
               <EditableMaterials :entry="studentAsEntry" />
             </div>
-          </div>
-          </Transition>
         </div>
       </div>
     </div>
@@ -676,33 +669,18 @@ const studentReservations = computed(() => {
 </script>
 
 <style scoped>
-.page-flip-sheet {
-  transform-origin: top center;
-  backface-visibility: hidden;
+/* Five tabs fit the modal's width; on a narrower screen the row still
+   scrolls sideways, but without a visible scrollbar under the tabs. */
+.tab-row {
+  scrollbar-width: none;
+}
+.tab-row::-webkit-scrollbar {
+  display: none;
 }
 
-.page-flip-enter-active {
-  transition: transform 0.42s cubic-bezier(0.22, 1.2, 0.36, 1), opacity 0.2s ease-out;
-}
-.page-flip-enter-from {
-  transform: rotateX(-88deg);
-  opacity: 0;
-}
-
-.page-flip-leave-active {
-  transition: opacity 0.1s ease-in;
-}
-.page-flip-leave-to {
-  opacity: 0;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .page-flip-enter-active,
-  .page-flip-leave-active {
-    transition: opacity 0.12s linear;
-  }
-  .page-flip-enter-from {
-    transform: none;
-  }
+/* Tab, 184 x 36, with a 16px slope on each side: each edge flares out flat
+   along the bottom and rounds over into the top. */
+.folder-tab {
+  clip-path: path('M0 36 Q8 36 10 28 L15 8 Q17 0 25 0 L159 0 Q167 0 169 8 L174 28 Q176 36 184 36 Z');
 }
 </style>
