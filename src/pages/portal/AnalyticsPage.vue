@@ -4,7 +4,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brighture-cream border border-brighture-gold/30 text-brighture-bronze text-xs font-bold mb-2">
-          <span>📈</span> Learning Analytics & Achievements
+          <i class="fa-solid fa-chart-line text-sky-600" aria-hidden="true"></i> Learning Analytics & Achievements
         </div>
         <h1 class="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
           Student Progress & Badges
@@ -16,7 +16,7 @@
 
       <div class="flex items-center gap-3">
         <div class="bg-amber-50 border border-amber-200 px-4 py-2.5 rounded-2xl flex items-center gap-2.5">
-          <span class="text-2xl">🔥</span>
+          <i class="fa-solid fa-fire text-2xl text-orange-500" aria-hidden="true"></i>
           <div>
             <div class="text-[10px] uppercase font-extrabold tracking-wider text-amber-600">Active Streak</div>
             <div class="text-base font-black text-amber-900">{{ user.stats.currentStreak }} Days In A Row</div>
@@ -31,7 +31,7 @@
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-bold text-slate-500">Total Lessons</span>
           <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-600 flex items-center justify-center text-lg">
-            🎓
+            <i class="fa-solid fa-graduation-cap text-indigo-600" aria-hidden="true"></i>
           </div>
         </div>
         <div>
@@ -61,7 +61,7 @@
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-bold text-slate-500">Attendance Rate</span>
           <div class="w-10 h-10 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-lg">
-            ✅
+            <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
           </div>
         </div>
         <div>
@@ -76,7 +76,7 @@
         <div class="flex items-center justify-between mb-3">
           <span class="text-xs font-bold text-slate-500">Current Level</span>
           <div class="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center text-lg">
-            🏆
+            <i class="fa-solid fa-trophy text-amber-500" aria-hidden="true"></i>
           </div>
         </div>
         <div>
@@ -119,7 +119,7 @@
         </div>
 
         <div class="rounded-2xl bg-brighture-cream/70 border border-brighture-gold/20 p-4 text-xs text-brighture-ink flex items-start gap-3">
-          <span class="text-xl">💡</span>
+          <i class="fa-solid fa-lightbulb mt-0.5 text-xl text-amber-500" aria-hidden="true"></i>
           <div>
             <strong class="font-bold">Instructor Recommendation:</strong>
             <p class="mt-0.5 text-brighture-bronze">
@@ -161,7 +161,7 @@
               <!-- fixed-height, centred marker row so "Today" sits on the same
                    baseline as the ✓/— glyphs instead of riding above them -->
               <div class="mt-1 h-5 flex items-center justify-center leading-none">
-                <span v-if="idx < 4" class="text-sm">✓</span>
+                <i v-if="idx < 4" class="fa-solid fa-check text-sm" aria-hidden="true"></i>
                 <span v-else-if="idx === 4" class="text-[9px] sm:text-[10px] font-black uppercase tracking-tight">Today</span>
                 <span v-else class="text-sm">—</span>
               </div>
@@ -183,7 +183,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-4">
         <div>
           <h2 class="text-xl font-extrabold text-slate-900 flex items-center gap-2">
-            <span>🏅</span> Student Badges & Accomplishments
+            <i class="fa-solid fa-medal text-amber-500" aria-hidden="true"></i> Student Badges & Accomplishments
           </h2>
           <p class="text-xs text-slate-500 mt-0.5">Unlock prestige badges as you complete online English sessions.</p>
         </div>
@@ -204,7 +204,7 @@
               class="w-14 h-14 rounded-2xl flex items-center justify-center text-2xl shadow-sm flex-shrink-0 bg-gradient-to-br text-white"
               :class="badge.bgGradient"
             >
-              {{ badge.icon }}
+              <i :class="badgeIcon(badge.icon)" aria-hidden="true"></i>
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-2">
@@ -220,10 +220,10 @@
               
               <div class="mt-3 flex items-center justify-between text-[11px]">
                 <span v-if="badge.unlocked" class="font-bold text-emerald-600 flex items-center gap-1">
-                  <span>✓</span> Unlocked {{ badge.date }}
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i> Unlocked {{ badge.date }}
                 </span>
                 <span v-else class="font-bold text-slate-500 flex items-center gap-1">
-                  <span>🔒</span> In Progress ({{ badge.progress }})
+                  <i class="fa-solid fa-lock text-slate-400" aria-hidden="true"></i> In Progress ({{ badge.progress }})
                 </span>
               </div>
             </div>
@@ -237,4 +237,16 @@
 <script setup>
 import { useUserStore } from '../../stores/useUserStore';
 const user = useUserStore();
+
+// Badge data in the user store keeps its emoji because the classic portal still
+// prints it as text; this page draws the matching flat icon instead.
+const BADGE_ICONS = {
+  '🔥': 'fa-solid fa-fire',
+  '🎯': 'fa-solid fa-bullseye',
+  '🗣️': 'fa-solid fa-comment-dots',
+  '✍️': 'fa-solid fa-pen-nib',
+  '🌅': 'fa-solid fa-sun',
+  '👑': 'fa-solid fa-crown',
+};
+const badgeIcon = (icon) => BADGE_ICONS[icon] || 'fa-solid fa-award';
 </script>

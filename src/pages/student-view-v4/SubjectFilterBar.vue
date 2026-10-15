@@ -54,7 +54,7 @@ const selectedSubjectObject = computed(() => {
   if (!props.modelValue || props.modelValue === "ALL") return null;
   if (props.modelValue.startsWith("CAT_")) {
     const cat = SUBJECT_CATEGORIES.find((c) => c.id === props.modelValue.replace("CAT_", ""));
-    return cat ? { label: `${cat.icon} All ${cat.shortName}`, isCategory: true } : null;
+    return cat ? { label: `All ${cat.shortName}`, isCategory: true } : null;
   }
   for (const cat of SUBJECT_CATEGORIES) {
     const sub = cat.subjects.find((s) => s.code === props.modelValue);
@@ -164,7 +164,7 @@ onUnmounted(() => {
                 : 'text-slate-600 hover:text-slate-900'
             }`"
           >
-            <span>{{ cat.icon }}</span>
+            <i :class="cat.icon" aria-hidden="true"></i>
             <span>{{ cat.shortName }}</span>
           </button>
         </div>
@@ -183,7 +183,7 @@ onUnmounted(() => {
             }`"
             title="Browse all specific subjects"
           >
-            <span class="text-xs">📖</span>
+            <i class="fa-solid fa-book-open text-xs text-indigo-500" aria-hidden="true"></i>
             <span class="max-w-[160px] truncate sm:max-w-[200px]">
               {{ selectedSubjectObject && !selectedSubjectObject.isCategory ? selectedSubjectObject.name : 'Select Subject…' }}
             </span>
@@ -218,8 +218,9 @@ onUnmounted(() => {
                 type="button"
                 @click="searchQuery = ''"
                 class="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs"
+                aria-label="Clear search"
               >
-                ✕
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
               </button>
             </div>
 
@@ -232,7 +233,7 @@ onUnmounted(() => {
               }`"
             >
               <span class="flex items-center gap-2">
-                <span>✨</span>
+                <i class="fa-solid fa-wand-magic-sparkles text-amber-500" aria-hidden="true"></i>
                 <span>All Subjects</span>
               </span>
               <span :class="modelValue === 'ALL' ? 'text-slate-300' : 'text-slate-400'" class="text-[10px]">
@@ -244,7 +245,7 @@ onUnmounted(() => {
             <div class="max-h-64 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
               <div v-for="cat in filteredCategoriesForDropdown" :key="cat.id" class="space-y-1">
                 <div class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
-                  <span>{{ cat.icon }}</span>
+                  <i :class="cat.icon" aria-hidden="true"></i>
                   <span>{{ cat.name }}</span>
                 </div>
                 <div class="space-y-0.5">
@@ -293,7 +294,7 @@ onUnmounted(() => {
           class="inline-flex items-center gap-1 rounded-full bg-slate-100 hover:bg-slate-200 px-2 py-1 text-[10px] font-bold text-slate-600 transition"
           title="Reset to all subjects"
         >
-          <span>✕</span>
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           <span>Clear subject filter</span>
         </button>
 
@@ -311,7 +312,7 @@ onUnmounted(() => {
             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
         }`"
       >
-        <span :class="favoritesOnly ? 'text-amber-500' : 'text-slate-300'">★</span>
+        <i class="fa-solid fa-star" :class="favoritesOnly ? 'text-amber-500' : 'text-slate-300'" aria-hidden="true"></i>
         <span>Favorites</span>
         <span
           v-if="favoritesCount > 0"

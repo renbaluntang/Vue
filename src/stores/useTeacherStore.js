@@ -1,8 +1,15 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
 import { imageForKey } from '@/lib/teacherImages';
-import { seedMaterials } from '@/lib/lessonMaterials';
 import { convertSlotTime, getTimeZoneInfo, normalizeTimeZone } from '@/lib/timezoneUtils';
+import { CURRENT_TEACHER_ID } from '@/lib/schoolSeed';
+import {
+  MANILA, TOKYO, stampIn, rangeIn, utcLabel, minutesUntil, manilaSlotOf, weekStartIso,
+} from '@/lib/schoolTime';
+import { useSchoolStore } from './useSchoolStore';
+
+/** The signed-in instructor: Jirvy Dela Torre. */
+const TEACHER_ID = CURRENT_TEACHER_ID;
 
 /**
  * Prototype data for the instructor portal. Shapes follow the legacy teacher
@@ -155,197 +162,55 @@ export const useTeacherStore = defineStore('teacher', () => {
 
 
 
+  /**
+   * The school's shared records. Lessons, writing tickets and materials live
+   * there, once, so a booking Taro makes in the student portal is the same row
+   * Jirvy sees here. This store keeps the shapes the instructor pages were
+   * built against and maps the shared records onto them.
+   */
+  const school = useSchoolStore();
+
   const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
-  /** 'Sep 2, 2026 18:00' -> { dayUtc, minutes, clock }, or null if unparsable. */
-  const parseStamp = (stamp) => {
-    const m = /^([A-Za-z]{3}) (\d{1,2}), (\d{4}) (\d{2}):(\d{2})/.exec(stamp ?? '');
-    if (!m) return null;
-    const month = MONTH_ABBR.indexOf(m[1]);
-    if (month < 0) return null;
-    return {
-      dayUtc: Date.UTC(Number(m[3]), month, Number(m[2])),
-      minutes: Number(m[4]) * 60 + Number(m[5]),
-      clock: `${m[4]}:${m[5]}`,
-    };
-  };
-
-  /** Move a stamp by whole days, leaving everything after the time untouched. */
-  const shiftStamp = (stamp, days) => {
-    const at = parseStamp(stamp);
-    if (!at || !days) return stamp;
-    const d = new Date(at.dayUtc + days * 86_400_000);
-    const head = `${MONTH_ABBR[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()} ${at.clock}`;
-    return stamp.replace(/^[A-Za-z]{3} \d{1,2}, \d{4} \d{2}:\d{2}/, head);
-  };
+  /** 'Sep 2, 2026 18:00' -> 'Sep 2, 18:00', the short label message threads use. */
+  const shortStamp = (iso) => stampIn(iso, MANILA).replace(/, \d{4} /, ', ');
+  /** 'Sep 2, 2026' in Manila, for "added on" style labels. */
+  const manilaDate = (iso) => stampIn(iso, MANILA).split(' ').slice(0, 3).join(' ');
 
   // Upcoming reservations, soonest first.
-  const seededReservations = ref([
-    {
-      id: 'r-501',
-      topic: 'Cross-Border Negotiations & Pitching',
-      rangeManila: '6:00 PM – 6:30 PM PHT',
-      rangeTokyo: '7:00 PM – 7:30 PM JST',
-      studentId: 21,
-      studentName: 'Taro Yamada',
-      studentPhoto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&auto=format&fit=crop&q=80',
-      membership: 'Regular',
-      category: 'Online',
-      subject: '[SF] Speech Fluency',
-      lessonClass: 'Online',
-      point: 10,
-      substitution: false,
-      minutesUntil: 28,
-      startManila: 'Sep 2, 2026 18:00',
-      startTokyo: 'Sep 2, 2026 19:00',
-      startStudent: 'Sep 2, 2026 19:00 (UTC +09:00) Tokyo',
-      meetLink: 'https://meet.google.com/abc-defg-hij',
-      note: 'I want to focus on cross-border negotiation phrasing. Please correct my intonation.',
-    },
-    {
-      id: 'r-502',
-      topic: 'Vowel contrasts: /æ/ versus /ʌ/',
-      rangeManila: '8:00 PM – 8:30 PM PHT',
-      rangeTokyo: '9:00 PM – 9:30 PM JST',
-      studentId: 34,
-      studentName: 'Aiko Tanaka',
-      studentPhoto: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
-      membership: 'Regular',
-      category: 'Online',
-      subject: '[PP101] Pronunciation — Vowels',
-      lessonClass: 'Online',
-      point: 10,
-      substitution: false,
-      minutesUntil: 148,
-      startManila: 'Sep 2, 2026 20:00',
-      startTokyo: 'Sep 2, 2026 21:00',
-      startStudent: 'Sep 2, 2026 21:00 (UTC +09:00) Tokyo',
-      meetLink: 'https://meet.google.com/klm-nopq-rst',
-      note: 'Vowel drills again please — /æ/ and /ʌ/ are still hard for me.',
-    },
-    {
-      id: 'r-503',
-      topic: 'Everyday small talk & self-introduction',
-      rangeManila: '9:00 AM – 9:30 AM PHT',
-      rangeTokyo: '10:00 AM – 10:30 AM JST',
-      studentId: 12,
-      studentName: 'Kenji Sato',
-      studentPhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
-      membership: 'Trial',
-      category: 'Free Conversation',
-      subject: '[DC] Daily Conversation',
-      lessonClass: 'Online',
-      point: 5,
-      substitution: true,
-      minutesUntil: 1180,
-      startManila: 'Sep 3, 2026 09:00',
-      startTokyo: 'Sep 3, 2026 10:00',
-      startStudent: 'Sep 3, 2026 10:00 (UTC +09:00) Tokyo',
-      // Deliberately missing: the legacy portal warns instead of linking.
-      meetLink: '',
-      note: 'First lesson — nervous about speaking, please go slowly.',
-    },
-    {
-      id: 'r-504',
-      topic: 'IELTS Task 2 essay structure',
-      rangeManila: '1:00 PM – 1:30 PM PHT',
-      rangeTokyo: '2:00 PM – 2:30 PM JST',
-      studentId: 45,
-      studentName: 'Mika Kobayashi',
-      studentPhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
-      membership: 'Regular',
-      category: 'Online',
-      subject: '[RW] Reading & Writing',
-      lessonClass: 'Online',
-      point: 10,
-      substitution: false,
-      minutesUntil: 1420,
-      startManila: 'Sep 3, 2026 13:00',
-      startTokyo: 'Sep 3, 2026 14:00',
-      startStudent: 'Sep 3, 2026 06:00 (UTC +01:00) London',
-      meetLink: 'https://meet.google.com/uvw-xyza-bcd',
-      note: 'Reviewing my IELTS Task 2 essay structure.',
-    },
-    {
-      id: 'r-505',
-      topic: 'Tech Trends: AI & Workplace Automation',
-      rangeManila: '3:30 PM – 4:00 PM PHT',
-      rangeTokyo: '4:30 PM – 5:00 PM JST',
-      studentId: 58,
-      studentName: 'Daiki Suzuki',
-      studentPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
-      membership: 'Regular',
-      category: 'Online',
-      subject: '[LS1] Listening & Discussion',
-      lessonClass: 'Online',
-      point: 10,
-      substitution: false,
-      minutesUntil: 1570,
-      startManila: 'Sep 3, 2026 15:30',
-      startTokyo: 'Sep 3, 2026 16:30',
-      startStudent: 'Sep 3, 2026 16:30 (UTC +09:00) Tokyo',
-      meetLink: 'https://meet.google.com/qrs-tuvw-xyz',
-      note: 'Looking forward to discussing industry terminology and podcast summaries.',
-    },
-    {
-      id: 'r-506',
-      topic: 'Travel plans to Cebu & cultural exchange',
-      rangeManila: '10:00 AM – 10:30 AM PHT',
-      rangeTokyo: '11:00 AM – 11:30 AM JST',
-      studentId: 63,
-      studentName: 'Yuka Morita',
-      studentPhoto: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&auto=format&fit=crop&q=80',
-      membership: 'Trial',
-      category: 'Free Conversation',
-      subject: '[FC] Free Conversation',
-      lessonClass: 'Online',
-      point: 5,
-      substitution: false,
-      minutesUntil: 2680,
-      startManila: 'Sep 4, 2026 10:00',
-      startTokyo: 'Sep 4, 2026 11:00',
-      startStudent: 'Sep 4, 2026 11:00 (UTC +09:00) Tokyo',
-      meetLink: 'https://meet.google.com/efg-hijk-lmn',
-      note: 'Practicing everyday English for my upcoming trip to Cebu.',
-    },
-  ]);
-
-  /**
-   * How far the seed has to move to land on the day being looked at.
-   *
-   * The reservations were written around a fixed September date. Left alone,
-   * every "today" on the dashboard is weeks in the past while the header four
-   * lines above it reads the real clock — the two disagree on screen. Shifting
-   * the whole set by one offset keeps the shape the seed describes (two
-   * lessons tonight, a trial tomorrow morning) and lands it on the real day.
-   */
-  const reservationDayShift = computed(() => {
-    const at = parseStamp(seededReservations.value[0]?.startManila);
-    if (!at) return 0;
-    const [y, m, d] = manilaNow.value.iso.split('-').map(Number);
-    return Math.round((Date.UTC(y, m - 1, d) - at.dayUtc) / 86_400_000);
-  });
-
   const reservations = computed(() => {
-    const shift = reservationDayShift.value;
-    const now = manilaNow.value;
-    const [y, m, d] = now.iso.split('-').map(Number);
-    const todayUtc = Date.UTC(y, m - 1, d);
-    return seededReservations.value.map((row) => {
-      const startManila = shiftStamp(row.startManila, shift);
-      const at = parseStamp(startManila);
-      return {
-        ...row,
-        startManila,
-        startTokyo: shiftStamp(row.startTokyo, shift),
-        startStudent: shiftStamp(row.startStudent, shift),
-        // Counted off the real clock rather than carried from the seed, so the
-        // countdown in the header cannot drift from the time beside it.
-        minutesUntil: at
-          ? Math.round((at.dayUtc - todayUtc) / 60_000) + at.minutes - now.minutes
-          : row.minutesUntil,
-      };
-    });
+    const now = nowTick.value;
+    return school.lessonsForTeacher(TEACHER_ID)
+      .filter((lesson) => lesson.status === 'booked')
+      .map((lesson) => {
+        const s = school.student(lesson.studentId);
+        return {
+          id: lesson.id,
+          topic: lesson.topic,
+          studentId: lesson.studentId,
+          studentName: s.name,
+          studentPhoto: s.photo,
+          membership: s.membership,
+          category: s.category,
+          subject: lesson.subject,
+          lessonClass: 'Online',
+          point: lesson.points,
+          substitution: lesson.substitution,
+          // Counted off the real clock, so the countdown in the header cannot
+          // drift from the time beside it.
+          minutesUntil: minutesUntil(lesson.start, now),
+          startManila: stampIn(lesson.start, MANILA),
+          startTokyo: stampIn(lesson.start, TOKYO),
+          rangeManila: `${rangeIn(lesson.start, lesson.duration, MANILA, ' – ')} PHT`,
+          rangeTokyo: `${rangeIn(lesson.start, lesson.duration, TOKYO, ' – ')} JST`,
+          startStudent: `${stampIn(lesson.start, s.timezone)} ${utcLabel(s.timezone)}`,
+          // Deliberately possibly empty: the legacy portal warns instead of linking.
+          meetLink: lesson.meetLink,
+          note: lesson.note,
+          start: lesson.start,
+          duration: lesson.duration,
+        };
+      });
   });
 
   /** The soonest lesson that has not already started. */
@@ -366,227 +231,96 @@ export const useTeacherStore = defineStore('teacher', () => {
   // and the student can come back with follow-up questions. `messages[0]` is
   // always the student's original passage, so the thread needs no separate
   // "submission" field.
-  const writingTasks = ref([
-    {
-      id: 'w-88',
-      studentId: 21,
-      studentName: 'Taro Yamada',
-      studentPhoto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&auto=format&fit=crop&q=80',
-      title: 'Business email — supplier delay apology',
-      submittedManila: 'Sep 1, 2026 14:20',
-      submittedTokyo: 'Sep 1, 2026 15:20',
-      state: 'In progress',
-      urgency: 'warning',
-      words: 245,
-      dueInHours: 9,
-      messages: [
-        {
-          id: 'm-1',
-          from: 'student',
-          time: 'Sep 1, 14:20',
-          body: `Dear Mr. Tanaka,
+  const countWords = (text) => (String(text ?? '').trim().match(/\S+/g) ?? []).length;
 
-I am writing to apologize about the delay of our shipment. We had a problem in the factory last week, so the products could not be finished on time.
-
-We will send the products by next Friday. I am very sorry for the inconvenience.`,
-        },
-        {
-          id: 'm-2',
-          from: 'student',
-          time: 'Sep 1, 14:26',
-          body: 'Sorry, one more thing — is "apologize about" correct here, or should it be "apologize for"?',
-        },
-      ],
-    },
-    {
-      id: 'w-89',
-      studentId: 45,
-      studentName: 'Mika Kobayashi',
-      studentPhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
-      title: 'IELTS Task 2 — remote work essay',
-      submittedManila: 'Sep 1, 2026 20:05',
-      submittedTokyo: 'Sep 1, 2026 21:05',
-      state: 'In progress',
-      urgency: 'normal',
-      words: 312,
-      dueInHours: 26,
-      messages: [
-        {
-          id: 'm-1',
-          from: 'student',
-          time: 'Sep 1, 20:05',
-          body: `Some people believe that working from home is better for employees, while others think the office is necessary for teamwork. Discuss both views and give your own opinion.
-
-In my opinion, remote work has more advantage than disadvantage. First, employees can save the commuting time, which in Tokyo is often two hours every day. Second, they can concentrate better because there is no interruption from colleagues.
-
-However, I admit that new staff needs the office to learn from senior members.`,
-        },
-      ],
-    },
-    {
-      id: 'w-90',
-      studentId: 34,
-      studentName: 'Aiko Tanaka',
-      studentPhoto: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
-      title: 'Self-introduction rewrite',
-      submittedManila: 'Aug 31, 2026 09:40',
-      submittedTokyo: 'Aug 31, 2026 10:40',
-      state: 'Overdue',
-      urgency: 'danger',
-      words: 180,
-      dueInHours: -4,
-      messages: [
-        {
-          id: 'm-1',
-          from: 'student',
-          time: 'Aug 31, 09:40',
-          body: `Hello everyone, my name is Aiko Tanaka. I work in the sales department for three years. I am interesting in international business and I want to improve my English for meeting with overseas client.
-
-Nice to meet you all and I hope we can work together well.`,
-        },
-        {
-          id: 'm-2',
-          from: 'teacher',
-          time: 'Aug 31, 11:05',
-          body: 'Thanks Aiko — I have your passage. I will send the full correction today. One quick note while you wait: "I am interesting" should be "I am interested". We use -ing for the thing, -ed for the person.',
-        },
-        {
-          id: 'm-3',
-          from: 'student',
-          time: 'Aug 31, 21:14',
-          body: 'Thank you! Could you also check whether "for three years" is right? My colleague said it should be "for three years now".',
-        },
-      ],
-    },
-  ]);
+  const writingTasks = computed(() => {
+    const now = nowTick.value;
+    return school.writingForTeacher(TEACHER_ID).map((ticket) => {
+      const s = school.student(ticket.studentId);
+      const dueInHours = Math.round(minutesUntil(ticket.dueAt, now) / 60);
+      const complete = ticket.status === 'Complete';
+      const overdue = !complete && minutesUntil(ticket.dueAt, now) < 0;
+      return {
+        id: ticket.id,
+        studentId: ticket.studentId,
+        studentName: s.name,
+        studentPhoto: s.photo,
+        title: ticket.title,
+        submittedManila: stampIn(ticket.submittedAt, MANILA),
+        submittedTokyo: stampIn(ticket.submittedAt, TOKYO),
+        state: complete ? 'Complete' : overdue ? 'Overdue' : 'In progress',
+        urgency: complete ? 'normal' : overdue ? 'danger' : dueInHours < 12 ? 'warning' : 'normal',
+        words: countWords(ticket.messages[0]?.body),
+        dueInHours,
+        remainingSends: ticket.remainingSends,
+        messages: ticket.messages.map((m) => ({ ...m, time: shortStamp(m.at) })),
+      };
+    });
+  });
 
   const pendingWritingCount = computed(
     () => writingTasks.value.filter((task) => task.state !== 'Complete').length
   );
 
   /** Appends the instructor's reply, optionally carrying a corrected passage. */
-  const sendWritingReply = (taskId, { body, correction }) => {
-    const task = writingTasks.value.find((t) => t.id === taskId);
-    if (!task) return;
-    const text = (body ?? '').trim();
-    const fixed = (correction ?? '').trim();
-    if (!text && !fixed) return;
-    task.messages.push({
-      id: `m-${task.messages.length + 1}`,
-      from: 'teacher',
-      time: 'Just now',
-      body: text,
-      correction: fixed || undefined,
-    });
-  };
+  const sendWritingReply = (taskId, { body, correction }) =>
+    school.replyWriting(taskId, { from: 'teacher', body: body ?? '', correction, teacherId: TEACHER_ID });
 
   /** Closes the ticket so it drops out of the pending queue and badge count. */
-  const completeWritingTask = (taskId) => {
-    const task = writingTasks.value.find((t) => t.id === taskId);
-    if (task) task.state = 'Complete';
-  };
+  const completeWritingTask = (taskId) => school.completeWriting(taskId);
 
   // Lesson materials hang off the student, not the lesson — the same handout
-  // is the one they are still working through three lessons later.
-  const materialsByStudent = ref(seedMaterials());
+  // is the one they are still working through three lessons later. The shelf
+  // is shared, so what is added here is what the student sees.
+  const materialsByStudent = computed(() => school.db.materials);
 
-  const materialsFor = (studentId) => materialsByStudent.value[studentId] ?? [];
+  const materialsFor = (studentId) => school.materialsFor(studentId);
   const materialCount = (studentId) => materialsFor(studentId).length;
 
   const addMaterial = (studentId, material) => {
     const title = (material?.title ?? '').trim();
     if (!studentId || !title) return null;
-    const entry = {
+    return school.addMaterial(studentId, {
       id: `m-${studentId}-${Date.now()}`,
       title,
       kind: material.kind || 'link',
       subject: (material.subject ?? '').trim(),
       note: (material.note ?? '').trim(),
       url: (material.url ?? '').trim(),
-      addedOn: 'Just now',
+      addedOn: manilaDate(new Date().toISOString()),
       addedBy: `${profile.value.firstName} ${profile.value.lastName}`,
-    };
-    if (!materialsByStudent.value[studentId]) materialsByStudent.value[studentId] = [];
-    materialsByStudent.value[studentId].unshift(entry);
-    return entry;
+    });
   };
 
-  const removeMaterial = (studentId, id) => {
-    const list = materialsByStudent.value[studentId];
-    if (!list) return;
-    const at = list.findIndex((item) => item.id === id);
-    if (at !== -1) list.splice(at, 1);
-  };
+  const removeMaterial = (studentId, id) => school.removeMaterial(studentId, id);
 
-  // Completed lessons, newest first.
-  const seededLessonLog = ref([
-    {
-      id: 'l-410',
-      studentId: 21,
-      studentName: 'Taro Yamada',
-      dateManila: 'Sep 1, 2026 18:00',
-      dateTokyo: 'Sep 1, 2026 19:00',
-      category: 'Online',
-      subject: '[SF] Speech Fluency',
-      point: 10,
-      status: 'Completed',
-      studentRating: 5,
-      studentComment: 'Very clear explanations, I could follow every correction.',
-      feedbackSubmitted: true,
-    },
-    {
-      id: 'l-409',
-      studentId: 34,
-      studentName: 'Aiko Tanaka',
-      dateManila: 'Sep 1, 2026 15:00',
-      dateTokyo: 'Sep 1, 2026 16:00',
-      category: 'Online',
-      subject: '[PP101] Pronunciation — Vowels',
-      point: 10,
-      status: 'Completed',
-      studentRating: 5,
-      studentComment: '',
-      feedbackSubmitted: false,
-    },
-    {
-      id: 'l-408',
-      studentId: 12,
-      studentName: 'Kenji Sato',
-      dateManila: 'Aug 31, 2026 11:00',
-      dateTokyo: 'Aug 31, 2026 12:00',
-      category: 'Free Conversation',
-      subject: '[DC] Daily Conversation',
-      point: 5,
-      status: 'Completed',
-      studentRating: 4,
-      studentComment: 'Friendly and patient.',
-      feedbackSubmitted: false,
-    },
-    {
-      id: 'l-407',
-      studentId: 45,
-      studentName: 'Mika Kobayashi',
-      dateManila: 'Aug 30, 2026 13:00',
-      dateTokyo: 'Aug 30, 2026 14:00',
-      category: 'Online',
-      subject: '[RW] Reading & Writing',
-      point: 10,
-      status: 'No show (student)',
-      studentRating: null,
-      studentComment: '',
-      feedbackSubmitted: true,
-    },
-  ]);
+  const STATUS_LABELS = { completed: 'Completed', 'no-show': 'No show (student)', cancelled: 'Cancelled' };
 
-  // Dated from the same writing session as the reservations; shifted by the
-  // same offset it keeps its spacing and stops reading as a month old.
+  // Lessons that have happened (or were meant to), newest first.
   const lessonLog = computed(() => {
-    const shift = reservationDayShift.value;
-    return seededLessonLog.value.map((row) => ({
-      ...row,
-      dateManila: shiftStamp(row.dateManila, shift),
-      dateTokyo: shiftStamp(row.dateTokyo, shift),
-    }));
+    const now = nowTick.value;
+    return school.lessonsForTeacher(TEACHER_ID)
+      .filter((lesson) => STATUS_LABELS[lesson.status] && minutesUntil(lesson.start, now) <= 0)
+      .reverse()
+      .map((lesson) => {
+        const s = school.student(lesson.studentId);
+        return {
+          id: lesson.id,
+          studentId: lesson.studentId,
+          studentName: s.name,
+          dateManila: stampIn(lesson.start, MANILA),
+          dateTokyo: stampIn(lesson.start, TOKYO),
+          category: s.category,
+          subject: lesson.subject,
+          point: lesson.points,
+          status: STATUS_LABELS[lesson.status],
+          studentRating: lesson.studentRating,
+          studentComment: lesson.studentComment,
+          feedbackSubmitted: lesson.feedbackSubmitted,
+          feedback: lesson.feedback,
+          hiddenNote: lesson.hiddenNote,
+        };
+      });
   });
 
   const pendingFeedback = computed(() =>
@@ -594,11 +328,7 @@ Nice to meet you all and I hope we can work together well.`,
   );
 
   const submitFeedback = (lessonId, { feedback, hiddenNote }) => {
-    const lesson = seededLessonLog.value.find((row) => row.id === lessonId);
-    if (!lesson) return;
-    lesson.feedbackSubmitted = true;
-    lesson.feedback = feedback;
-    lesson.hiddenNote = hiddenNote;
+    school.submitFeedback(lessonId, { feedback, hiddenNote });
   };
 
   // Availability grid. Days are columns, half-hour slots are rows, exactly like
@@ -708,8 +438,16 @@ Nice to meet you all and I hope we can work together well.`,
     })
   );
 
+  /**
+   * The board is published through the school's records, so the student
+   * booking page offers exactly the hours set here. The sample week below is
+   * only a fallback for a record that has no board yet.
+   */
+  const sharedBoard = school.availabilityFor(TEACHER_ID);
+  const cloneJson = (value) => JSON.parse(JSON.stringify(value ?? {}));
+
   const weekPattern = ref(
-    (() => {
+    sharedBoard?.weekPattern ? cloneJson(sharedBoard.weekPattern) : (() => {
       const seed = {};
       const openByDay = {
         sun: [],
@@ -742,7 +480,7 @@ Nice to meet you all and I hope we can work together well.`,
   );
 
   /** Weeks that have stopped following the pattern, keyed by their Sunday. */
-  const weekOverrides = ref({});
+  const weekOverrides = ref(cloneJson(sharedBoard?.weekOverrides));
 
   /**
    * Everything already reads and writes `availability`, so pointing it at
@@ -819,7 +557,44 @@ Nice to meet you all and I hope we can work together well.`,
    * about where the hours came from. Without this record the board cannot tell
    * an hour that comes back from one put down on its own.
    */
-  const recurringSlots = ref({});
+  const recurringSlots = ref(cloneJson(sharedBoard?.recurringSlots));
+
+  /*
+   * Two-way sync with the shared board. Every edit is written back whole; a
+   * change from elsewhere (another tab, a demo reset) is adopted whole. Both
+   * sides compare serialised text first, so the write an adoption causes, and
+   * the adoption a write causes, each stop after one step instead of looping.
+   */
+  const localBoardJson = () => JSON.stringify({
+    weekPattern: weekPattern.value,
+    weekOverrides: weekOverrides.value,
+    recurringSlots: recurringSlots.value,
+  });
+  const sharedBoardJson = () => {
+    const board = school.availabilityFor(TEACHER_ID);
+    return board ? JSON.stringify({
+      weekPattern: board.weekPattern ?? {},
+      weekOverrides: board.weekOverrides ?? {},
+      recurringSlots: board.recurringSlots ?? {},
+    }) : '';
+  };
+
+  watch([weekPattern, weekOverrides, recurringSlots], () => {
+    if (localBoardJson() === sharedBoardJson()) return;
+    school.setAvailability(TEACHER_ID, {
+      weekPattern: weekPattern.value,
+      weekOverrides: weekOverrides.value,
+      recurringSlots: recurringSlots.value,
+    });
+  }, { deep: true, immediate: true });
+
+  watch(sharedBoardJson, (json) => {
+    if (!json || json === localBoardJson()) return;
+    const board = JSON.parse(json);
+    weekPattern.value = board.weekPattern;
+    weekOverrides.value = board.weekOverrides;
+    recurringSlots.value = board.recurringSlots;
+  });
 
   const markRecurring = (weekStartIso, dayKey, slotKey, on = true) => {
     const week = weekStartOf(weekStartIso);
@@ -1493,8 +1268,17 @@ Nice to meet you all and I hope we can work together well.`,
     },
   });
 
-  /** Booked lessons per weekday, paired with the slots left open that day. */
-  const lessonsBookedByDay = ref({ sun: 0, mon: 5, tue: 4, wed: 3, thu: 5, fri: 2, sat: 1 });
+  /** Lessons per weekday in the week on screen, from the shared lesson records. */
+  const lessonsBookedByDay = computed(() => {
+    const counts = { sun: 0, mon: 0, tue: 0, wed: 0, thu: 0, fri: 0, sat: 0 };
+    school.lessonsForTeacher(TEACHER_ID)
+      .filter((lesson) => lesson.status === 'booked' || lesson.status === 'completed')
+      .forEach((lesson) => {
+        const { dateIso, dayKey } = manilaSlotOf(lesson.start);
+        if (weekStartIso(dateIso) === activeWeekStart.value) counts[dayKey] += 1;
+      });
+    return counts;
+  });
 
   const weeklyLoad = computed(() =>
     scheduleDays.value.map((day) => {
@@ -1517,7 +1301,7 @@ Nice to meet you all and I hope we can work together well.`,
   /** Everything waiting on the instructor, most urgent first. */
   const attentionItems = computed(() => [
     ...writingTasks.value
-      .filter((task) => task.dueInHours < 12)
+      .filter((task) => task.state !== 'Complete' && task.dueInHours < 12)
       .map((task) => ({
         id: `w-${task.id}`,
         kind: 'writing',
@@ -1540,6 +1324,11 @@ Nice to meet you all and I hope we can work together well.`,
 
   const recentRatings = computed(() =>
     lessonLog.value.filter((lesson) => lesson.studentRating).slice(0, 3)
+  );
+
+  /** Student messages not yet seen, across every thread — the Messages badge. */
+  const unreadMessageCount = computed(() =>
+    school.threadsForTeacher(TEACHER_ID).reduce((sum, thread) => sum + school.unreadIn(thread, 'teacher'), 0)
   );
 
   const fullName = computed(() => `${profile.value.firstName} ${profile.value.lastName}`);
@@ -1566,6 +1355,7 @@ Nice to meet you all and I hope we can work together well.`,
     getSlotReason, setSlotStatus, cycleSlot, toggleSlot, setDay, setDayStatus, setSlotRow, setSlotRowStatus,
     openSlotCount, reservedSlotCount, openHours, reservedHours, SLOT_MINUTES, SLOTS_PER_HOUR,
     weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings,
+    unreadMessageCount, teacherId: TEACHER_ID,
     analytics,
   };
 });

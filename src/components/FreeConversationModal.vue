@@ -4,11 +4,11 @@
       <!-- Header -->
       <div class="relative overflow-hidden rounded-t-3xl border-b border-white/10 p-6 text-white text-center bg-[radial-gradient(120%_140%_at_90%_10%,rgba(255,205,0,0.18)_0%,rgba(255,205,0,0.04)_40%,transparent_70%),radial-gradient(70%_90%_at_0%_100%,rgba(51,65,85,0.25)_0%,transparent_60%),linear-gradient(135deg,#131722_0%,#1a202c_48%,#0b0e14_100%)]">
         <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-        <button @click="$emit('close')" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition">
-          ✕
+        <button @click="$emit('close')" class="absolute top-4 right-4 w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 text-white transition" aria-label="Close">
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
         <div class="w-14 h-14 mx-auto bg-white/[0.08] border border-white/10 rounded-2xl flex items-center justify-center text-2xl mb-3 shadow-inner">
-          ⚡
+          <i class="fa-solid fa-bolt text-[#FFCD00]" aria-hidden="true"></i>
         </div>
         <div class="flex items-center justify-center gap-2">
           <h2 class="text-xl sm:text-2xl font-black tracking-tight">Talk Now</h2>
@@ -59,8 +59,8 @@
 
       <!-- Success State -->
       <div v-else class="p-8 text-center space-y-4">
-        <div class="w-20 h-20 mx-auto bg-amber-50 border border-amber-200 text-amber-500 rounded-full flex items-center justify-center text-4xl shadow-inner animate-bounce">
-          🎉
+        <div class="w-20 h-20 mx-auto bg-amber-50 border border-amber-200 text-amber-500 rounded-full flex items-center justify-center text-3xl shadow-inner animate-bounce">
+          <i class="fa-solid fa-champagne-glasses" aria-hidden="true"></i>
         </div>
         <h3 class="text-2xl font-black text-slate-900">Booked Successfully!</h3>
         <p class="text-slate-500 font-medium text-sm">Your Talk Now lesson starts immediately. Please join the Google Meet room.</p>

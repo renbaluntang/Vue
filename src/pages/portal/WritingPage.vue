@@ -109,7 +109,7 @@
               @click="isCreatingNew = false"
               class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-200 text-slate-500 transition hover:bg-slate-300"
               aria-label="Cancel submission"
-            >✕</button>
+            ><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
           </div>
 
           <div class="flex-1 space-y-5 overflow-y-auto p-4 sm:p-6">
@@ -168,7 +168,7 @@
               class="-ml-1 flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-slate-500 transition hover:bg-slate-200 hover:text-slate-900 lg:hidden"
               aria-label="Back to tickets"
             >
-              ←
+              <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
             </button>
 
             <AppImage
@@ -287,7 +287,7 @@
                 class="absolute bottom-3 right-3 flex h-8 w-8 items-center justify-center rounded-full bg-brighture-gold text-brighture-ink shadow-md transition-all hover:bg-brighture-gold-deep hover:scale-105 active:scale-95 disabled:opacity-40 disabled:hover:scale-100"
                 aria-label="Send reply"
               >
-                ↑
+                <i class="fa-solid fa-arrow-up" aria-hidden="true"></i>
               </button>
             </div>
           </div>
@@ -304,8 +304,8 @@
 
         <!-- EMPTY STATE (desktop only — on a phone the list fills this slot) -->
         <div v-else class="hidden h-full flex-col items-center justify-center p-8 text-center lg:flex">
-          <div class="mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-4xl shadow-inner">
-            📬
+          <div class="mb-4 flex h-20 w-20 items-center justify-center rounded-full border border-slate-100 bg-slate-50 text-3xl shadow-inner">
+            <i class="fa-solid fa-envelope-open-text text-sky-600" aria-hidden="true"></i>
           </div>
           <h3 class="text-xl font-bold text-slate-800">Select a ticket</h3>
           <p class="mt-1 max-w-xs font-medium text-slate-500">

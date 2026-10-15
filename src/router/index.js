@@ -31,6 +31,16 @@ const routes = [
         component: () => import('../pages/portal/WritingPage.vue'),
       },
       {
+        path: 'messages',
+        name: 'messages',
+        component: () => import('../pages/portal/MessagesPage.vue'),
+      },
+      {
+        path: 'exams',
+        name: 'exams',
+        component: () => import('../pages/portal/ExamsPage.vue'),
+      },
+      {
         path: 'materials',
         name: 'materials',
         component: () => import('../pages/portal/MaterialsPage.vue'),

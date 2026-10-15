@@ -35,7 +35,7 @@
           </span>
           <template v-if="saved && !isDirty">
             <span class="h-3 w-px bg-slate-200"></span>
-            <span class="text-[11px] font-bold text-emerald-600">✓ Up to date</span>
+            <span class="text-[11px] font-bold text-emerald-600"><i class="fa-solid fa-check" aria-hidden="true"></i> Up to date</span>
           </template>
         </div>
       </div>
@@ -214,7 +214,7 @@
                   class="relative group flex h-8 w-full min-w-0 items-center justify-center overflow-hidden rounded-lg border px-1 text-[11px] font-black transition-all select-none enabled:cursor-pointer enabled:active:scale-95 disabled:cursor-default disabled:opacity-45"
                   :class="cellClass(day.key, slot.key)"
                 >
-                  <span v-if="teacher.isOpen(day.key, slot.key)">✓</span>
+                  <i v-if="teacher.isOpen(day.key, slot.key)" class="fa-solid fa-check" aria-hidden="true"></i>
                   <span v-else-if="teacher.isReserved(day.key, slot.key)" class="flex items-center gap-1 text-[10px]">
                     <i class="fa-solid fa-bookmark text-[9px]"></i>
                     <span class="hidden min-w-0 truncate sm:inline">{{ cellShortReason(day.key, slot.key) }}</span>

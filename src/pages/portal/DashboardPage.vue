@@ -21,7 +21,7 @@
           to="/booking"
           class="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-lg bg-[#FFCD00] text-black font-bold text-[13px] sm:text-sm leading-tight text-center hover:bg-[#FFD933] active:scale-[0.98] transition-all"
         >
-          <span class="shrink-0">🗓️</span> <span>Book Online Class</span>
+          <i class="fa-solid fa-calendar-days shrink-0" aria-hidden="true"></i> <span>Book Online Class</span>
         </RouterLink>
 
         <button
@@ -32,7 +32,7 @@
           <span class="absolute -top-2 -right-2 bg-red-600 text-white text-[9px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full shadow-md">
             Instant
           </span>
-          <span class="shrink-0">⚡</span> <span>Talk Now</span>
+          <i class="fa-solid fa-bolt shrink-0 text-[#FFCD00]" aria-hidden="true"></i> <span>Talk Now</span>
         </button>
 
       </div>
@@ -98,61 +98,81 @@
     </div>
 
     <!-- The week is the dashboard's one primary metric; the rest is supporting evidence. -->
-    <section aria-label="Learning progress" class="border-y border-slate-200 py-5 sm:py-6 grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,0.6fr))] gap-5 lg:gap-0">
+    <section aria-label="Learning progress" class="border-y border-slate-200 py-3.5 sm:py-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,0.6fr))] gap-4 lg:gap-0">
       <div class="lg:pr-8">
         <div class="flex items-end justify-between gap-4">
           <div>
             <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Weekly class goal</p>
-            <p class="mt-1 text-4xl sm:text-5xl font-black tracking-[-0.06em] tabular-nums text-slate-950 leading-none">
+            <p class="mt-1 text-3xl sm:text-4xl font-black tracking-[-0.06em] tabular-nums text-slate-950 leading-none">
               {{ user.stats.weeklyGoalMet }}<span class="text-slate-300">/{{ user.stats.weeklyGoalTotal }}</span>
             </p>
           </div>
-          <p class="max-w-[13rem] text-right text-xs leading-5 font-medium text-slate-500">
-            {{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet }} more class{{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet === 1 ? '' : 'es' }} completes your target for Sep 7–13.
+          <p class="max-w-[13rem] text-right text-xs leading-4 font-medium text-slate-500">
+            {{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet }} more class{{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet === 1 ? '' : 'es' }} completes your target for {{ weekRangeLabel }}.
           </p>
         </div>
-        <div class="mt-4 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+        <div class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
           <div class="h-full rounded-full bg-[#FFCD00]" :style="{ width: `${(user.stats.weeklyGoalMet / user.stats.weeklyGoalTotal) * 100}%` }"></div>
         </div>
       </div>
       <div class="lg:border-l lg:border-slate-200 lg:px-6">
         <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Lessons completed</p>
-        <p class="mt-1 text-2xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.totalLessons }}</p>
-        <p class="mt-1 text-xs text-slate-500">all time</p>
+        <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.totalLessons }}</p>
+        <p class="mt-0.5 text-xs text-slate-500">all time</p>
       </div>
       <div class="lg:border-l lg:border-slate-200 lg:px-6">
         <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Attendance</p>
-        <p class="mt-1 text-2xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.attendanceRate }}%</p>
-        <p class="mt-1 text-xs text-slate-500">last 90 days</p>
+        <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.attendanceRate }}%</p>
+        <p class="mt-0.5 text-xs text-slate-500">last 90 days</p>
       </div>
       <div class="lg:border-l lg:border-slate-200 lg:pl-6">
         <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Points available</p>
-        <p class="mt-1 text-2xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.profile.pointsBalance }}</p>
-        <RouterLink to="/points" class="mt-1 inline-block text-xs font-bold text-slate-600 hover:text-slate-950">View point history →</RouterLink>
+        <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.profile.pointsBalance }}</p>
+        <RouterLink to="/points" class="mt-0.5 inline-block text-xs font-bold text-slate-600 hover:text-slate-950">View point history →</RouterLink>
       </div>
     </section>
 
-    <!-- Reschedule Success Banner -->
-    <div
-      v-if="rescheduleSuccessNotice"
-      class="rounded-2xl border border-emerald-200 bg-emerald-50 p-4 shadow-sm flex items-center justify-between gap-3 animate-in fade-in slide-in-from-top-2 duration-300"
-    >
-      <div class="flex items-center gap-3">
-        <div class="w-8 h-8 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 text-sm font-bold shrink-0">
-          <i class="fa-solid fa-check"></i>
-        </div>
-        <p class="text-xs sm:text-sm font-bold text-emerald-900">
-          {{ rescheduleSuccessNotice }}
-        </p>
-      </div>
-      <button
-        @click="rescheduleSuccessNotice = null"
-        class="text-xs font-bold text-emerald-700 hover:text-emerald-900 px-2 py-1 cursor-pointer"
-        aria-label="Dismiss notice"
+    <!-- Result toast for reschedule / cancel / edit: pinned to the top right
+         of the window, so it never pushes the page down. It closes itself
+         after a few seconds, or on ✕. -->
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-300 ease-out"
+        enter-from-class="opacity-0 translate-x-6"
+        leave-active-class="transition duration-200 ease-in"
+        leave-to-class="opacity-0 translate-x-6"
       >
-        ✕
-      </button>
-    </div>
+        <div
+          v-if="rescheduleSuccessNotice"
+          role="status"
+          aria-live="polite"
+          class="fixed right-4 top-4 z-[90] flex w-[calc(100vw-2rem)] max-w-sm items-start gap-3 rounded-2xl border bg-white p-4 shadow-xl"
+          :class="noticeIsError ? 'border-rose-200' : 'border-emerald-200'"
+        >
+          <div
+            class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+            :class="noticeIsError ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'"
+          >
+            <i :class="noticeIsError ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-check'"></i>
+          </div>
+          <div class="min-w-0 flex-1 pt-0.5">
+            <p class="text-xs font-black" :class="noticeIsError ? 'text-rose-800' : 'text-emerald-800'">
+              {{ noticeIsError ? 'Something went wrong' : 'Done' }}
+            </p>
+            <p class="mt-0.5 text-xs sm:text-sm font-semibold leading-snug text-slate-700">
+              {{ rescheduleSuccessNotice }}
+            </p>
+          </div>
+          <button
+            @click="rescheduleSuccessNotice = null"
+            class="shrink-0 w-7 h-7 rounded-full flex items-center justify-center text-slate-400 hover:bg-slate-100 hover:text-slate-700 cursor-pointer"
+            aria-label="Dismiss notification"
+          >
+            <i class="fa-solid fa-xmark text-sm"></i>
+          </button>
+        </div>
+      </Transition>
+    </Teleport>
 
     <!-- MERGED & UNIFIED: SCHEDULED ONLINE CLASSES SECTION -->
     <section class="space-y-4">
@@ -191,11 +211,27 @@
             <!-- Status row -->
             <div class="flex flex-wrap items-center gap-2.5">
               <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 text-xs font-black">
-                NEXT CLASS • STARTS IN {{ user.nextUpcomingClass.minutesUntil }} MINS
+                NEXT CLASS • STARTS IN {{ countdownLabel(user.nextUpcomingClass.minutesUntil).toUpperCase() }}
               </span>
               <span class="text-xs font-bold text-slate-300 bg-white/10 px-2.5 py-1 rounded-full">
                 {{ user.nextUpcomingClass.timeFull }}
               </span>
+              <!-- Pre-class materials. Within 3 hours of the start an unfinished
+                   list turns solid amber so it is hard to miss. -->
+              <button
+                v-if="nextPrep.total"
+                type="button"
+                @click="openDetails(user.nextUpcomingClass)"
+                class="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold transition"
+                :class="nextPrepLeft === 0
+                  ? 'bg-emerald-500/20 text-emerald-300 hover:bg-emerald-500/30'
+                  : user.nextUpcomingClass.minutesUntil <= 180
+                    ? 'bg-amber-400 text-amber-950 hover:bg-amber-300'
+                    : 'bg-amber-400/20 text-amber-200 ring-1 ring-amber-400/40 hover:bg-amber-400/30'"
+              >
+                <i :class="nextPrepLeft === 0 ? 'fa-solid fa-circle-check' : 'fa-solid fa-book-open'" aria-hidden="true"></i>
+                {{ nextPrepLeft === 0 ? 'Materials reviewed' : `${nextPrepLeft} material${nextPrepLeft === 1 ? '' : 's'} to review` }}
+              </button>
             </div>
 
             <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
@@ -242,16 +278,18 @@
                 <a
                   :href="user.nextUpcomingClass.meetLink"
                   target="_blank"
+                  rel="noopener"
+                  @click="onEnterMeet"
                   class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm sm:text-base shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all text-center whitespace-nowrap"
                 >
-                  <span>📹</span> Enter Google Meet
+                  <GoogleMeetIcon size="lg" /> Enter Google Meet
                 </a>
                 <button
                   type="button"
-                  @click="detailsLesson = user.nextUpcomingClass"
+                  @click="openDetails(user.nextUpcomingClass)"
                   class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-sm sm:text-base transition border border-white/15 text-center whitespace-nowrap"
                 >
-                  Class Details
+                  <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Class Details
                 </button>
               </div>
             </div>
@@ -340,7 +378,7 @@
                         target="_blank"
                         class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-xs hover:bg-emerald-100 hover:scale-105 active:scale-95 transition whitespace-nowrap flex-shrink-0 shadow-2xs cursor-pointer"
                       >
-                        <span>📹</span>
+                        <GoogleMeetIcon size="md" />
                         <span>Join Meet</span>
                       </a>
                       <button
@@ -349,7 +387,7 @@
                         class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/70 text-amber-900 font-bold text-xs hover:bg-amber-100 hover:border-amber-300 active:scale-95 transition whitespace-nowrap flex-shrink-0 cursor-pointer shadow-2xs"
                         title="Reschedule class"
                       >
-                        <span>🗓️</span>
+                        <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
                         <span>Reschedule</span>
                       </button>
                       <button
@@ -358,7 +396,7 @@
                         class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition whitespace-nowrap flex-shrink-0 cursor-pointer shadow-2xs"
                         title="View class details"
                       >
-                        <span>ℹ️</span>
+                        <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
                         <span>Details</span>
                       </button>
                       <button
@@ -368,7 +406,7 @@
                         title="Cancel class"
                         aria-label="Cancel class"
                       >
-                        ✕
+                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                       </button>
                     </div>
                   </td>
@@ -509,14 +547,14 @@
                       @click.stop="detailsLesson = lesson"
                       class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-100 hover:border-slate-300 active:scale-95 transition cursor-pointer shadow-2xs"
                     >
-                      <span>ℹ️</span> Details
+                      <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Details
                     </button>
                     <button
                       type="button"
                       @click.stop="requestRescheduleFromDetails(lesson)"
                       class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 font-bold text-xs hover:bg-amber-100 hover:border-amber-300 active:scale-95 transition cursor-pointer shadow-2xs"
                     >
-                      <span>🗓️</span> Reschedule
+                      <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Reschedule
                     </button>
                   </div>
 
@@ -528,7 +566,7 @@
                       @click.stop
                       class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer"
                     >
-                      <span>📹</span> Join Meet
+                      <GoogleMeetIcon size="md" /> Join Meet
                     </a>
                     <button
                       type="button"
@@ -537,7 +575,7 @@
                       title="Cancel class"
                       aria-label="Cancel class"
                     >
-                      ✕
+                      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                     </button>
                   </div>
                 </div>
@@ -571,7 +609,7 @@
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
-            <span>🗓️</span> Quick Online Class Booking
+            <i class="fa-solid fa-calendar-days text-[#E0A800]" aria-hidden="true"></i> Quick Online Class Booking
           </h2>
           <p class="text-xs text-slate-500 mt-0.5">Click any instructor photo to view full profile & voice sample.</p>
         </div>
@@ -645,6 +683,13 @@
       </div>
 
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <p
+          v-if="!writingTasks.length"
+          class="md:col-span-2 rounded-xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm font-medium text-slate-400"
+        >
+          No corrections in progress.
+          <RouterLink to="/writing" class="font-bold text-brighture-bronze hover:underline">Submit a passage →</RouterLink>
+        </p>
         <div
           v-for="task in writingTasks"
           :key="task.id"
@@ -662,8 +707,11 @@
           </div>
           <div class="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
             <div class="flex items-center gap-2">
-              <img :src="task.teacherPhoto" class="w-6 h-6 rounded-full object-cover" />
-              <span class="text-xs font-semibold text-slate-600">{{ task.teacherName }}</span>
+              <img v-if="task.teacherPhoto" :src="task.teacherPhoto" class="w-6 h-6 rounded-full object-cover" />
+              <span v-else class="w-6 h-6 rounded-full bg-slate-100 flex items-center justify-center text-[10px] text-slate-400">
+                <i class="fa-solid fa-hourglass-half"></i>
+              </span>
+              <span class="text-xs font-semibold text-slate-600">{{ task.teacherName || 'Waiting for an assessor' }}</span>
             </div>
             <span class="text-xs font-bold text-brighture-bronze group-hover:translate-x-1 transition-transform">Reply Chat →</span>
           </div>
@@ -711,7 +759,8 @@
     <!-- Class Details Modal -->
     <ClassDetailsModal
       :lesson="detailsLesson"
-      @close="detailsLesson = null"
+      :join-intent="detailsJoinIntent"
+      @close="detailsLesson = null; detailsJoinIntent = false"
       @cancel="requestCancelFromDetails"
       @reschedule="requestRescheduleFromDetails"
       @edit="requestEditFromDetails"
@@ -750,6 +799,8 @@
 </template>
 
 <script setup>
+import GoogleMeetIcon from '../../components/GoogleMeetIcon.vue';
+import { countdownLabel } from '@/lib/schoolTime';
 import { imageForKey } from '@/lib/teacherImages';
 import AppImage from '../../components/AppImage.vue';
 import { ref, computed } from 'vue';
@@ -757,6 +808,8 @@ import { useRouter } from 'vue-router';
 import brightureLogo from '@/assets/logo-black.svg';
 import coinsImage from '@/assets/coins.svg';
 import { useUserStore } from '../../stores/useUserStore';
+import { useSchoolStore } from '../../stores/useSchoolStore';
+import { TOKYO, partsIn } from '../../lib/schoolTime';
 import FreeConversationModal from '../../components/FreeConversationModal.vue';
 import ClassDetailsModal from '../../components/ClassDetailsModal.vue';
 import CancelClassModal from '../../components/CancelClassModal.vue';
@@ -766,6 +819,25 @@ import TeacherDataModal from '../../components/TeacherDataModal.vue';
 
 const router = useRouter();
 const user = useUserStore();
+const school = useSchoolStore();
+
+// Booked lessons come from the shared store, so the teacher portal sees the same list.
+const upcomingLessons = computed(() => user.upcomingLessons);
+
+// "Oct 12–18": the Monday-to-Sunday week (JST) the weekly goal counts.
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const weekRangeLabel = computed(() => {
+  const p = partsIn(new Date(school.now).toISOString(), TOKYO);
+  const today = new Date(Date.UTC(p.year, p.month, p.day));
+  const monday = new Date(today);
+  monday.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
+  const sunday = new Date(monday);
+  sunday.setUTCDate(monday.getUTCDate() + 6);
+  const start = `${MONTHS[monday.getUTCMonth()]} ${monday.getUTCDate()}`;
+  return monday.getUTCMonth() === sunday.getUTCMonth()
+    ? `${start}–${sunday.getUTCDate()}`
+    : `${start}–${MONTHS[sunday.getUTCMonth()]} ${sunday.getUTCDate()}`;
+});
 
 const showFreeConversationModal = ref(false);
 
@@ -784,6 +856,25 @@ const scheduledLessons = computed(() =>
 );
 
 const detailsLesson = ref(null);
+const detailsJoinIntent = ref(false);
+const openDetails = (lesson, joinIntent = false) => {
+  detailsJoinIntent.value = joinIntent;
+  detailsLesson.value = lesson;
+};
+
+/* Materials to look at before the next class (shared with the instructor). */
+const nextPrep = computed(() => (user.nextUpcomingClass?.id
+  ? school.prepFor(user.nextUpcomingClass.id)
+  : { items: [], total: 0, reviewed: 0 }));
+const nextPrepLeft = computed(() => nextPrep.value.total - nextPrep.value.reviewed);
+
+/** Joining with materials unopened opens Class Details with a one-time prompt instead. */
+const onEnterMeet = (event) => {
+  if (nextPrepLeft.value > 0) {
+    event.preventDefault();
+    openDetails(user.nextUpcomingClass, true);
+  }
+};
 
 // A row shows what you scan for and hides what you only sometimes need. The
 // next lesson starts open, because its Join button is the reason you came.
@@ -797,6 +888,15 @@ const editLesson = ref(null);
 const cancelTargetLesson = ref(null);
 const rescheduleTargetLesson = ref(null);
 const rescheduleSuccessNotice = ref(null);
+const noticeIsError = ref(false);
+// Successes close after 5 seconds; errors stay a little longer to be read.
+let noticeTimer = null;
+const showNotice = (message, isError = false) => {
+  rescheduleSuccessNotice.value = message;
+  noticeIsError.value = isError;
+  clearTimeout(noticeTimer);
+  noticeTimer = setTimeout(() => { rescheduleSuccessNotice.value = null; }, isError ? 8000 : 5000);
+};
 
 // The details modal hands off to the confirmation rather than cancelling outright.
 const requestCancelFromDetails = (lesson) => {
@@ -814,33 +914,19 @@ const requestRescheduleFromCancel = (lesson) => {
   rescheduleTargetLesson.value = lesson;
 };
 
-const confirmRescheduleLesson = ({ lesson, newDate, newTime }) => {
-  if (user.nextUpcomingClass && lesson.id === user.nextUpcomingClass.id) {
-    user.nextUpcomingClass.date = newDate;
-    user.nextUpcomingClass.time = newTime;
-    user.nextUpcomingClass.timeFull = newTime;
-    user.nextUpcomingClass.isLiveSoon = false;
-  }
-  upcomingLessons.value = upcomingLessons.value.map((item) =>
-    item.id === lesson.id
-      ? { ...item, date: newDate, time: newTime }
-      : item
-  );
+const confirmRescheduleLesson = ({ lesson, start, newDate, newTime }) => {
   rescheduleTargetLesson.value = null;
-  rescheduleSuccessNotice.value = `Class successfully rescheduled to ${newDate} at ${newTime}!`;
+  if (!start || !user.rescheduleLesson(lesson.id, start)) {
+    showNotice('That time is no longer free with this teacher — your class was not moved. Please pick another slot.', true);
+    return;
+  }
+  showNotice(`Class successfully rescheduled to ${newDate} at ${newTime}!`);
 };
 
 const saveLessonEdits = (updated) => {
-  // The spotlight class is the store's, the table rows are this page's.
-  if (user.nextUpcomingClass && updated.id === user.nextUpcomingClass.id) {
-    user.nextUpcomingClass.subject = updated.subject;
-    user.nextUpcomingClass.topic = updated.topic;
-  } else {
-    upcomingLessons.value = upcomingLessons.value.map((item) =>
-      item.id === updated.id ? { ...item, subject: updated.subject, topic: updated.topic } : item
-    );
-  }
+  user.editLesson(updated.id, { subject: updated.subject, topic: updated.topic, note: updated.note });
   editLesson.value = null;
+  showNotice('Class details updated — your teacher will see the changes.');
 };
 
 const requestEditFromDetails = (lesson) => {
@@ -848,12 +934,19 @@ const requestEditFromDetails = (lesson) => {
   editLesson.value = lesson;
 };
 
+// Free up to 3h before the start (the shared store refunds); later, no refund.
 const confirmCancelLesson = (lesson) => {
-  upcomingLessons.value = upcomingLessons.value.filter((item) => item.id !== lesson.id);
-  if (lesson.id === user.nextUpcomingClass?.id) {
-    user.nextUpcomingClass = null;
-  }
   cancelTargetLesson.value = null;
+  const result = user.cancelLesson(lesson.id);
+  if (!result) {
+    showNotice('This class could not be cancelled — it may already have started or been cancelled.', true);
+    return;
+  }
+  showNotice(
+    result.refunded
+      ? `Class cancelled — ${result.points} points refunded.`
+      : 'Class cancelled — no refund, as it was less than 3 hours before the start.'
+  );
 };
 
 const openTeacherDetails = (teacher) => {
@@ -911,79 +1004,19 @@ const quickInstructors = ref([
   },
 ]);
 
-const upcomingLessons = ref([
-  {
-    id: 1,
-    date: 'Today, Aug 21',
-    time: '7:00 PM - 7:30 PM JST',
-    teacherName: 'Jirvy Dela Torre',
-    teacherPhoto: imageForKey(184),
-    isSubstitute: false,
-    isNext: true,
-    subject: '[SF] Speech Fluency & Discussion',
-    classType: 'Level 4 / Material B',
-    meetLink: 'https://meet.google.com/abc-defg-hij',
-  },
-  {
-    id: 2,
-    date: 'Tomorrow, Aug 22',
-    time: '8:00 PM - 8:50 PM JST',
-    teacherName: 'Sandra Auman',
-    teacherPhoto: imageForKey(175),
-    isSubstitute: true,
-    isNext: false,
-    subject: '[DC] Daily Conversation',
-    classType: 'Open Topic & Fluency',
-    meetLink: 'https://meet.google.com/xyz-uvwx-rst',
-  },
-  {
-    id: 3,
-    date: 'Mon, Aug 24',
-    time: '7:30 PM - 8:00 PM JST',
-    teacherName: 'Jane Pasanting',
-    teacherPhoto: imageForKey(178),
-    isSubstitute: false,
-    isNext: false,
-    subject: '[PP101] Pronunciation — Vowels',
-    classType: 'Level 2 / Drills',
-    // Booked far enough ahead that the room has not been generated yet — the
-    // list has to survive a lesson with no link.
-    meetLink: '',
-  },
-  {
-    id: 4,
-    date: 'Wed, Aug 26',
-    time: '9:00 PM - 9:50 PM JST',
-    teacherName: 'Analyn Yosores',
-    teacherPhoto: imageForKey(176),
-    isSubstitute: false,
-    isNext: false,
-    subject: '[RW] Reading & Writing',
-    classType: 'Business Email Drafting',
-    meetLink: 'https://meet.google.com/klm-nopq-tuv',
-  },
-]);
-
-const writingTasks = ref([
-  {
-    id: 1,
-    date: 'Aug 20',
-    status: 'Teacher Reviewed',
-    statusColor: 'bg-emerald-100 text-emerald-700',
-    title: '[RW] Self Introduction Draft for Marketing',
-    teacherName: 'Analyn Yosores',
-    teacherPhoto: imageForKey(176),
-  },
-  {
-    id: 2,
-    date: 'Aug 18',
-    status: 'In Progress',
-    statusColor: 'bg-slate-100 text-slate-700',
-    title: '[RW] Weekly Journal - Business Trip Reflection',
-    teacherName: 'Jirvy Dela Torre',
-    teacherPhoto: imageForKey(184),
-  },
-]);
+// Open writing tickets for the dashboard cards.
+const writingTasks = computed(() =>
+  user.writingTickets
+    .filter((ticket) => ticket.status !== 'Complete')
+    .map((ticket) => {
+      const replied = ticket.messages[ticket.messages.length - 1]?.from === 'teacher';
+      return {
+        ...ticket,
+        status: replied ? 'Teacher Replied' : 'In Progress',
+        statusColor: replied ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700',
+      };
+    })
+);
 </script>
 
 <style scoped>

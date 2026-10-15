@@ -24,7 +24,7 @@
           class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white transition hover:bg-white/20"
           aria-label="Close"
         >
-          ✕
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
 
@@ -49,20 +49,20 @@
           </select>
         </div>
 
-        <!-- Topic / message to the teacher -->
+        <!-- Message: what the instructor reads before the class -->
         <div>
-          <label for="edit-topic" class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
-            Lesson topic &amp; message for your teacher
+          <label for="edit-note" class="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+            Message for your instructor
           </label>
           <textarea
-            id="edit-topic"
-            v-model="topic"
+            id="edit-note"
+            v-model="note"
             rows="4"
             maxlength="500"
             placeholder="e.g. I want to practise pitching to a client — please correct my intonation."
             class="mt-1.5 w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-900 transition placeholder:text-slate-400 focus:border-brighture-amber focus:outline-none focus:ring-4 focus:ring-brighture-gold/10"
           ></textarea>
-          <p class="mt-1 text-right text-[10px] font-semibold text-slate-400">{{ topic.length }}/500</p>
+          <p class="mt-1 text-right text-[10px] font-semibold text-slate-400">{{ note.length }}/500</p>
         </div>
 
         <p class="rounded-xl bg-slate-50 p-3 text-[11px] font-medium leading-relaxed text-slate-500">
@@ -81,7 +81,7 @@
         </button>
         <button
           :disabled="!isDirty"
-          @click="$emit('save', { ...lesson, subject, topic })"
+          @click="$emit('save', { ...lesson, subject, note })"
           :class="`rounded-xl px-3 py-2.5 text-[11px] font-bold shadow-xs transition sm:px-5 sm:text-xs ${
             isDirty
               ? 'bg-slate-900 text-white hover:bg-slate-800'
@@ -108,7 +108,7 @@ defineEmits(['close', 'save']);
 const SUBJECT_OPTIONS = Object.values(SUBJECT_LABELS);
 
 const subject = ref('');
-const topic = ref('');
+const note = ref('');
 
 // The modal stays mounted while `lesson` is null, so reseed the form whenever a
 // different class is opened rather than on mount.
@@ -116,12 +116,13 @@ watch(
   () => props.lesson,
   (lesson) => {
     subject.value = lesson?.subject ?? '';
-    topic.value = lesson?.topic ?? '';
+    note.value = lesson?.note ?? '';
   },
   { immediate: true }
 );
 
 const isDirty = computed(
-  () => subject.value !== (props.lesson?.subject ?? '') || topic.value !== (props.lesson?.topic ?? '')
+  () => subject.value !== (props.lesson?.subject ?? '')
+    || note.value !== (props.lesson?.note ?? '')
 );
 </script>

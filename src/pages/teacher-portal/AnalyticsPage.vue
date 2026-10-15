@@ -465,13 +465,13 @@
         <h2 class="mt-1 text-base font-black text-slate-900">Rating breakdown</h2>
         <p class="mt-1 text-3xl font-black text-slate-900">
           {{ data.rating }}
-          <span class="align-middle text-base font-bold text-amber-500">★</span>
+          <i class="fa-solid fa-star align-middle text-base text-amber-500" aria-hidden="true"></i>
         </p>
         <p class="text-[11px] text-slate-400">from {{ totalRatings }} rated lessons</p>
 
         <ul class="mt-4 space-y-2">
           <li v-for="row in data.ratings" :key="row.stars" class="flex items-center gap-2.5">
-            <span class="w-8 shrink-0 text-[11px] font-bold text-slate-500 tabular-nums">{{ row.stars }}★</span>
+            <span class="w-8 shrink-0 text-[11px] font-bold text-slate-500 tabular-nums">{{ row.stars }}<i class="fa-solid fa-star ml-0.5 text-[9px] text-amber-500" aria-hidden="true"></i></span>
             <div class="h-2.5 flex-1 overflow-hidden rounded-full bg-slate-100">
               <div
                 class="h-full rounded-full bg-amber-400"

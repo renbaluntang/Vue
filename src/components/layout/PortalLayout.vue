@@ -52,10 +52,10 @@
         <!-- Level & Streak Badges -->
         <div class="sidebar-badges mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
           <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-brighture-cream text-brighture-bronze text-xs font-extrabold rounded-xl border border-brighture-gold/20 shadow-2xs">
-            🎯 {{ user.profile.level.split(' ')[0] }}
+            <i class="fa-solid fa-bullseye" aria-hidden="true"></i> {{ user.profile.level.split(' ')[0] }}
           </span>
           <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-brighture-cream text-brighture-bronze text-xs font-black rounded-xl border border-brighture-gold/30 shadow-2xs">
-            🔥 {{ user.stats.currentStreak }}d streak
+            <i class="fa-solid fa-fire text-orange-500" aria-hidden="true"></i> {{ user.stats.currentStreak }}d streak
           </span>
         </div>
       </div>
@@ -194,6 +194,17 @@
               <i :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : '']" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
               <span :class="isSidebarCollapsed ? 'sr-only' : ''">{{ t(item.label) }}</span>
             </div>
+            <!-- Count badge (unread messages / tests to take). On the rail it
+                 shrinks to a corner bubble over the icon. -->
+            <span
+              v-if="navBadge(item)"
+              class="flex items-center justify-center rounded-full font-black tabular-nums"
+              :class="[
+                isSidebarCollapsed ? 'absolute -right-0.5 -top-0.5 h-4 min-w-[1rem] px-1 text-[9px] ring-2 ring-white' : 'h-5 min-w-[1.25rem] px-1.5 text-[10px]',
+                isCurrentRoute(item.path) ? 'bg-white text-brighture-ink' : 'bg-brighture-gold text-brighture-ink'
+              ]"
+              :aria-label="`${navBadge(item)} ${item.badgeLabel}`"
+            >{{ navBadge(item) }}</span>
             <span
               v-if="isSidebarCollapsed"
               aria-hidden="true"
@@ -288,6 +299,18 @@
                 ></span>
               </span>
             </button>
+
+            <!-- Two clicks, no browser dialog: the first arms it for a few
+                 seconds, the second wipes the shared demo data. -->
+            <button
+              type="button"
+              @click="onResetDemo(() => { isUserMenuOpen = false; })"
+              class="flex w-full items-center gap-3 px-3 py-2 rounded-xl text-xs font-bold transition"
+              :class="resetArmed ? 'bg-red-50 text-red-600' : 'text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink'"
+            >
+              <i class="fa-solid fa-rotate-left w-4 text-center" :class="resetArmed ? 'text-red-500' : 'text-slate-400'"></i>
+              <span>{{ resetArmed ? 'Click again to reset' : 'Reset demo data' }}</span>
+            </button>
           </div>
 
           <!-- Divider -->
@@ -351,7 +374,7 @@
           class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold"
           aria-label="Close Navigation"
         >
-          ✕
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
 
         <RouterLink to="/profile" @click="isMobileMenuOpen = false" class="mb-2 rounded-full">
@@ -438,6 +461,12 @@
             ></i>
             <span>{{ t(item.label) }}</span>
           </div>
+          <span
+            v-if="navBadge(item)"
+            class="flex h-5 min-w-[1.25rem] items-center justify-center rounded-full px-1.5 text-[10px] font-black tabular-nums"
+            :class="isCurrentRoute(item.path) ? 'bg-white text-brighture-ink' : 'bg-brighture-gold text-brighture-ink'"
+            :aria-label="`${navBadge(item)} ${item.badgeLabel}`"
+          >{{ navBadge(item) }}</span>
         </RouterLink>
         </template>
       </nav>
@@ -500,6 +529,16 @@
           </button>
 
           <button
+            type="button"
+            @click="onResetDemo(() => { isMobileMenuOpen = false; isUserMenuOpen = false; })"
+            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold rounded-xl transition"
+            :class="resetArmed ? 'bg-red-50 text-red-600' : 'text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink'"
+          >
+            <i class="fa-solid fa-rotate-left w-4 text-center" :class="resetArmed ? 'text-red-500' : 'text-slate-400'"></i>
+            <span>{{ resetArmed ? 'Tap again to reset' : 'Reset demo data' }}</span>
+          </button>
+
+          <button
             @click="isMobileMenuOpen = false; isUserMenuOpen = false"
             class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
           >
@@ -545,7 +584,7 @@
             class="text-[11px] font-extrabold uppercase tracking-wide"
             :class="[nextClassTone.lead, nextClassTone.urgent ? 'animate-pulse motion-reduce:animate-none' : '']"
           >
-            <span class="hidden sm:inline">{{ nextClassTone.urgent ? 'Starting in ' : 'Next class in ' }}</span>{{ user.nextUpcomingClass.minutesUntil }}m
+            <span class="hidden sm:inline">{{ nextClassTone.urgent ? 'Starting in ' : 'Next class in ' }}</span>{{ countdownLabel(user.nextUpcomingClass.minutesUntil) }}
           </strong>
           <span class="mx-1.5" :class="nextClassTone.dot">&middot;</span>
           <span :class="nextClassTone.body">
@@ -559,7 +598,7 @@
           class="shrink-0 inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg font-black text-[11px] sm:text-xs shadow-xs transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
           :class="nextClassTone.join"
         >
-          <span>📹</span>
+          <GoogleMeetIcon size="md" />
           <span class="hidden sm:inline">Join Online Class</span>
           <span class="sm:hidden">Join</span>
         </a>
@@ -617,6 +656,19 @@
 
         <!-- Header Right Utilities (Points Pill + Booking CTA + Lang) -->
         <div class="flex shrink-0 items-center gap-2 sm:gap-3">
+          <!-- Now, on the student's own clock — the one every lesson time in
+               the portal is shown in. Opens the time zone setting on Profile.
+               Hidden on phones to keep the header short. -->
+          <RouterLink
+            :to="{ path: '/profile', query: { focus: 'timezone' } }"
+            class="hidden md:inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-bold text-slate-700 shadow-xs tabular-nums transition hover:border-slate-300 hover:bg-slate-50"
+            :title="`Your time zone: ${nowZoneLabel} — click to change`"
+          >
+            <i class="fa-regular fa-clock text-[11px] text-sky-600" aria-hidden="true"></i>
+            <span>{{ nowDate }}</span>
+            <span class="border-l border-slate-200 pl-2">{{ nowTime }} <span class="font-medium text-slate-400">{{ nowZoneAbbr }}</span></span>
+          </RouterLink>
+
           <!-- REDESIGNED POINTS PILL (Clickable -> Opens History) -->
           <RouterLink
             to="/points"
@@ -786,6 +838,16 @@
                 </span>
               </button>
 
+              <button
+                type="button"
+                @click="onResetDemo(() => { isSettingsSheetOpen = false; })"
+                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold transition active:scale-[0.99]"
+                :class="resetArmed ? 'bg-red-50 text-red-600' : 'text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink'"
+              >
+                <i class="fa-solid fa-rotate-left w-5 text-center" :class="resetArmed ? 'text-red-500' : 'text-slate-400'"></i>
+                <span>{{ resetArmed ? 'Tap again to reset' : 'Reset demo data' }}</span>
+              </button>
+
               <div class="my-1.5 border-t border-slate-100"></div>
 
               <button
@@ -809,10 +871,15 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import GoogleMeetIcon from '../GoogleMeetIcon.vue';
+import { countdownLabel } from '@/lib/schoolTime';
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { zoneId, zoneAbbr } from '@/lib/schoolTime';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
+import { useSchoolStore } from '../../stores/useSchoolStore';
+import { CURRENT_STUDENT_ID } from '../../lib/schoolSeed';
 import RouteProgress from '../../components/RouteProgress.vue';
 import NavigationTour from '../../components/NavigationTour.vue';
 import brightureLogo from '@/assets/logo-black.svg';
@@ -823,6 +890,7 @@ const { t } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const user = useUserStore();
+const school = useSchoolStore();
 
 const isMobileMenuOpen = ref(false);
 // TODO: confirm the real support address before launch.
@@ -926,6 +994,8 @@ const navItems = [
   { path: '/booking', label: 'nav.book', icon: 'fa-solid fa-calendar-days text-indigo-500' },
   { path: '/history', label: 'nav.history', icon: 'fa-solid fa-clock-rotate-left text-violet-500' },
   { path: '/writing', label: 'nav.writing', icon: 'fa-solid fa-pen-nib text-rose-500' },
+  { path: '/messages', label: 'nav.messages', icon: 'fa-solid fa-comments text-sky-500', badge: 'messages', badgeLabel: 'unread' },
+  { path: '/exams', label: 'nav.exams', icon: 'fa-solid fa-file-pen text-orange-500', badge: 'exams', badgeLabel: 'to do' },
   { path: '/materials', label: 'nav.materials', icon: 'fa-solid fa-folder-open text-teal-500' },
   { path: '/analytics', label: 'nav.analytics', icon: 'fa-solid fa-chart-line text-emerald-500' },
   // The ledger and the top-up are two views of the same balance, so they sit
@@ -968,6 +1038,30 @@ const groupHasActiveChild = (item) => item.children?.some((child) => isCurrentRo
 const isGroupOpen = (item) => openGroups.value[item.key] ?? groupHasActiveChild(item);
 const toggleGroup = (item) => { openGroups.value[item.key] = !isGroupOpen(item); };
 
+
+// Nav counts, read live from the shared school store so a reply sent from the
+// instructor portal in another tab lights up the badge here.
+const badgeCounts = computed(() => ({
+  messages: school.threadsForStudent(CURRENT_STUDENT_ID).reduce((sum, t) => sum + school.unreadIn(t, 'student'), 0),
+  exams: school.examsForStudent(CURRENT_STUDENT_ID).filter((e) => !school.submissionFor(e.id, CURRENT_STUDENT_ID)).length,
+}));
+const navBadge = (item) => (item.badge ? badgeCounts.value[item.badge] || 0 : 0);
+
+// Reset demo data: the first click arms the button for a few seconds, the
+// second one resets. No window.confirm — it looks nothing like the portal.
+const resetArmed = ref(false);
+let resetTimer = null;
+const onResetDemo = (done) => {
+  clearTimeout(resetTimer);
+  if (!resetArmed.value) {
+    resetArmed.value = true;
+    resetTimer = setTimeout(() => { resetArmed.value = false; }, 4000);
+    return;
+  }
+  resetArmed.value = false;
+  school.resetDemo();
+  done?.();
+};
 
 const isCurrentRoute = (path) => {
   if (path === '/') {
@@ -1046,6 +1140,23 @@ const currentPageTitle = computed(() => {
   return currentNav ? t(currentNav.label) : 'Student Portal';
 });
 
+
+// Header clock, in the student's own zone. Ticks every 10 seconds so the
+// minute changes on time without re-rendering every second.
+const clockNow = ref(new Date());
+let clockTimer = null;
+onMounted(() => { clockTimer = setInterval(() => { clockNow.value = new Date(); }, 10_000); });
+onBeforeUnmount(() => clearInterval(clockTimer));
+
+const nowZone = computed(() => zoneId(user.profile.timezone));
+const nowZoneAbbr = computed(() => zoneAbbr(nowZone.value));
+const nowZoneLabel = computed(() => user.profile.timezone || nowZone.value);
+const nowDate = computed(() => new Intl.DateTimeFormat('en-US', {
+  timeZone: nowZone.value, weekday: 'short', month: 'short', day: 'numeric',
+}).format(clockNow.value));
+const nowTime = computed(() => new Intl.DateTimeFormat('en-US', {
+  timeZone: nowZone.value, hour: 'numeric', minute: '2-digit',
+}).format(clockNow.value));
 </script>
 
 <style scoped>

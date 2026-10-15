@@ -108,7 +108,7 @@ export const SUBJECT_CATEGORIES = [
     id: "conversation",
     name: "Conversation & Fluency",
     shortName: "Conversation",
-    icon: "💬",
+    icon: "fa-solid fa-comments text-sky-600",
     codes: ["[SF]", "[LS1]", "[DC]", "[RW]", "[SC]"],
     subjects: [
       { code: "[SF]", badge: "SF", name: "Speech Fluency", short: "Speech Fluency" },
@@ -122,7 +122,7 @@ export const SUBJECT_CATEGORIES = [
     id: "pronunciation",
     name: "Pronunciation Series",
     shortName: "Pronunciation",
-    icon: "🗣️",
+    icon: "fa-solid fa-microphone-lines text-amber-600",
     codes: ["[PP101]", "[PP102]", "[PP201]", "[PP202]"],
     subjects: [
       { code: "[PP101]", badge: "PP101", name: "Pronunciation — Vowels", short: "PP101 Vowels" },
@@ -135,7 +135,7 @@ export const SUBJECT_CATEGORIES = [
     id: "specialized",
     name: "Specialized & Assessment",
     shortName: "Specialized",
-    icon: "🎯",
+    icon: "fa-solid fa-bullseye text-violet-600",
     codes: ["[EP]", "[TA]", "[CS]"],
     subjects: [
       { code: "[EP]", badge: "EP", name: "Exam Prep", short: "Exam Prep" },

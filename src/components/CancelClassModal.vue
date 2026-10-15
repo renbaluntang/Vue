@@ -10,15 +10,30 @@
       aria-labelledby="cancel-class-title"
       class="w-full max-w-sm overflow-y-auto rounded-3xl border border-slate-200 bg-white p-5 sm:p-6 text-center shadow-2xl animate-in zoom-in-95 max-h-[94vh] supports-[max-height:100dvh]:max-h-[94dvh]"
     >
-      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-xl">
-        ⚠️
+      <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-lg">
+        <i class="fa-solid fa-triangle-exclamation text-rose-500" aria-hidden="true"></i>
       </div>
       <h2 id="cancel-class-title" class="mt-4 text-lg font-extrabold text-slate-900">Cancel this class?</h2>
       <p class="mt-2 text-sm text-slate-500">
         <strong class="font-bold text-slate-700">{{ lesson.subject }}</strong> with
         {{ lesson.teacherName }} on {{ lesson.date }}, {{ lesson.time }}.
       </p>
-      <p class="mt-3 rounded-xl bg-slate-50 p-3 text-[11px] font-medium leading-relaxed text-slate-500">
+      <!-- With a known start, say which side of the 3h line this cancellation falls. -->
+      <p
+        v-if="refundKnown && isFree"
+        class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[11px] font-semibold leading-relaxed text-emerald-800"
+      >
+        Free cancellation — it is more than 3h before the start, so your
+        {{ lesson.points ? `${lesson.points} points are` : 'points are' }} refunded in full.
+      </p>
+      <p
+        v-else-if="refundKnown"
+        class="mt-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-[11px] font-semibold leading-relaxed text-rose-800"
+      >
+        No refund — the class starts in less than 3h, so the
+        {{ lesson.points ? `${lesson.points} points are` : 'points are' }} forfeited.
+      </p>
+      <p v-else class="mt-3 rounded-xl bg-slate-50 p-3 text-[11px] font-medium leading-relaxed text-slate-500">
         Cancelling more than 3h before the start time refunds your points. Later than that, the
         points are forfeited.
       </p>
@@ -58,8 +73,15 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue';
+
+const props = defineProps({
   lesson: Object,
 });
 defineEmits(['close', 'confirm', 'reschedule']);
+
+/** Free cancellation up to this many minutes before the start. */
+const FREE_CANCEL_MINUTES = 180;
+const refundKnown = computed(() => typeof props.lesson?.minutesUntil === 'number');
+const isFree = computed(() => refundKnown.value && props.lesson.minutesUntil > FREE_CANCEL_MINUTES);
 </script>

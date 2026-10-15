@@ -3,7 +3,7 @@
     <!-- Header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex items-center gap-3">
-        <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-brighture-cream text-xl">📜</span>
+        <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-brighture-cream text-lg"><i class="fa-solid fa-clock-rotate-left text-brighture-bronze" aria-hidden="true"></i></span>
         <div>
           <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">Lesson History</h1>
           <p class="text-sm text-slate-500 font-medium">
@@ -15,7 +15,7 @@
         to="/booking"
         class="inline-flex items-center justify-center gap-2 px-5 py-3 rounded-2xl bg-brighture-gold text-brighture-ink font-bold text-sm shadow-md hover:bg-brighture-gold-deep hover:shadow-lg transition-all"
       >
-        <span>🗓️</span> Book Another Class
+        <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Book Another Class
       </RouterLink>
     </div>
 
@@ -103,8 +103,8 @@
               ? `You rated ${lesson.teacherName} ${lesson.yourRating} of 5 — click to change`
               : `Rate ${lesson.teacherName}`"
           >
-            <span v-if="lesson.yourRating" class="tracking-[0.15em] text-sm leading-none">
-              <span class="text-brighture-gold-deep">{{ '★'.repeat(lesson.yourRating) }}</span><span class="text-brighture-gold/40">{{ '★'.repeat(5 - lesson.yourRating) }}</span>
+            <span v-if="lesson.yourRating" class="inline-flex items-center gap-0.5 text-sm leading-none">
+              <i v-for="n in 5" :key="n" class="fa-solid fa-star" :class="n <= lesson.yourRating ? 'text-brighture-gold-deep' : 'text-brighture-gold/40'" aria-hidden="true"></i>
             </span>
             <span v-else>Rate teacher</span>
           </button>
@@ -152,7 +152,7 @@
             class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white transition hover:bg-white/20"
             aria-label="Close"
           >
-            ✕
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -232,7 +232,7 @@
               class="rounded-lg p-1 text-3xl leading-none transition hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
               :class="star <= draftStars ? 'text-brighture-gold-deep' : 'text-slate-200 hover:text-brighture-gold/60'"
             >
-              ★
+              <i class="fa-solid fa-star" aria-hidden="true"></i>
             </button>
           </div>
           <p class="mt-2 h-4 text-xs font-bold text-slate-500">{{ STAR_LABELS[draftStars] ?? '' }}</p>

@@ -1094,8 +1094,9 @@
               type="button"
               @click="selectedEvent = null"
               class="absolute top-4 right-4 w-8 h-8 rounded-full bg-black/20 hover:bg-black/30 flex items-center justify-center text-white transition cursor-pointer"
+              aria-label="Close"
             >
-              ✕
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
             <span class="inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/20 mb-2">
               {{ selectedEvent.typeLabel }}
@@ -1139,7 +1140,7 @@
                 rel="noopener"
                 class="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-sm"
               >
-                <i class="fa-solid fa-video text-sm"></i>
+                <GoogleMeetIcon size="md" />
                 <span>Join Video Class</span>
               </a>
             </div>
@@ -1186,6 +1187,7 @@
 </template>
 
 <script setup>
+import GoogleMeetIcon from '../../components/GoogleMeetIcon.vue';
 import { ref, computed, watch, onMounted, onUnmounted, nextTick } from 'vue';
 import { useTeacherStore } from '@/stores/useTeacherStore';
 import { getTimeZoneInfo, normalizeTimeZone } from '@/lib/timezoneUtils';

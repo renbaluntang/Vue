@@ -19,8 +19,8 @@
             <div class="flex items-center gap-3.5 min-w-0">
               <!-- Rounded square avatar with golden border -->
               <AppImage
-                :src="student.studentPhoto || studentImage"
-                :alt="student.studentName || student.student"
+                :src="studentPhoto"
+                :alt="studentName"
                 class="h-16 w-16 sm:h-[72px] sm:w-[72px] shrink-0 rounded-2xl object-cover ring-2 ring-[#c5a059] shadow-sm"
               />
 
@@ -29,10 +29,10 @@
                   STUDENT #{{ student.studentId }}
                 </p>
                 <h3 class="m-0 text-xl sm:text-2xl font-black text-white truncate mt-0.5">
-                  {{ student.studentName || student.student }}
+                  {{ studentName }}
                 </h3>
                 <p class="m-0 text-xs text-slate-300 font-medium mt-0.5 truncate">
-                  {{ student.membership || 'Regular' }} · {{ student.category || student.lessonClass || 'Online' }}
+                  {{ membership }} · {{ record.category || student.category || student.lessonClass || 'Online' }}
                 </p>
               </div>
             </div>
@@ -153,6 +153,84 @@
             </p>
           </div>
 
+          <!-- Pre-class materials: what the student should look at first, and
+               how much of it they have opened. The teacher picks the list. -->
+          <div v-if="lessonRecord" class="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Pre-class materials</p>
+              <span
+                v-if="prep.total"
+                class="rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
+                :class="prep.reviewed === prep.total ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'"
+              >
+                {{ firstName }} reviewed {{ prep.reviewed }} of {{ prep.total }}
+              </span>
+              <span v-else class="text-[11px] font-semibold text-slate-400">Nothing set for this lesson</span>
+            </div>
+            <div v-if="prep.total" class="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
+              <div
+                class="h-full rounded-full transition-all duration-300"
+                :class="prep.reviewed === prep.total ? 'bg-emerald-500' : 'bg-amber-400'"
+                :style="{ width: `${(prep.reviewed / prep.total) * 100}%` }"
+              ></div>
+            </div>
+
+            <ul v-if="prep.total" class="m-0 mt-3 list-none space-y-1.5 p-0">
+              <li v-for="item in prep.items" :key="item.id" class="flex items-center gap-2.5 text-xs">
+                <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1" :class="materialKind(item.kind).chip">
+                  <i :class="materialKind(item.kind).icon" class="text-[11px]" aria-hidden="true"></i>
+                </span>
+                <span class="min-w-0 flex-1 truncate font-semibold text-slate-800">{{ item.title }}</span>
+                <span
+                  class="shrink-0 text-[11px] font-bold"
+                  :class="item.reviewedAt ? 'text-emerald-700' : 'text-slate-400'"
+                >
+                  <template v-if="item.reviewedAt"><i class="fa-solid fa-check mr-0.5" aria-hidden="true"></i>Reviewed {{ reviewedLabel(item.reviewedAt) }}</template>
+                  <template v-else>Not opened yet</template>
+                </span>
+              </li>
+            </ul>
+
+            <!-- Choosing: every material on the student's shelf, ticked if it is for this lesson -->
+            <div v-if="choosingPrep" class="mt-3 rounded-xl border border-slate-200 bg-white p-2">
+              <label
+                v-for="item in materials"
+                :key="item.id"
+                class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs hover:bg-slate-50"
+              >
+                <input
+                  type="checkbox"
+                  :checked="prepIds.has(item.id)"
+                  @change="togglePrep(item.id)"
+                  class="h-4 w-4 accent-[#c5a059]"
+                />
+                <i :class="materialKind(item.kind).icon" class="w-4 text-center text-slate-400" aria-hidden="true"></i>
+                <span class="min-w-0 flex-1 truncate font-semibold text-slate-800">{{ item.title }}</span>
+                <span class="shrink-0 text-[10px] text-slate-400">{{ item.subject }}</span>
+              </label>
+              <p v-if="!materials.length" class="m-0 px-2 py-1.5 text-xs text-slate-500">No materials on {{ firstName }}'s shelf yet.</p>
+            </div>
+
+            <div class="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                @click="choosingPrep = !choosingPrep"
+                class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50"
+              >
+                <i class="fa-solid fa-list-check mr-1 text-slate-400" aria-hidden="true"></i>
+                {{ choosingPrep ? 'Done' : 'Choose materials' }}
+              </button>
+              <button
+                type="button"
+                @click="activeTab = 'materials'"
+                class="rounded-lg px-2.5 py-1.5 text-[11px] font-bold text-slate-500 transition hover:bg-white hover:text-slate-800"
+              >
+                <i class="fa-solid fa-plus mr-1" aria-hidden="true"></i> Add a new one
+              </button>
+              <span v-if="!prep.chosen && prep.total" class="text-[11px] text-slate-400">Showing materials in this subject until you choose.</span>
+            </div>
+          </div>
+
           <!-- Row 4: Start Lesson Button (Green with camera icon) -->
           <div>
             <a
@@ -162,7 +240,7 @@
               rel="noopener"
               class="flex w-full items-center justify-center gap-2 rounded-2xl bg-[#2db572] hover:bg-[#269e63] py-3.5 px-4 text-center text-sm font-black text-white shadow-xs transition active:scale-[0.99]"
             >
-              <i class="fa-solid fa-video text-sm"></i>
+              <GoogleMeetIcon size="md" />
               <span>Start Lesson</span>
             </a>
             <button
@@ -241,7 +319,7 @@
 
                   <div class="flex justify-between py-1 border-b border-slate-100">
                     <span class="font-medium text-slate-500">Membership</span>
-                    <span class="font-semibold text-slate-900">{{ student.membership || 'Regular' }}</span>
+                    <span class="font-semibold text-slate-900">{{ membership }}</span>
                   </div>
 
                   <div class="flex justify-between py-1 border-b border-slate-100">
@@ -315,7 +393,10 @@
                   <tbody class="divide-y divide-slate-100">
                     <tr v-for="log in filteredLogs" :key="log.id" class="align-top hover:bg-slate-50/50 transition">
                       <td class="py-3 px-3 font-semibold text-slate-900 whitespace-nowrap">
-                        {{ log.dateManila || log.date }}
+                        {{ log.dateManila }}
+                        <div v-if="log.status !== 'completed'" class="text-[10px] font-bold uppercase tracking-wide mt-0.5" :class="log.status === 'no-show' ? 'text-rose-600' : 'text-slate-400'">
+                          {{ log.statusLabel }}
+                        </div>
                       </td>
                       <td class="py-3 px-3 text-slate-600 whitespace-nowrap">
                         {{ log.instructorName }}
@@ -324,8 +405,12 @@
                         {{ log.subject }}
                       </td>
                       <td class="py-3 px-3 text-slate-600 leading-relaxed whitespace-pre-line max-w-xs">
-                        {{ log.feedback }}
+                        <span v-if="log.feedback">{{ log.feedback }}</span>
+                        <span v-else class="italic text-slate-400">No feedback written yet.</span>
                       </td>
+                    </tr>
+                    <tr v-if="!filteredLogs.length">
+                      <td colspan="4" class="py-6 px-3 text-center text-slate-400">No lessons logged yet.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -352,8 +437,8 @@
                   <tbody class="divide-y divide-slate-100">
                     <tr v-for="res in studentReservations" :key="res.id" class="align-top hover:bg-slate-50/50 transition">
                       <td class="py-3 px-3 whitespace-nowrap">
-                        <div class="font-semibold text-slate-900">{{ res.startManila || teacher.localStart(res) }}</div>
-                        <div class="text-[11px] text-slate-400 mt-0.5">{{ res.startStudent || res.startTokyo }} (Student)</div>
+                        <div class="font-semibold text-slate-900">{{ res.startManila }}</div>
+                        <div class="text-[11px] text-slate-400 mt-0.5">{{ res.startStudent }} (Student)</div>
                       </td>
                       <td class="py-3 px-3 text-slate-600 whitespace-nowrap">
                         {{ res.instructorName }}
@@ -366,14 +451,119 @@
                         <p v-if="res.note" class="m-0 text-[11px] text-slate-400 italic mt-0.5">“{{ res.note }}”</p>
                       </td>
                     </tr>
+                    <tr v-if="!studentReservations.length">
+                      <td colspan="4" class="py-6 px-3 text-center text-slate-400">No upcoming lessons booked.</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
             </div>
 
             <!-- TAB 4: MATERIALS -->
-            <div v-if="activeTab === 'materials'" class="pt-1">
-              <EditableMaterials :entry="studentAsEntry" />
+            <!-- The student's shared shelf: the same list the student portal
+                 shows, so what is added or removed here is what they see. -->
+            <div v-if="activeTab === 'materials'" class="space-y-3.5">
+              <div class="flex items-center justify-between text-xs text-slate-500">
+                <span>Shared across every lesson with this student — not just this one.</span>
+                <span><span class="font-semibold text-slate-800">{{ materials.length }}</span> shared</span>
+              </div>
+
+              <ul v-if="materials.length" class="space-y-2">
+                <li
+                  v-for="item in materials"
+                  :key="item.id"
+                  class="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white p-3"
+                >
+                  <span
+                    class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs ring-1"
+                    :class="materialKind(item.kind).chip"
+                  >
+                    <i :class="materialKind(item.kind).icon"></i>
+                  </span>
+                  <div class="min-w-0 flex-1">
+                    <p class="m-0 text-sm font-bold text-slate-900">{{ item.title }}</p>
+                    <p class="m-0 mt-0.5 text-[11px] font-semibold text-slate-500">
+                      {{ materialKind(item.kind).label }}
+                      <template v-if="item.subject"> · {{ item.subject }}</template>
+                      · {{ item.addedOn }}
+                      <template v-if="item.addedBy"> · {{ item.addedBy }}</template>
+                    </p>
+                    <p v-if="item.note" class="m-0 mt-1 text-xs italic text-slate-600">{{ item.note }}</p>
+                  </div>
+                  <div class="flex shrink-0 items-center gap-1">
+                    <a
+                      v-if="item.url"
+                      :href="item.url"
+                      target="_blank"
+                      rel="noopener"
+                      class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-500 transition hover:bg-slate-50 hover:text-slate-900"
+                      title="Open"
+                      aria-label="Open material"
+                    >
+                      <i class="fa-solid fa-arrow-up-right-from-square text-[11px]"></i>
+                    </a>
+                    <button
+                      type="button"
+                      @click="teacher.removeMaterial(studentId, item.id)"
+                      class="flex h-8 w-8 items-center justify-center rounded-lg border border-slate-200 text-slate-400 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
+                      title="Remove"
+                      :aria-label="`Remove ${item.title}`"
+                    >
+                      <i class="fa-regular fa-trash-can text-[11px]"></i>
+                    </button>
+                  </div>
+                </li>
+              </ul>
+              <p v-else class="m-0 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
+                Nothing shared with {{ firstName }} yet.
+              </p>
+
+              <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
+                <p class="m-0 text-[10px] font-black uppercase tracking-wider text-slate-400">Add materials</p>
+                <div class="mt-2 grid grid-cols-1 gap-2 sm:grid-cols-12">
+                  <input
+                    v-model="draft.title"
+                    type="text"
+                    placeholder="What is it? e.g. Vowel drill worksheet"
+                    class="sm:col-span-5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none transition focus:border-brighture-gold focus:ring-2 focus:ring-brighture-gold/20"
+                  />
+                  <!-- Own chevron, inset like the text: the native arrow sat flush
+                       against the right edge. -->
+                  <div class="relative sm:col-span-2">
+                    <select
+                      v-model="draft.kind"
+                      class="w-full cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white py-2 pl-3 pr-8 text-xs text-slate-800 outline-none transition focus:border-brighture-gold"
+                    >
+                      <option v-for="opt in MATERIAL_KIND_OPTIONS" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
+                    </select>
+                    <i class="fa-solid fa-chevron-down pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-slate-400" aria-hidden="true"></i>
+                  </div>
+                  <input
+                    v-model="draft.url"
+                    type="url"
+                    placeholder="https://…"
+                    class="sm:col-span-5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none transition focus:border-brighture-gold focus:ring-2 focus:ring-brighture-gold/20"
+                  />
+                  <input
+                    v-model="draft.note"
+                    type="text"
+                    placeholder="A note for the student (optional)"
+                    class="sm:col-span-9 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-800 outline-none transition focus:border-brighture-gold focus:ring-2 focus:ring-brighture-gold/20"
+                  />
+                  <label v-if="lessonRecord" class="sm:col-span-12 flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
+                    <input v-model="draft.forLesson" type="checkbox" class="h-4 w-4 accent-[#c5a059]" />
+                    {{ firstName }} should review this before the upcoming lesson
+                  </label>
+                  <button
+                    type="button"
+                    @click="addMaterial"
+                    :disabled="!draft.title.trim()"
+                    class="sm:col-span-3 rounded-xl bg-brighture-gold px-4 py-2 text-xs font-extrabold text-brighture-ink transition hover:bg-brighture-gold-deep active:scale-95 disabled:opacity-40"
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
             </div>
         </div>
       </div>
@@ -382,13 +572,17 @@
 </template>
 
 <script setup>
+import GoogleMeetIcon from '../GoogleMeetIcon.vue';
 import { ref, computed, watch } from 'vue';
 import AppImage from '../AppImage.vue';
-import EditableMaterials from '@/pages/app-panel/EditableMaterials.vue';
 import studentImage from '@/assets/student-1.svg';
+import { MATERIAL_KIND_OPTIONS, materialKind } from '@/lib/lessonMaterials';
+import { MANILA, stampIn, utcLabel, minutesUntil, dateIn, clockIn } from '@/lib/schoolTime';
 import { useTeacherStore } from '../../stores/useTeacherStore';
+import { useSchoolStore } from '../../stores/useSchoolStore';
 
 const teacher = useTeacherStore();
+const school = useSchoolStore();
 
 const props = defineProps({
   /** A reservation row or student reference; null closes the modal. */
@@ -473,16 +667,57 @@ const studentExactTime = computed(() => {
   return 'Oct 9, 2026 19:00 (UTC +09:00) Tokyo';
 });
 
-// Adapter object for EditableMaterials
-const studentAsEntry = computed(() => {
-  if (!props.student) return {};
-  return {
-    ...props.student,
-    student: props.student.studentName || props.student.student,
-    subject: props.student.subject,
-    studentId: props.student.studentId,
-  };
+/** Whoever the opener passed — a reservation row, a log row, a chat contact. */
+const studentId = computed(() => {
+  const raw = props.student?.studentId ?? props.student?.id;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : raw;
 });
+
+/** The school's record for the student; the opener's row only fills gaps. */
+const record = computed(() => (props.student ? school.student(studentId.value) : {}));
+const studentName = computed(() =>
+  school.db.students[studentId.value]?.name || props.student?.studentName || props.student?.student || record.value.name
+);
+const studentPhoto = computed(() => record.value.photo || props.student?.studentPhoto || studentImage);
+const membership = computed(() => record.value.membership || props.student?.membership || 'Regular');
+const firstName = computed(() => (studentName.value || '').split(' ')[0] || 'the student');
+
+// Materials: the shared shelf, with a small add form under it.
+const materials = computed(() => (props.student ? teacher.materialsFor(studentId.value) : []));
+const blankDraft = () => ({ title: '', kind: 'pdf', url: '', note: '', forLesson: true });
+const draft = ref(blankDraft());
+watch(studentId, () => { draft.value = blankDraft(); });
+
+const addMaterial = () => {
+  if (!props.student || !draft.value.title.trim()) return;
+  const { forLesson, ...fields } = draft.value;
+  const entry = teacher.addMaterial(studentId.value, { ...fields, subject: props.student.subject || '' });
+  if (forLesson && entry && lessonRecord.value) togglePrep(entry.id, true);
+  draft.value = blankDraft();
+};
+
+/* The upcoming lesson this panel was opened for (a reservation row), if any. */
+const lessonRecord = computed(() => {
+  const l = props.student?.id ? school.findLesson(props.student.id) : null;
+  return l && l.status === 'booked' ? l : null;
+});
+const prep = computed(() => (lessonRecord.value
+  ? school.prepFor(lessonRecord.value.id)
+  : { items: [], total: 0, reviewed: 0, chosen: false }));
+const prepIds = computed(() => new Set(prep.value.items.map((i) => i.id)));
+const choosingPrep = ref(false);
+watch(() => props.student?.id, () => { choosingPrep.value = false; });
+
+/** Adds or removes one material from this lesson's list (force = always add). */
+const togglePrep = (id, force = false) => {
+  if (!lessonRecord.value) return;
+  const ids = new Set(prepIds.value);
+  if (ids.has(id) && !force) ids.delete(id); else ids.add(id);
+  school.setLessonPrep(lessonRecord.value.id, [...ids]);
+};
+
+const reviewedLabel = (iso) => `${dateIn(iso, MANILA)}, ${clockIn(iso, MANILA)}`;
 
 // Accurate mapping matching student-portal/profile fields
 const studentProfilesMap = {
@@ -572,66 +807,54 @@ const studentProfilesMap = {
   },
 };
 
+/** Generic details for a student the map above does not know. */
+const fallbackProfile = {
+  gender: 'Unspecified',
+  birthDate: 'June 1992',
+  email: 'student@example.com',
+  googleAccount: 'student@gmail.com',
+  timezone: 'Asia/Tokyo (JST)',
+  learningObjective: 'General Conversation',
+  targetGoal: 'Improve Speaking & Vocabulary',
+  level: 'B1 Intermediate',
+  memberSince: 'January 2025',
+};
+
+/** Profile details: the map above for what the school record lacks, the
+ *  record itself for name, level and timezone. */
 const studentProfile = computed(() => {
   if (!props.student) return {};
-  const name = props.student.studentName || props.student.student;
-  if (name && studentProfilesMap[name]) {
-    return studentProfilesMap[name];
-  }
-  const parts = (name || 'Student Name').split(' ');
+  const name = studentName.value || 'Student Name';
+  const parts = name.split(' ');
   return {
+    ...fallbackProfile,
+    ...(studentProfilesMap[name] ?? {}),
     firstName: parts[0] || 'Student',
-    lastName: parts.slice(1).join(' ') || '',
-    romaji: name || 'Student Name',
-    gender: 'Unspecified',
-    birthDate: 'June 1992',
-    email: 'student@example.com',
-    googleAccount: 'student@gmail.com',
-    timezone: 'Asia/Tokyo (JST)',
-    learningObjective: 'General Conversation',
-    targetGoal: 'Improve Speaking & Vocabulary',
-    level: 'B1 Intermediate',
-    memberSince: 'January 2025',
+    lastName: parts.slice(1).join(' '),
+    romaji: name,
+    ...(record.value.timezone ? { timezone: record.value.timezone } : {}),
+    ...(record.value.level ? { level: record.value.level } : {}),
   };
 });
 
-// Student's completed Lesson Logs
+const LOG_STATUS = { completed: 'Completed', 'no-show': 'No show (student)', cancelled: 'Cancelled' };
+
+// Every lesson the student has had, with any instructor, newest first.
 const studentLogs = computed(() => {
   if (!props.student) return [];
-  const sId = props.student.studentId;
-  const sName = props.student.studentName || props.student.student;
-
-  const logsFromStore = (teacher.lessonLog || []).filter(
-    (l) => (sId && l.studentId === sId) || (sName && l.studentName === sName)
-  );
-
-  if (logsFromStore.length) {
-    return logsFromStore.map((l) => ({
-      ...l,
-      instructorName: teacher.fullName,
-      feedback: l.feedback || l.studentComment || 'Improved fluency and sentence pacing.',
-      adminNote: l.hiddenNote || 'No administrative issues reported.',
+  const now = school.now;
+  return school.lessonsForStudent(studentId.value)
+    .filter((l) => LOG_STATUS[l.status] && minutesUntil(l.start, now) <= 0)
+    .reverse()
+    .map((l) => ({
+      id: l.id,
+      dateManila: stampIn(l.start, MANILA),
+      instructorName: school.teacher(l.teacherId).name,
+      subject: l.subject,
+      status: l.status,
+      statusLabel: LOG_STATUS[l.status],
+      feedback: l.status === 'cancelled' ? (l.cancelReason || '') : l.feedback,
     }));
-  }
-
-  return [
-    {
-      id: `log-1-${sId}`,
-      subject: props.student.subject || '[DC] Daily Conversation',
-      dateManila: '02/11/2026 13:00',
-      instructorName: 'Alma Oliviero',
-      feedback: 'Points achieved: stronger sentence control and clearer idea organization.\nPoints for improvement: reduce grammar slips and improve transition words.',
-      adminNote: 'B2.5 No spelling concern.\nhttps://docs.google.com/document/d/example-log-1',
-    },
-    {
-      id: `log-2-${sId}`,
-      subject: '[PP201] Pronunciation - Consonants',
-      dateManila: '01/18/2026 15:00',
-      instructorName: 'Hanna Pekitpikit',
-      feedback: 'Points achieved: better /r/ and /l/ production with reading drills.\nPoints for improvement: stabilize word stress and pacing.',
-      adminNote: 'B2.5 Needs follow-up reading drill.',
-    },
-  ];
 });
 
 const filteredLogs = computed(() => {
@@ -644,27 +867,21 @@ const filteredLogs = computed(() => {
   });
 });
 
-// Student's full reservation list
+// The student's booked lessons, with every instructor, soonest first.
 const studentReservations = computed(() => {
   if (!props.student) return [];
-  const sId = props.student.studentId;
-  const sName = props.student.studentName || props.student.student;
-
-  const resList = (teacher.reservations || []).filter(
-    (r) => (sId && r.studentId === sId) || (sName && r.studentName === sName)
-  );
-
-  if (!resList.length && props.student) {
-    return [{
-      ...props.student,
-      instructorName: props.student.instructorName || teacher.fullName,
-    }];
-  }
-
-  return resList.map((r) => ({
-    ...r,
-    instructorName: r.instructorName || teacher.fullName,
-  }));
+  const tz = record.value.timezone;
+  return school.lessonsForStudent(studentId.value)
+    .filter((l) => l.status === 'booked')
+    .map((l) => ({
+      id: l.id,
+      startManila: stampIn(l.start, MANILA),
+      startStudent: `${stampIn(l.start, tz)} ${utcLabel(tz)}`,
+      instructorName: school.teacher(l.teacherId).name,
+      subject: l.subject,
+      topic: l.topic,
+      note: l.note,
+    }));
 });
 </script>
 

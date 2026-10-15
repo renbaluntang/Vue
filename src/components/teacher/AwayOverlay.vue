@@ -68,7 +68,7 @@
             rel="noopener"
             class="mt-3 flex items-center justify-center gap-2 rounded-xl border border-transparent bg-emerald-500 px-4 py-2.5 text-sm font-extrabold text-slate-950 transition hover:bg-emerald-400 active:scale-95"
           >
-            <i class="fa-solid fa-video text-xs"></i>
+            <GoogleMeetIcon size="sm" />
             <span>Enter Google Meet</span>
           </a>
         </div>
@@ -91,6 +91,7 @@
 </template>
 
 <script setup>
+import GoogleMeetIcon from '../GoogleMeetIcon.vue';
 import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
 

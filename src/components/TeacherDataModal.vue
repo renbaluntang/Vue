@@ -10,8 +10,9 @@
         <button
           @click="$emit('close')"
           class="w-8 h-8 rounded-full bg-slate-200 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition font-bold text-sm"
+          aria-label="Close"
         >
-          ✕
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
 
@@ -34,30 +35,64 @@
             </div>
             <p class="text-sm font-semibold text-brighture-bronze">{{ teacher.specialty || '[SF] Speech Fluency, [LS1] Listening & Speaking, [DC] Daily Conversation' }}</p>
 
-            <!-- Rates & Audio Voice sample -->
+            <!-- Rates -->
             <div class="pt-1 flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <span class="text-xs font-bold bg-slate-100 text-slate-700 px-3 py-1 rounded-xl">
                 Rate: <strong>{{ teacher.points || 4 }} pts (30m)</strong> · <strong>{{ (teacher.points || 4) * 2 }} pts (1hr)</strong>
               </span>
-
-              <!-- Voice Audio Sample Button -->
-              <button
-                @click="isPlayingVoice = !isPlayingVoice"
-                class="inline-flex items-center gap-1.5 px-3 py-1 rounded-xl text-xs font-bold transition shadow-2xs"
-                :class="isPlayingVoice ? 'bg-brighture-gold text-brighture-ink' : 'bg-brighture-cream text-brighture-bronze border border-brighture-gold/30 hover:bg-brighture-gold/15'"
-              >
-                <span>{{ isPlayingVoice ? '⏸' : '🔊' }}</span>
-                <span>{{ isPlayingVoice ? 'Playing Sample...' : 'Listen to Voice' }}</span>
-              </button>
             </div>
           </div>
+
+          <div class="flex w-full max-w-[220px] shrink-0 flex-col gap-2 sm:w-[200px] sm:self-center">
+            <!-- Two short videos, stacked on the right; they play right here -->
+            <button
+              type="button"
+              @click="openVideo('intro')"
+              class="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-bold shadow-2xs transition active:scale-95"
+              :class="activeVideo === 'intro' ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900'"
+            >
+              <span class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-red-600">
+                <i class="fa-solid fa-play text-[7px]" aria-hidden="true"></i>
+              </span>
+              Get to know {{ firstName }}
+            </button>
+            <button
+              type="button"
+              @click="openVideo('demo')"
+              class="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-bold shadow-2xs transition active:scale-95"
+              :class="activeVideo === 'demo' ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900'"
+            >
+              <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
+                <i class="fa-solid fa-chalkboard-user text-[8px]" aria-hidden="true"></i>
+              </span>
+              See {{ firstName }} teach
+            </button>
+          </div>
+        </div>
+
+        <!-- Video player, opened by the two buttons above -->
+        <div v-if="activeVideo" class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-900">
+          <div class="flex items-center justify-between gap-2 px-3 py-2 sm:px-4">
+            <p class="truncate text-xs font-bold text-white">
+              {{ activeVideo === 'demo' ? `See ${firstName} teach` : `Get to know ${firstName}` }}
+            </p>
+            <button
+              type="button"
+              @click="activeVideo = null"
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-300 transition hover:bg-white/10 hover:text-white"
+              aria-label="Close video"
+            >
+              <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
+            </button>
+          </div>
+          <TeacherIntroVideo :key="activeVideo" :video-id="activeVideo === 'demo' ? DEMO_VIDEO_ID : INTRO_VIDEO_ID" />
         </div>
 
         <!-- Major & Expertise Cards -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
           <div class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
             <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              <span>🎓</span> Major / Degree
+              <i class="fa-solid fa-graduation-cap text-indigo-600" aria-hidden="true"></i> Major / Degree
             </div>
             <p class="mt-1 text-sm font-bold text-slate-800">
               {{ teacher.major || 'B.A. in English Linguistics & Education' }}
@@ -66,7 +101,7 @@
 
           <div class="rounded-2xl border border-slate-100 bg-slate-50/70 p-4">
             <div class="flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
-              <span>🎯</span> Core Expertise
+              <i class="fa-solid fa-bullseye text-rose-500" aria-hidden="true"></i> Core Expertise
             </div>
             <p class="mt-1 text-sm font-bold text-slate-800">
               {{ teacher.expertise || '[SF] Speech Fluency, [PP101] Pronunciation, [EP] Exam Prep' }}
@@ -88,7 +123,7 @@
               :class="sub.style.badgeClass"
             >
               <span class="w-1.5 h-1.5 rounded-full" :class="sub.style.dotClass"></span>
-              <span>[{{ sub.code }}] {{ sub.name }}</span>
+              <span>{{ sub.name }}</span>
             </span>
           </div>
         </div>
@@ -104,14 +139,7 @@
       </div>
 
       <!-- Footer Action -->
-      <div class="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-between gap-3">
-        <button
-          @click="$emit('close')"
-          class="px-4 py-2.5 rounded-xl font-bold text-xs text-slate-600 hover:bg-slate-200 transition"
-        >
-          Close
-        </button>
-
+      <div class="p-4 sm:p-5 border-t border-slate-100 bg-slate-50 flex items-center justify-end gap-3">
         <button
           @click="$emit('book', teacher); $emit('close')"
           class="px-5 py-2.5 rounded-xl bg-[#FFCD00] hover:bg-[#FFD933] text-black font-bold text-xs shadow-md transition-all hover:scale-105 active:scale-95"
@@ -124,10 +152,13 @@
 </template>
 
 <script setup>
-import { computed, ref } from 'vue';
+import { computed, ref, watch } from 'vue';
 import { imageForKey } from '@/lib/teacherImages';
 import AppImage from './AppImage.vue';
+import TeacherIntroVideo from './TeacherIntroVideo.vue';
 import {
+  INTRO_VIDEO_ID,
+  DEMO_VIDEO_ID,
   parseSubjectCodes,
   SUBJECT_LABELS,
   getSubjectBadgeStyle,
@@ -140,7 +171,13 @@ const props = defineProps({
 
 defineEmits(['close', 'book']);
 
-const isPlayingVoice = ref(false);
+/** Which video is open: 'intro', 'demo', or null. */
+const activeVideo = ref(null);
+const openVideo = (kind) => { activeVideo.value = activeVideo.value === kind ? null : kind; };
+const firstName = computed(() => (props.teacher?.name || '').split(' ')[0]);
+
+// A different instructor opens with no video playing.
+watch(() => props.teacher, () => { activeVideo.value = null; });
 
 const getTeacherModalImage = (teacher) => {
   if (teacher?.photo) return teacher.photo;

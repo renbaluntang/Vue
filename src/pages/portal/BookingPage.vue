@@ -33,10 +33,53 @@ import {
   computeCalendarBlocks,
   getInitialFavorites,
 } from "../student-view-v4/constants";
+import { useUserStore } from "../../stores/useUserStore";
+import { useSchoolStore } from "../../stores/useSchoolStore";
+import { CURRENT_STUDENT_ID } from "../../lib/schoolSeed";
+import { TOKYO, partsIn, tokyoAt } from "../../lib/schoolTime";
+
+const user = useUserStore();
+const school = useSchoolStore();
+
+/** Tokyo calendar date `offset` days from today, as 'YYYY-MM-DD'. The grid times are JST. */
+const tokyoDayIso = (offset) => {
+  const p = partsIn(new Date().toISOString(), TOKYO);
+  return new Date(Date.UTC(p.year, p.month, p.day + offset)).toISOString().slice(0, 10);
+};
+
+/** The instant a grid cell starts at. */
+const slotStartIso = (dayIndex, slotIndex) => tokyoAt(tokyoDayIso(dayIndex), BOOKING_TIME_SLOTS[slotIndex]);
+
+const instructorById = (teacherId) => INSTRUCTORS.find((item) => item.id === teacherId);
+
+/**
+ * Slot status from the sample pattern, checked against the shared store: a
+ * slot is only Available if the teacher is actually free then (their published
+ * board, or the sample pattern for teachers without one, and no other booking).
+ */
+const getSlotStatusLive = (teacherId, dayIndex, slotIndex) => {
+  const mock = getSlotStatus(teacherId, dayIndex, slotIndex);
+  const key = instructorById(teacherId)?.imageKey;
+  if (!key) return mock;
+  const open = school.isTeacherSlotOpen(key, slotStartIso(dayIndex, slotIndex), 30, mock === "Available");
+  if (open) return "Available";
+  return mock === "Available" ? "Reserved" : mock;
+};
+
+/** Whether this student already has a booked lesson with the teacher covering the cell. */
+const isOwnLessonSlot = (teacherId, dayIndex, slotIndex) => {
+  const key = instructorById(teacherId)?.imageKey;
+  if (!key) return false;
+  const start = new Date(slotStartIso(dayIndex, slotIndex)).getTime();
+  return school.lessonsForStudent(CURRENT_STUDENT_ID).some((lesson) => {
+    if (lesson.teacherId !== key || lesson.status !== "booked") return false;
+    const s = new Date(lesson.start).getTime();
+    return s <= start && start < s + lesson.duration * 60_000;
+  });
+};
 
 const favorites = ref(getInitialFavorites());
 const showFreeConversationModal = ref(false);
-const slotOverrides = ref({});
 const profileTeacher = ref(null);
 const hoveredBookingCell = ref(null);
 const bookingDuration = ref(30);
@@ -108,8 +151,8 @@ onMounted(startPromoAuto);
 onBeforeUnmount(stopPromoAuto);
 
 const videoTabs = [
-  { kind: 'intro', icon: '▶', label: (t) => `Get to know ${t.name.split(' ')[0]}` },
-  { kind: 'demo', icon: '🎬', label: (t) => `See ${t.name.split(' ')[0]} teach` },
+  { kind: 'intro', icon: 'fa-solid fa-play text-red-500', label: (t) => `Get to know ${t.name.split(' ')[0]}` },
+  { kind: 'demo', icon: 'fa-solid fa-clapperboard text-indigo-500', label: (t) => `See ${t.name.split(' ')[0]} teach` },
 ];
 
 /** The same subject names the card shows, read off the same field. */
@@ -165,17 +208,17 @@ const getCleanSubjectName = (code) => {
 
 const getSubjectCategoryBadge = (code) => {
   const cat = getSubjectCategory(code);
-  if (!cat) return { name: "General", icon: "📚", badgeBg: "bg-slate-100 text-slate-700" };
+  if (!cat) return { name: "General", icon: "fa-solid fa-book text-slate-500", badgeBg: "bg-slate-100 text-slate-700" };
   if (cat.id === "conversation") {
-    return { name: "Conversation", icon: "💬", badgeBg: "bg-sky-100/90 text-sky-800" };
+    return { name: "Conversation", icon: "fa-solid fa-comments text-sky-600", badgeBg: "bg-sky-100/90 text-sky-800" };
   }
   if (cat.id === "pronunciation") {
-    return { name: "Pronunciation", icon: "🗣️", badgeBg: "bg-amber-100/90 text-amber-900" };
+    return { name: "Pronunciation", icon: "fa-solid fa-microphone-lines text-amber-600", badgeBg: "bg-amber-100/90 text-amber-900" };
   }
   if (cat.id === "specialized") {
-    return { name: "Specialized", icon: "🎯", badgeBg: "bg-purple-100/90 text-purple-900" };
+    return { name: "Specialized", icon: "fa-solid fa-bullseye text-violet-600", badgeBg: "bg-purple-100/90 text-purple-900" };
   }
-  return { name: "General", icon: "📚", badgeBg: "bg-slate-100 text-slate-700" };
+  return { name: "General", icon: "fa-solid fa-book text-slate-500", badgeBg: "bg-slate-100 text-slate-700" };
 };
 
 const getCleanExpertise = (teacher) => {
@@ -273,7 +316,7 @@ const filteredInstructors = computed(() => {
       const checkSlotIsAvailable = (dayIdx, slotIdx) => {
         if (slotIdx + spanRequired > BOOKING_TIME_SLOTS.length) return false;
         for (let s = 0; s < spanRequired; s++) {
-          if (getSlotStatus(teacher.id, dayIdx, slotIdx + s) !== "Available") {
+          if (getSlotStatusLive(teacher.id, dayIdx, slotIdx + s) !== "Available") {
             return false;
           }
         }
@@ -329,11 +372,11 @@ const toggleFavorite = (teacherId) => {
     : [...favorites.value, teacherId];
 };
 
-const slotKey = (teacherId, dayIndex, slotIndex) => `${teacherId}-${dayIndex}-${slotIndex}`;
 
+// "Selected" marks the student's own booked lessons, read from the shared store.
 const getDisplaySlotStatus = (teacherId, dayIndex, slotIndex) => {
-  const key = slotKey(teacherId, dayIndex, slotIndex);
-  return slotOverrides.value[key] ?? getSlotStatus(teacherId, dayIndex, slotIndex);
+  if (isOwnLessonSlot(teacherId, dayIndex, slotIndex)) return "Selected";
+  return getSlotStatusLive(teacherId, dayIndex, slotIndex);
 };
 
 const isPendingSlot = (teacherId, dayIndex, slotIndex) =>
@@ -404,14 +447,31 @@ const finalizeBooking = () => {
     return;
   }
   const teacher = INSTRUCTORS.find((item) => item.id === confirmationDraft.value.teacherId);
-  const { dayIndex, slotIndex, span, minutes } = confirmationDraft.value;
-  const indices = Array.from({ length: span }, (_, offset) => slotIndex + offset);
+  const { dayIndex, slotIndex, minutes } = confirmationDraft.value;
+  const points = pointsForDuration(teacher, minutes);
 
-  const next = { ...slotOverrides.value };
-  indices.forEach((index) => {
-    next[slotKey(confirmationDraft.value.teacherId, dayIndex, index)] = "Selected";
+  // Book in the shared store, so the lesson shows on the dashboard and in the
+  // teacher's reservations. It refuses a taken slot or a short balance.
+  const booked = user.bookLesson({
+    teacherId: teacher.imageKey,
+    start: slotStartIso(dayIndex, slotIndex),
+    duration: minutes,
+    subject: confirmSubject.value ? SUBJECT_LABELS[confirmSubject.value] ?? confirmSubject.value : "Lesson",
+    note: confirmMessage.value.trim(),
+    points,
   });
-  slotOverrides.value = next;
+  if (!booked) {
+    bookingNotice.value = {
+      type: "error",
+      message:
+        user.profile.pointsBalance < points
+          ? `Not enough points — this lesson costs ${points} pts and you have ${user.profile.pointsBalance}.`
+          : "That slot was just taken. Please choose another time.",
+    };
+    confirmationDraft.value = null;
+    pendingBooking.value = null;
+    return;
+  }
 
   const day = BOOKING_DAYS[dayIndex];
   const dayLabel = day ? `${day.day} ${day.label}` : "";
@@ -421,10 +481,7 @@ const finalizeBooking = () => {
   const subjectLabel = confirmSubject.value ? `${SUBJECT_LABELS[confirmSubject.value] ?? confirmSubject.value} · ` : "";
   bookingNotice.value = {
     type: "success",
-    message: `Booked! ${subjectLabel}${durationConfig.label} with ${teacher.name} on ${dayLabel}, ${startLabel} – ${endLabel} (${pointsForDuration(
-      teacher,
-      minutes
-    )} pts).`,
+    message: `Booked! ${subjectLabel}${durationConfig.label} with ${teacher.name} on ${dayLabel}, ${startLabel} – ${endLabel} JST (${points} pts).`,
   };
   confirmationDraft.value = null;
   pendingBooking.value = null;
@@ -580,7 +637,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
           <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
           <div class="relative z-10 flex flex-1 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
             <div class="flex items-start gap-3.5">
-              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/[0.08] border border-white/[0.08] text-xl shadow-inner">⚡</span>
+              <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/[0.08] border border-white/[0.08] text-lg shadow-inner"><i class="fa-solid fa-bolt text-[#FFCD00]" aria-hidden="true"></i></span>
               <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                   <h2 class="text-base font-extrabold tracking-tight sm:text-lg">Talk Now</h2>
@@ -673,7 +730,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
               aria-label="Clear search"
               class="absolute right-3.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-bold text-slate-500 transition hover:bg-slate-300 hover:text-slate-700"
             >
-              ✕
+              <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
             <span
               v-else
@@ -802,7 +859,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                   :aria-label="`Toggle favorite for ${teacher.name}`"
                   :title="favorites.includes(teacher.id) ? 'Saved as favorite teacher' : 'Save to favorite teachers'"
                 >
-                  ★
+                  <i class="fa-solid fa-star" aria-hidden="true"></i>
                 </button>
               </div>
             </div>
@@ -829,7 +886,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                   <!-- What the photo does. Low and right: the crop is anchored
                        to the top, so this corner is shoulder, never face. -->
                   <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur-xs transition group-hover/avatar:bg-slate-900">
-                    <span>🗓️</span> View Schedule
+                    <i class="fa-solid fa-calendar-days text-[#FFCD00]" aria-hidden="true"></i> View Schedule
                   </div>
                 </div>
 
@@ -841,7 +898,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                     class="inline-flex w-full touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
                     title="A short video about them"
                   >
-                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-red-600 text-[10px]">▶</span>
+                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-red-600 text-[9px]"><i class="fa-solid fa-play" aria-hidden="true"></i></span>
                     <span>Get to know {{ teacher.name.split(' ')[0] }}</span>
                   </button>
 
@@ -851,7 +908,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                     class="inline-flex w-full touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
                     title="A few minutes of a real class"
                   >
-                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-[10px]">🎬</span>
+                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-[10px]"><i class="fa-solid fa-clapperboard" aria-hidden="true"></i></span>
                     <span>See {{ teacher.name.split(' ')[0] }} teach</span>
                   </button>
                 </div>
@@ -893,7 +950,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                       <span>Subjects Taught ({{ parseSubjectCodes(teacher.specialty).length }})</span>
                     </div>
                     <span v-if="subjectFilter !== 'ALL'" class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
-                      <span>✓</span> Filter match
+                      <i class="fa-solid fa-check" aria-hidden="true"></i> Filter match
                     </span>
                   </div>
 
@@ -920,7 +977,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                 <div class="relative rounded-2xl border border-slate-200/80 bg-gradient-to-r from-amber-50/30 via-slate-50/80 to-white p-3.5 pl-4 shadow-2xs">
                   <div class="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-amber-400" />
                   <p class="m-0 text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1">
-                    <span>💬</span>
+                    <i class="fa-solid fa-comments text-sky-600" aria-hidden="true"></i>
                     <span>Teacher Introduction</span>
                   </p>
                   <p class="m-0 text-xs leading-relaxed text-slate-700 italic line-clamp-3 font-normal">
@@ -944,9 +1001,9 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                 @click="openTeacherProfile(teacher)"
                 class="flex-1 sm:flex-none inline-flex min-w-0 touch-manipulation items-center justify-center gap-2 whitespace-nowrap border border-amber-300 px-6 py-2.5 rounded-xl bg-[#FFCD00] hover:bg-[#FFD933] active:bg-amber-400 text-slate-900 font-extrabold text-xs shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
               >
-                <span>📅</span>
+                <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
                 <span>Select &amp; Book Class</span>
-                <span>→</span>
+                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
               </button>
             </div>
           </div>
@@ -954,7 +1011,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
 
         <div v-if="filteredInstructors.length === 0" class="col-span-full rounded-2xl border border-slate-200 bg-white p-12 text-center">
           <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-            🔍
+            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
           </div>
           <h3 class="mt-3 text-base font-semibold text-slate-800">No teachers found</h3>
           <p class="mt-1 text-xs text-slate-500">
@@ -1003,7 +1060,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                 ? 'bg-white text-slate-900 shadow-sm'
                 : 'text-slate-300 hover:text-white'"
             >
-              <span>{{ tab.icon }}</span>
+              <i :class="tab.icon" aria-hidden="true"></i>
               {{ tab.label(activeVideo.teacher) }}
             </button>
           </div>
@@ -1014,7 +1071,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
             aria-label="Close video"
             class="shrink-0 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-700 hover:text-white"
           >
-            Close ✕
+            Close <i class="fa-solid fa-xmark ml-1" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -1033,9 +1090,9 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
             @click="bookFromVideo"
             class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-amber-300 bg-[#FFCD00] px-5 py-2 text-xs font-extrabold text-slate-900 shadow-md transition hover:bg-[#FFD933] hover:shadow-lg active:scale-95"
           >
-            <span>📅</span>
+            <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
             Book a class with {{ activeVideo.teacher.name.split(' ')[0] }}
-            <span>→</span>
+            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
           </button>
         </div>
       </div>
@@ -1056,7 +1113,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
           class="rounded-md px-1.5 text-xs font-bold opacity-70 transition hover:opacity-100"
           aria-label="Dismiss notice"
         >
-          ×
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
     </div>
@@ -1106,7 +1163,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                   getSubjectBadgeStyle(code, isSubjectMatchingFilter(code, subjectFilter) && subjectFilter !== 'ALL')
                 ]"
               >
-                <span v-if="isSubjectMatchingFilter(code, subjectFilter) && subjectFilter !== 'ALL'" class="text-amber-700 font-black">✓</span>
+                <i v-if="isSubjectMatchingFilter(code, subjectFilter) && subjectFilter !== 'ALL'" class="fa-solid fa-check text-amber-700" aria-hidden="true"></i>
                 <span>{{ SUBJECT_LABELS[code] || code }}</span>
               </span>
             </div>

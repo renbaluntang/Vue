@@ -133,20 +133,8 @@
                 </span>
               </div>
 
-              <!-- Typing Indicator or Last message snippet -->
+              <!-- Last message snippet -->
               <p
-                v-if="studentTypingId === student.id"
-                class="text-[11px] text-amber-600 font-bold truncate flex items-center gap-1"
-              >
-                <span class="inline-flex gap-0.5">
-                  <span class="w-1 h-1 rounded-full bg-amber-500 animate-bounce"></span>
-                  <span class="w-1 h-1 rounded-full bg-amber-500 animate-bounce [animation-delay:0.2s]"></span>
-                  <span class="w-1 h-1 rounded-full bg-amber-500 animate-bounce [animation-delay:0.4s]"></span>
-                </span>
-                typing...
-              </p>
-              <p
-                v-else
                 class="text-[11px] truncate font-medium"
                 :class="getUnreadCount(student.id) > 0 ? 'text-slate-900 font-bold' : 'text-slate-500'"
               >
@@ -246,7 +234,9 @@
             </div>
             <div class="flex items-center gap-3 shrink-0">
               <span class="text-[11px] text-amber-800 font-bold hidden md:inline">
-                Rating: {{ activeStudent.rating ? `★ ${activeStudent.rating}` : '5.0' }}
+                Rating:
+                <template v-if="activeStudent.rating"><i class="fa-solid fa-star text-amber-500" aria-hidden="true"></i> {{ activeStudent.rating }}</template>
+                <template v-else>—</template>
               </span>
               <RouterLink
                 to="/reservations"
@@ -259,10 +249,10 @@
 
           <!-- Messages Thread (Scrollable) -->
           <div ref="chatContainer" class="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 bg-gradient-to-b from-slate-50/40 to-white">
-            <!-- Day Divider -->
-            <div class="flex items-center justify-center my-2">
+            <!-- Thread Divider -->
+            <div v-if="currentMessages.length" class="flex items-center justify-center my-2">
               <span class="px-3 py-1 rounded-full bg-slate-100 border border-slate-200/60 text-[10px] font-black uppercase tracking-wider text-slate-500 shadow-2xs">
-                Today's Conversation
+                Conversation with {{ activeStudent.name.split(' ')[0] }}
               </span>
             </div>
 
@@ -327,7 +317,11 @@
                   >
                     <span class="tabular-nums">{{ msg.time }}</span>
                     <span v-if="msg.sender === 'teacher'" class="flex items-center gap-0.5">
-                      <i class="fa-solid fa-check-double text-emerald-500 text-[10px]" title="Delivered & Read"></i>
+                      <i
+                        class="fa-solid fa-check-double text-[10px]"
+                        :class="seenByStudent(msg) ? 'text-emerald-500' : 'text-slate-300'"
+                        :title="seenByStudent(msg) ? 'Read' : 'Delivered'"
+                      ></i>
                     </span>
 
                     <!-- Quick React Pill (Hover) -->
@@ -336,17 +330,19 @@
                         type="button"
                         @click="toggleReaction(msg, '👍')"
                         class="px-1.5 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] transition"
-                        title="React 👍"
+                        title="Like"
+                        aria-label="Like"
                       >
-                        👍
+                        <i :class="reactionIcon('👍')" aria-hidden="true"></i>
                       </button>
                       <button
                         type="button"
                         @click="toggleReaction(msg, '❤️')"
                         class="px-1.5 py-0.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 text-[10px] transition"
-                        title="React ❤️"
+                        title="Love"
+                        aria-label="Love"
                       >
-                        ❤️
+                        <i :class="reactionIcon('❤️')" aria-hidden="true"></i>
                       </button>
                     </div>
 
@@ -355,30 +351,23 @@
                       v-if="msg.reactions && msg.reactions.length"
                       class="inline-flex items-center gap-0.5 px-1.5 py-0.2 rounded-full bg-slate-100 border border-slate-200 text-slate-700 text-[10px] font-black"
                     >
-                      {{ msg.reactions.join(' ') }}
+                      <i
+                        v-for="(emoji, i) in msg.reactions"
+                        :key="i"
+                        :class="reactionIcon(emoji)"
+                        :title="reactionLabel(emoji)"
+                        aria-hidden="true"
+                      ></i>
+                      <span class="sr-only">{{ msg.reactions.map(reactionLabel).join(', ') }}</span>
                     </span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <!-- Student Typing Indicator In Chat Window -->
-            <div
-              v-if="studentTypingId === activeStudentId"
-              class="flex items-end gap-2 max-w-[70%]"
-            >
-              <AppImage
-                :src="activeStudent.photo"
-                :alt="activeStudent.name"
-                class="w-7 h-7 rounded-xl object-cover ring-1 ring-slate-200"
-              />
-              <div class="px-4 py-2.5 rounded-3xl bg-slate-100 rounded-bl-xs flex items-center gap-1.5 text-slate-500">
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce"></span>
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.2s]"></span>
-                <span class="w-1.5 h-1.5 rounded-full bg-slate-400 animate-bounce [animation-delay:0.4s]"></span>
-                <span class="text-[11px] font-bold ml-1 text-slate-600">{{ activeStudent.name.split(' ')[0] }} is typing...</span>
-              </div>
-            </div>
+            <p v-if="!currentMessages.length" class="text-center text-xs text-slate-400 py-6">
+              No messages with {{ activeStudent.name.split(' ')[0] }} yet. Say hello below.
+            </p>
           </div>
 
           <!-- Chat Input Footer -->
@@ -437,13 +426,18 @@
                 <i class="fa-solid fa-paperclip"></i>
               </button>
 
-              <div class="relative flex-1">
+              <!-- One line tall, like the buttons beside it, and grows upward with
+                   the message (up to about five lines) while they stay level
+                   with its bottom edge. -->
+              <div class="relative min-w-0 flex-1">
                 <textarea
+                  ref="composerRef"
                   v-model="newMessageText"
-                  rows="2"
+                  rows="1"
                   placeholder="Type a message, lesson recap, or assignment note... (Enter to send)"
+                  @input="fitComposer"
                   @keydown.enter.exact.prevent="sendMessage"
-                  class="w-full px-4 py-2.5 text-sm rounded-2xl border border-slate-200 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-200/50 resize-none text-slate-800 placeholder-slate-400"
+                  class="block h-11 max-h-32 min-h-[2.75rem] w-full resize-none overflow-y-auto rounded-2xl border border-slate-200 px-4 py-[11px] text-sm leading-5 text-slate-800 placeholder-slate-400 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-200/50"
                 ></textarea>
               </div>
 
@@ -482,231 +476,101 @@
 </template>
 
 <script setup>
-import { ref, computed, nextTick, onMounted, watch } from 'vue';
+import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import AppImage from '../../components/AppImage.vue';
 import StudentDetailModal from '../../components/teacher/StudentDetailModal.vue';
+import { useSchoolStore } from '../../stores/useSchoolStore';
+import { useTeacherStore } from '../../stores/useTeacherStore';
+import { MANILA, stampIn, relativeLabel, minutesUntil } from '../../lib/schoolTime';
 
 const route = useRoute();
+const school = useSchoolStore();
+const teacher = useTeacherStore();
+const TEACHER_ID = teacher.teacherId;
 
-// Students who have attended lessons or have active reservations with this teacher
-const studentsList = ref([
-  {
-    id: 21,
-    studentId: 21,
-    name: 'Taro Yamada',
-    studentName: 'Taro Yamada',
-    photo: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&auto=format&fit=crop&q=80',
-    studentPhoto: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=300&auto=format&fit=crop&q=80',
-    membership: 'Regular',
-    timezone: 'Asia/Tokyo (JST)',
-    latestSubject: '[SF] Speech Fluency',
-    totalClassesTaken: 8,
-    lastClassDate: 'Sep 1, 2026',
-    preferredTopic: 'Cross-Border Negotiations & Pitching',
-    rating: 5.0,
-    online: true,
-  },
-  {
-    id: 34,
-    studentId: 34,
-    name: 'Aiko Tanaka',
-    studentName: 'Aiko Tanaka',
-    photo: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
-    studentPhoto: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?w=300&auto=format&fit=crop&q=80',
-    membership: 'Regular',
-    timezone: 'Asia/Tokyo (JST)',
-    latestSubject: '[PP101] Pronunciation — Vowels',
-    totalClassesTaken: 5,
-    lastClassDate: 'Sep 1, 2026',
-    preferredTopic: 'Vowel contrasts: /æ/ versus /ʌ/',
-    rating: 5.0,
-    online: true,
-  },
-  {
-    id: 12,
-    studentId: 12,
-    name: 'Kenji Sato',
-    studentName: 'Kenji Sato',
-    photo: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
-    studentPhoto: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=300&auto=format&fit=crop&q=80',
-    membership: 'Trial',
-    timezone: 'Asia/Tokyo (JST)',
-    latestSubject: '[DC] Daily Conversation',
-    totalClassesTaken: 2,
-    lastClassDate: 'Aug 31, 2026',
-    preferredTopic: 'Everyday small talk & self-introduction',
-    rating: 4.5,
-    online: false,
-  },
-  {
-    id: 45,
-    studentId: 45,
-    name: 'Mika Kobayashi',
-    studentName: 'Mika Kobayashi',
-    photo: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
-    studentPhoto: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=300&auto=format&fit=crop&q=80',
-    membership: 'Regular',
-    timezone: 'Europe/London (BST)',
-    latestSubject: '[RW] Reading & Writing',
-    totalClassesTaken: 6,
-    lastClassDate: 'Aug 30, 2026',
-    preferredTopic: 'IELTS Task 2 essay structure',
-    rating: 5.0,
-    online: false,
-  },
-  {
-    id: 58,
-    studentId: 58,
-    name: 'Daiki Suzuki',
-    studentName: 'Daiki Suzuki',
-    photo: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
-    studentPhoto: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=300&auto=format&fit=crop&q=80',
-    membership: 'Regular',
-    timezone: 'Asia/Tokyo (JST)',
-    latestSubject: '[LS1] Listening & Discussion',
-    totalClassesTaken: 4,
-    lastClassDate: 'Aug 29, 2026',
-    preferredTopic: 'Tech Trends: AI & Workplace Automation',
-    rating: 4.8,
-    online: true,
-  },
-]);
+/** Every thread this instructor has, by student id. */
+const threadsByStudent = computed(() =>
+  Object.fromEntries(school.threadsForTeacher(TEACHER_ID).map((t) => [t.studentId, t]))
+);
 
-// Seeded chat message histories per student ID
-const chatHistory = ref({
-  21: [
-    {
-      id: 'm1',
-      sender: 'student',
-      text: 'Good evening Teacher Jirvy! Thank you so much for today\'s Speech Fluency class on cross-border negotiations.',
-      time: 'Sep 1, 18:35',
-      reactions: ['👍'],
-    },
-    {
-      id: 'm2',
-      sender: 'teacher',
-      text: 'Good evening Taro! You did a fantastic job with the counter-offer phrasing today. Remember to pause before delivering your key pitch point.',
-      time: 'Sep 1, 18:40',
-      reactions: [],
-    },
-    {
-      id: 'm2_file',
-      sender: 'teacher',
-      text: 'Here is the executive negotiation phrasebook sheet we reviewed.',
-      attachment: {
-        name: 'Executive_Negotiation_Drills_SF.pdf',
-        size: '1.2 MB',
-        type: 'PDF Document',
-        icon: 'fa-solid fa-file-pdf text-rose-500',
-      },
-      time: 'Sep 1, 18:41',
-      reactions: ['❤️'],
-    },
-    {
-      id: 'm3',
-      sender: 'student',
-      text: 'Understood! I will review the negotiation phrases before our next session tomorrow. Should I prepare an opening pitch draft?',
-      time: 'Sep 1, 18:42',
-      reactions: [],
-    },
-    {
-      id: 'm4',
-      sender: 'teacher',
-      text: 'Yes please! A 1-minute intro will be great practice. Looking forward to our next class!',
-      time: 'Sep 1, 18:45',
-      reactions: [],
-    },
-  ],
-  34: [
-    {
-      id: 'm5',
-      sender: 'student',
-      text: 'Hello Teacher Jirvy, I still find it difficult to distinguish /æ/ as in "cat" and /ʌ/ as in "cut". Do you have any audio drills?',
-      time: 'Sep 1, 16:15',
-      reactions: [],
-    },
-    {
-      id: 'm6',
-      sender: 'teacher',
-      text: 'Hi Aiko! Keep your jaw slightly lower for /æ/. Practise the drill from our lesson with minimal pairs like cat/cut and bat/but.',
-      time: 'Sep 1, 16:25',
-      reactions: ['👍'],
-    },
-    {
-      id: 'm6_extra',
-      sender: 'student',
-      text: 'Teacher Jirvy, could you send the audio clip when you have a free moment?',
-      time: 'Sep 1, 16:30',
-      reactions: [],
-    },
-  ],
-  12: [
-    {
-      id: 'm7',
-      sender: 'student',
-      text: 'Teacher Jirvy, thank you for being patient with me during my first trial lesson. I was quite nervous.',
-      time: 'Aug 31, 12:15',
-      reactions: ['❤️'],
-    },
-    {
-      id: 'm8',
-      sender: 'teacher',
-      text: 'You did very well Kenji! Natural conversation takes time. Keep practicing the self-introduction points we discussed.',
-      time: 'Aug 31, 12:30',
-      reactions: [],
-    },
-  ],
-  45: [
-    {
-      id: 'm9',
-      sender: 'student',
-      text: 'Hi Jirvy, apologies for missing our previous session due to an emergency meeting. I have submitted my IELTS essay draft for your review.',
-      time: 'Aug 30, 15:00',
-      reactions: [],
-    },
-    {
-      id: 'm10',
-      sender: 'teacher',
-      text: 'No worries Mika! I have received your essay and will go over the thesis structure during our next class.',
-      time: 'Aug 30, 15:20',
-      reactions: ['👍'],
-    },
-  ],
-  58: [
-    {
-      id: 'm11',
-      sender: 'student',
-      text: 'Hi Jirvy! The tech article on AI automation you recommended was super interesting. Excited for our discussion next week!',
-      time: 'Aug 29, 17:00',
-      reactions: ['❤️'],
-    },
-  ],
+/** 'Sep 1, 18:35' on the instructor's clock. */
+const shortStamp = (iso) => stampIn(iso, MANILA).replace(/, \d{4} /, ', ');
+
+/**
+ * The directory: everyone with a thread, plus students who have lessons with
+ * this instructor but have not written yet — a first message can start there.
+ * The figures beside each name come from the shared lesson records.
+ */
+const studentsList = computed(() => {
+  const now = school.now;
+  const lessons = school.lessonsForTeacher(TEACHER_ID);
+  const ids = new Set([
+    ...Object.keys(threadsByStudent.value).map(Number),
+    ...lessons.map((l) => l.studentId),
+  ]);
+  return [...ids].map((id) => {
+    const s = school.student(id);
+    const mine = lessons.filter((l) => l.studentId === id);
+    const done = mine.filter((l) => l.status === 'completed');
+    const lastDone = done[done.length - 1];
+    // The subject they are on now: the latest lesson that has started, or
+    // failing that the next one booked.
+    const started = mine.filter((l) => minutesUntil(l.start, now) <= 0 && l.status !== 'cancelled');
+    const current = started[started.length - 1] ?? mine.find((l) => l.status === 'booked') ?? null;
+    const ratings = done.map((l) => l.studentRating).filter(Boolean);
+    const thread = threadsByStudent.value[id];
+    const lastAt = thread?.messages[thread.messages.length - 1]?.at ?? '';
+    return {
+      id,
+      studentId: id,
+      name: s.name,
+      studentName: s.name,
+      photo: s.photo,
+      studentPhoto: s.photo,
+      membership: s.membership,
+      timezone: s.timezone,
+      latestSubject: current?.subject ?? '—',
+      totalClassesTaken: done.length,
+      lastClassDate: lastDone ? stampIn(lastDone.start, MANILA).split(' ').slice(0, 3).join(' ') : '—',
+      preferredTopic: current?.topic || 'General conversation',
+      rating: ratings.length ? (ratings.reduce((a, b) => a + b, 0) / ratings.length).toFixed(1) : null,
+      lastAt,
+    };
+  }).sort((a, b) => (b.lastAt || '').localeCompare(a.lastAt || ''));
 });
 
-const unreadCounts = ref({
-  21: 0,
-  34: 1,
-  12: 0,
-  45: 0,
-  58: 0,
-});
-
-const activeStudentId = ref(21);
+const activeStudentId = ref(null);
 const isMobileThreadOpen = ref(true);
 const searchQuery = ref('');
 const filterMode = ref('all'); // 'all' | 'unread'
 const newMessageText = ref('');
+const composerRef = ref(null);
+/** Grows the composer to fit its text; the CSS max-height caps it. */
+const fitComposer = () => {
+  const el = composerRef.value;
+  if (!el) return;
+  el.style.height = 'auto';
+  el.style.height = `${el.scrollHeight + 2}px`;
+};
+// Shrinks back after sending or switching threads clears the text.
+watch(newMessageText, (text) => { if (!text) nextTick(fitComposer); });
 const chatContainer = ref(null);
 const fileInputRef = ref(null);
 const stagedAttachment = ref(null);
 
-// Simulated typing indicator
-const studentTypingId = ref(null);
-
 // Student Detail Modal state
 const isStudentModalOpen = ref(false);
 const activeStudentModalData = ref(null);
+
+// Reactions are stored as emoji in the shared store (the student portal reads
+// the same values), so they are only drawn as icons here.
+const REACTION_ICONS = {
+  '👍': { icon: 'fa-solid fa-thumbs-up text-sky-600', label: 'Like' },
+  '❤️': { icon: 'fa-solid fa-heart text-rose-500', label: 'Love' },
+};
+const reactionIcon = (emoji) => REACTION_ICONS[emoji]?.icon ?? 'fa-solid fa-face-smile text-amber-500';
+const reactionLabel = (emoji) => REACTION_ICONS[emoji]?.label ?? 'Reaction';
 
 const quickReplies = [
   'Thank you for today\'s class!',
@@ -720,46 +584,67 @@ const activeStudent = computed(() => {
   return studentsList.value.find(s => s.id === activeStudentId.value) || null;
 });
 
-const currentMessages = computed(() => {
-  return chatHistory.value[activeStudentId.value] || [];
-});
+const activeThread = computed(() => threadsByStudent.value[activeStudentId.value] ?? null);
 
-const totalUnreadCount = computed(() => {
-  return Object.values(unreadCounts.value).reduce((sum, val) => sum + (val || 0), 0);
-});
+/** Messages in the shape the bubbles were drawn for, labelled from `at`. */
+const currentMessages = computed(() =>
+  (activeThread.value?.messages ?? []).map((m) => ({ ...m, sender: m.from, time: shortStamp(m.at) }))
+);
+
+/** Whether the student has opened the thread since this message was sent. */
+const seenByStudent = (msg) => {
+  const mark = activeThread.value?.studentReadAt;
+  return !!mark && mark >= msg.at;
+};
+
+const getUnreadCount = (studentId) => {
+  const thread = threadsByStudent.value[studentId];
+  return thread ? school.unreadIn(thread, 'teacher') : 0;
+};
+
+const totalUnreadCount = computed(() => teacher.unreadMessageCount);
 
 const filteredStudents = computed(() => {
   const q = searchQuery.value.trim().toLowerCase();
   return studentsList.value.filter(s => {
     const matchQuery = !q || s.name.toLowerCase().includes(q) || s.latestSubject.toLowerCase().includes(q);
-    const matchUnread = filterMode.value === 'all' || (unreadCounts.value[s.id] > 0);
+    const matchUnread = filterMode.value === 'all' || getUnreadCount(s.id) > 0;
     return matchQuery && matchUnread;
   });
 });
 
+/**
+ * Reading a thread clears its unread count — but only while the page is
+ * actually on screen, so a message that lands in a background tab still
+ * counts as unread until someone looks at it.
+ */
+const markActiveRead = () => {
+  if (!activeStudentId.value || !getUnreadCount(activeStudentId.value)) return;
+  if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+  // On a phone the list and the thread take turns; the list is not the thread.
+  if (!isMobileThreadOpen.value && typeof window !== 'undefined' && window.innerWidth < 1024) return;
+  school.markThreadRead(activeStudentId.value, TEACHER_ID, 'teacher');
+};
+
 const selectStudent = (studentId) => {
   activeStudentId.value = studentId;
   isMobileThreadOpen.value = true;
-  unreadCounts.value[studentId] = 0;
+  markActiveRead();
   scrollToBottom();
 };
 
 const getLastMessagePreview = (studentId) => {
-  const msgs = chatHistory.value[studentId];
+  const msgs = threadsByStudent.value[studentId]?.messages;
   if (!msgs || msgs.length === 0) return 'No messages yet';
   const last = msgs[msgs.length - 1];
-  if (last.attachment && !last.text) return `📎 Attachment: ${last.attachment.name}`;
-  return (last.sender === 'teacher' ? 'You: ' : '') + last.text;
+  if (last.attachment && !last.text) return `Attachment: ${last.attachment.name}`;
+  return (last.from === 'teacher' ? 'You: ' : '') + last.text;
 };
 
 const getLastMessageTime = (studentId) => {
-  const msgs = chatHistory.value[studentId];
+  const msgs = threadsByStudent.value[studentId]?.messages;
   if (!msgs || msgs.length === 0) return '';
-  return msgs[msgs.length - 1].time;
-};
-
-const getUnreadCount = (studentId) => {
-  return unreadCounts.value[studentId] || 0;
+  return relativeLabel(msgs[msgs.length - 1].at, school.now);
 };
 
 const scrollToBottom = () => {
@@ -770,48 +655,29 @@ const scrollToBottom = () => {
   });
 };
 
+// A reply from the student portal arrives through the shared store; while the
+// thread is open it is read on arrival and scrolled into view.
+watch(() => activeThread.value?.messages.length ?? 0, () => {
+  markActiveRead();
+  scrollToBottom();
+});
+
+const onVisibility = () => markActiveRead();
+
 const sendMessage = () => {
   const text = newMessageText.value.trim();
   const attachment = stagedAttachment.value;
   if ((!text && !attachment) || !activeStudentId.value) return;
 
-  if (!chatHistory.value[activeStudentId.value]) {
-    chatHistory.value[activeStudentId.value] = [];
-  }
-
-  const now = new Date();
-  const timeStr = `${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-
-  chatHistory.value[activeStudentId.value].push({
-    id: 'm_' + Date.now(),
-    sender: 'teacher',
+  school.sendMessage(activeStudentId.value, TEACHER_ID, {
+    from: 'teacher',
     text,
-    attachment: attachment || null,
-    time: `Today, ${timeStr}`,
-    reactions: [],
+    attachment: attachment ? { ...attachment } : null,
   });
 
   newMessageText.value = '';
   stagedAttachment.value = null;
   scrollToBottom();
-
-  // Simulate an occasional student typing response after 1.5 seconds if Taro
-  if (activeStudentId.value === 21) {
-    setTimeout(() => {
-      studentTypingId.value = 21;
-      setTimeout(() => {
-        studentTypingId.value = null;
-        chatHistory.value[21].push({
-          id: 'm_' + (Date.now() + 1),
-          sender: 'student',
-          text: 'Got it, thank you Teacher Jirvy! See you tomorrow.',
-          time: 'Just now',
-          reactions: [],
-        });
-        scrollToBottom();
-      }, 2500);
-    }, 1200);
-  }
 };
 
 const sendQuickReply = (text) => {
@@ -820,13 +686,7 @@ const sendQuickReply = (text) => {
 };
 
 const toggleReaction = (msg, emoji) => {
-  if (!msg.reactions) msg.reactions = [];
-  const idx = msg.reactions.indexOf(emoji);
-  if (idx > -1) {
-    msg.reactions.splice(idx, 1);
-  } else {
-    msg.reactions.push(emoji);
-  }
+  school.toggleReaction(activeStudentId.value, TEACHER_ID, msg.id, emoji);
 };
 
 const triggerFileUpload = () => {
@@ -835,13 +695,21 @@ const triggerFileUpload = () => {
   }
 };
 
+/** Bytes as the size label on an attachment card. */
+const formatSize = (bytes) => {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+};
+
+// Only the file's description travels with the message: the prototype has no
+// file storage, so the card says what was sent rather than carrying the bytes.
 const handleFileUpload = (e) => {
   const file = e.target.files?.[0];
   if (!file) return;
 
   stagedAttachment.value = {
     name: file.name,
-    size: `${(file.size / 1024 / 1024).toFixed(1)} MB`,
+    size: formatSize(file.size),
     type: file.type || 'Document',
     icon: file.type.includes('image') ? 'fa-solid fa-image text-emerald-500' : 'fa-solid fa-file-pdf text-rose-500',
   };
@@ -862,25 +730,36 @@ const openStudentDetail = () => {
     studentId: activeStudent.value.id,
     studentName: activeStudent.value.name,
     studentPhoto: activeStudent.value.photo,
-    category: activeStudent.value.membership || 'Regular',
+    subject: activeStudent.value.latestSubject,
     lessonClass: 'Online 1-on-1',
   };
   isStudentModalOpen.value = true;
 };
 
-// Check router query parameter on mount (e.g., /chat?student=34)
+const studentFromQuery = (value) => {
+  const id = value ? parseInt(value, 10) : null;
+  return id && studentsList.value.some(s => s.id === id) ? id : null;
+};
+
+// Check router query parameter on mount (e.g., /chat?student=34); otherwise
+// open the most recent conversation so the pane is never blank.
 onMounted(() => {
-  const queryStudentId = route.query.student ? parseInt(route.query.student, 10) : null;
-  if (queryStudentId && studentsList.value.some(s => s.id === queryStudentId)) {
+  document.addEventListener('visibilitychange', onVisibility);
+  const queryStudentId = studentFromQuery(route.query.student);
+  if (queryStudentId) {
     selectStudent(queryStudentId);
-  } else {
-    scrollToBottom();
+  } else if (studentsList.value.length) {
+    selectStudent(studentsList.value[0].id);
   }
 });
 
+onUnmounted(() => {
+  document.removeEventListener('visibilitychange', onVisibility);
+});
+
 watch(() => route.query.student, (newVal) => {
-  const queryStudentId = newVal ? parseInt(newVal, 10) : null;
-  if (queryStudentId && studentsList.value.some(s => s.id === queryStudentId)) {
+  const queryStudentId = studentFromQuery(newVal);
+  if (queryStudentId) {
     selectStudent(queryStudentId);
   }
 });

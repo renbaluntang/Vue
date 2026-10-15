@@ -48,7 +48,7 @@
             </svg>
             Saving...
           </span>
-          <span v-else-if="isProfileSaved" class="text-emerald-300 flex items-center gap-1.5">✓ Changes Saved!</span>
+          <span v-else-if="isProfileSaved" class="text-emerald-300 flex items-center gap-1.5"><i class="fa-solid fa-check" aria-hidden="true"></i> Changes Saved!</span>
           <span v-else>Save All Changes</span>
         </button>
       </div>
@@ -72,10 +72,10 @@
         :class="toastType === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-rose-50 text-rose-800 border-rose-200'"
       >
         <div class="flex items-center gap-2 min-w-0">
-          <span class="text-base shrink-0">{{ toastType === 'success' ? '✓' : '⚠️' }}</span>
+          <i class="text-base shrink-0" :class="toastType === 'success' ? 'fa-solid fa-circle-check text-emerald-600' : 'fa-solid fa-triangle-exclamation text-rose-500'" aria-hidden="true"></i>
           <span>{{ toastMessage }}</span>
         </div>
-        <button @click="toastMessage = null" class="font-bold p-1 shrink-0 hover:opacity-70 transition" aria-label="Dismiss">✕</button>
+        <button @click="toastMessage = null" class="font-bold p-1 shrink-0 hover:opacity-70 transition" aria-label="Dismiss"><i class="fa-solid fa-xmark" aria-hidden="true"></i></button>
       </div>
     </Transition>
 
@@ -90,17 +90,26 @@
           />
           <button
             type="button"
-            @click="triggerPhotoUpload"
+            @click="photoPickerOpen = true"
             class="absolute inset-0 flex items-center justify-center rounded-full bg-slate-900/65 text-[11px] font-bold uppercase tracking-wider text-white opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus:opacity-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold focus-visible:ring-offset-2"
+            aria-label="Change profile photo"
           >
-            Replace
+            Change
           </button>
-          <input
-            ref="photoInputRef"
-            type="file"
-            accept="image/*"
-            class="hidden"
-            @change="handlePhotoSelected"
+          <!-- Always-visible badge, so touch screens (no hover) can find it -->
+          <button
+            type="button"
+            @click="photoPickerOpen = true"
+            class="absolute bottom-0.5 right-0.5 flex h-8 w-8 items-center justify-center rounded-full border-2 border-white bg-brighture-gold text-xs text-brighture-ink shadow-md transition hover:bg-brighture-gold-deep"
+            aria-label="Take a photo or upload an image"
+          >
+            <i class="fa-solid fa-camera" aria-hidden="true"></i>
+          </button>
+          <PhotoPickerModal
+            :open="photoPickerOpen"
+            :current="user.profile.photo"
+            @close="photoPickerOpen = false"
+            @save="savePhoto"
           />
         </div>
 
@@ -117,10 +126,10 @@
 
           <div class="pt-2 flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-amber-50 text-amber-800 text-xs font-bold rounded-xl border border-amber-200">
-              <span>🔥</span> {{ user.stats.currentStreak }} Day Streak
+              <i class="fa-solid fa-fire text-orange-500" aria-hidden="true"></i> {{ user.stats.currentStreak }} Day Streak
             </span>
             <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-50 text-emerald-800 text-xs font-bold rounded-xl border border-emerald-200">
-              <span>🎓</span> {{ user.stats.totalLessons }} Online Lessons Completed
+              <i class="fa-solid fa-graduation-cap text-indigo-600" aria-hidden="true"></i> {{ user.stats.totalLessons }} Online Lessons Completed
             </span>
             <span class="inline-flex items-center gap-1.5 px-3 py-1 bg-brighture-cream text-brighture-bronze text-xs font-bold rounded-xl border border-brighture-gold/30">
               <i class="fa-solid fa-coins"></i> {{ user.profile.pointsBalance }} Points Available
@@ -317,10 +326,13 @@
 
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Student Timezone</label>
+          <label for="profile-timezone" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Student Timezone</label>
           <select
+            id="profile-timezone"
+            ref="timezoneRef"
             v-model="form.timezone"
             class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3 px-4 text-sm font-semibold text-slate-800 outline-none focus:bg-white focus:border-brighture-gold focus:ring-4 focus:ring-brighture-gold/20 transition"
+            :class="highlightTimezone ? 'border-brighture-gold bg-white ring-4 ring-brighture-gold/40' : ''"
           >
             <option v-for="zone in TIMEZONES" :key="zone.value" :value="zone.value">{{ zone.label }}</option>
           </select>
@@ -463,7 +475,7 @@
         <div class="flex items-start justify-between border-b border-slate-100 pb-3.5">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center text-lg font-bold">
-              🔒
+              <i class="fa-solid fa-lock text-slate-500" aria-hidden="true"></i>
             </div>
             <div>
               <h3 class="text-base font-extrabold text-slate-900">Change Password</h3>
@@ -474,7 +486,7 @@
             @click="closeChangePasswordModal"
             class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-bold transition"
           >
-            ✕
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -506,7 +518,7 @@
                 class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 text-xs"
                 tabindex="-1"
               >
-                {{ showCurrentPassword ? '🙈' : '👁️' }}
+                <i class="fa-solid text-slate-500" :class="showCurrentPassword ? 'fa-eye-slash' : 'fa-eye'" aria-hidden="true"></i>
               </button>
             </div>
           </div>
@@ -529,7 +541,7 @@
                   class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 text-xs"
                   tabindex="-1"
                 >
-                  {{ showNewPassword ? '🙈' : '👁️' }}
+                  <i class="fa-solid text-slate-500" :class="showNewPassword ? 'fa-eye-slash' : 'fa-eye'" aria-hidden="true"></i>
                 </button>
               </div>
 
@@ -566,15 +578,15 @@
                   class="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700 p-1 text-xs"
                   tabindex="-1"
                 >
-                  {{ showConfirmPassword ? '🙈' : '👁️' }}
+                  <i class="fa-solid text-slate-500" :class="showConfirmPassword ? 'fa-eye-slash' : 'fa-eye'" aria-hidden="true"></i>
                 </button>
               </div>
 
               <p v-if="confirmPassword && newPassword !== confirmPassword" class="text-xs font-bold text-rose-500 mt-1 flex items-center gap-1">
-                <span>✕</span> Passwords do not match
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i> Passwords do not match
               </p>
               <p v-else-if="confirmPassword && newPassword === confirmPassword" class="text-xs font-bold text-emerald-600 mt-1 flex items-center gap-1">
-                <span>✓</span> Passwords match
+                <i class="fa-solid fa-check" aria-hidden="true"></i> Passwords match
               </p>
             </div>
           </div>
@@ -583,11 +595,11 @@
           <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100 text-xs text-slate-600 space-y-1.5">
             <div class="font-bold text-slate-800">Password requirements:</div>
             <div class="flex items-center gap-2" :class="newPassword.length >= 8 ? 'text-emerald-700 font-bold' : 'text-slate-400'">
-              <span>{{ newPassword.length >= 8 ? '✓' : '○' }}</span>
+              <i class="w-3 text-center" :class="newPassword.length >= 8 ? 'fa-solid fa-check text-emerald-600' : 'fa-regular fa-circle text-slate-300'" aria-hidden="true"></i>
               <span>Minimum 8 characters</span>
             </div>
             <div class="flex items-center gap-2" :class="/[A-Za-z]/.test(newPassword) && /\d/.test(newPassword) ? 'text-emerald-700 font-bold' : 'text-slate-400'">
-              <span>{{ /[A-Za-z]/.test(newPassword) && /\d/.test(newPassword) ? '✓' : '○' }}</span>
+              <i class="w-3 text-center" :class="/[A-Za-z]/.test(newPassword) && /\d/.test(newPassword) ? 'fa-solid fa-check text-emerald-600' : 'fa-regular fa-circle text-slate-300'" aria-hidden="true"></i>
               <span>Contains both letters and numbers</span>
             </div>
           </div>
@@ -632,7 +644,7 @@
         <div class="flex items-start justify-between border-b border-slate-100 pb-3.5">
           <div class="flex items-center gap-3">
             <div class="w-10 h-10 rounded-2xl bg-brighture-cream text-brighture-bronze flex items-center justify-center text-lg font-bold border border-brighture-gold/30">
-              🔑
+              <i class="fa-solid fa-key" aria-hidden="true"></i>
             </div>
             <div>
               <h3 class="text-base font-extrabold text-slate-900">Forgot Password?</h3>
@@ -643,7 +655,7 @@
             @click="closeForgotPasswordModal"
             class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center text-xs font-bold transition"
           >
-            ✕
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -654,7 +666,7 @@
           </p>
 
           <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center gap-3">
-            <span class="text-xl">📧</span>
+            <i class="fa-solid fa-envelope text-xl text-sky-600" aria-hidden="true"></i>
             <div class="min-w-0">
               <div class="text-[10px] uppercase font-bold text-slate-400 tracking-wider">Registered Email</div>
               <div class="text-xs sm:text-sm font-bold text-slate-900 truncate">{{ form.email }}</div>
@@ -690,7 +702,7 @@
         <!-- Success Screen -->
         <div v-else class="space-y-4 text-center py-2 animate-in fade-in">
           <div class="w-14 h-14 rounded-full bg-emerald-50 text-emerald-600 border border-emerald-200 text-2xl font-bold flex items-center justify-center mx-auto">
-            ✓
+            <i class="fa-solid fa-check" aria-hidden="true"></i>
           </div>
           <div>
             <h4 class="text-base font-extrabold text-slate-900">Password Reset Link Dispatched!</h4>
@@ -721,7 +733,11 @@
 </template>
 
 <script setup>
-import { ref, computed, reactive } from 'vue';
+import PhotoPickerModal from '../../components/PhotoPickerModal.vue';
+import { useSchoolStore } from '@/stores/useSchoolStore';
+import { CURRENT_STUDENT_ID } from '@/lib/schoolSeed';
+import { ref, computed, reactive, watch, nextTick } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
 
 const user = useUserStore();
@@ -784,7 +800,8 @@ const isSavingProfile = ref(false);
 const isProfileSaved = ref(false);
 const toastMessage = ref(null);
 const toastType = ref('success');
-const photoInputRef = ref(null);
+const photoPickerOpen = ref(false);
+const school = useSchoolStore();
 
 // Modal states
 const showChangePasswordModal = ref(false);
@@ -972,22 +989,14 @@ const sendPasswordResetEmail = () => {
   }, 1000);
 };
 
-const triggerPhotoUpload = () => {
-  photoInputRef.value?.click();
-};
-
-const handlePhotoSelected = (event) => {
-  const file = event.target.files?.[0];
-  if (!file) return;
-
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    if (e.target?.result) {
-      user.profile.photo = e.target.result;
-      showToast('Profile photo updated successfully!', 'success');
-    }
-  };
-  reader.readAsDataURL(file);
+/** Saves a photo from the picker; the shared record is updated too, so instructors see it. */
+const savePhoto = (dataUrl) => {
+  photoPickerOpen.value = false;
+  if (!dataUrl) return;
+  user.profile.photo = dataUrl;
+  const me = school.db.students[CURRENT_STUDENT_ID];
+  if (me) me.photo = dataUrl;
+  showToast('Profile photo updated successfully!', 'success');
 };
 
 const showToast = (message, type = 'success') => {
@@ -1040,4 +1049,24 @@ const saveProfile = () => {
     }, 3000);
   }, 600);
 };
+
+// The header clock links here with ?focus=timezone: bring the time zone
+// field into view, focus it, highlight it briefly, then tidy the URL.
+const route = useRoute();
+const router = useRouter();
+const timezoneRef = ref(null);
+const highlightTimezone = ref(false);
+watch(
+  () => route.query.focus,
+  async (focus) => {
+    if (focus !== 'timezone') return;
+    await nextTick();
+    timezoneRef.value?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    timezoneRef.value?.focus({ preventScroll: true });
+    highlightTimezone.value = true;
+    setTimeout(() => { highlightTimezone.value = false; }, 2000);
+    router.replace({ query: { ...route.query, focus: undefined } });
+  },
+  { immediate: true }
+);
 </script>

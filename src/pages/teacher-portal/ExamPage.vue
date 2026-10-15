@@ -16,7 +16,7 @@
 
       <div class="flex items-center gap-2.5 shrink-0">
         <button
-          v-if="!isCreating"
+          v-if="!isCreating && !resultsExam"
           type="button"
           @click="startNewExam"
           class="inline-flex items-center gap-2 rounded-2xl bg-brighture-gold hover:brightness-105 active:scale-[0.98] px-4 py-2.5 text-sm font-extrabold text-slate-900 shadow-sm transition"
@@ -27,7 +27,7 @@
         <button
           v-else
           type="button"
-          @click="cancelCreate"
+          @click="backToList"
           class="inline-flex items-center gap-2 rounded-2xl border border-slate-200 bg-white hover:bg-slate-50 px-4 py-2.5 text-sm font-bold text-slate-600 transition"
         >
           <i class="fa-solid fa-arrow-left text-xs"></i>
@@ -37,7 +37,7 @@
     </header>
 
     <!-- Stat Badges row when not in create mode -->
-    <div v-if="!isCreating" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
+    <div v-if="!isCreating && !resultsExam" class="grid grid-cols-2 sm:grid-cols-4 gap-3">
       <div class="rounded-2xl border border-slate-200/80 bg-white p-4 shadow-xs">
         <div class="text-[11px] font-bold tracking-wider uppercase text-slate-400">Total Exams</div>
         <div class="mt-1 flex items-baseline gap-2">
@@ -71,7 +71,7 @@
     <!-- ======================================================== -->
     <!-- VIEW 1: EXAM LIST (When not editing/creating)            -->
     <!-- ======================================================== -->
-    <div v-if="!isCreating" class="space-y-4">
+    <div v-if="!isCreating && !resultsExam" class="space-y-4">
       <!-- Search & Filters -->
       <div class="flex flex-col sm:flex-row gap-3 items-stretch sm:items-center justify-between">
         <div class="relative flex-1 max-w-md">
@@ -145,13 +145,37 @@
                 {{ calculateTotalPoints(exam.questions) }} pts
               </span>
             </div>
+            <p class="mt-3 text-[11px] text-slate-500 font-medium">
+              <i class="fa-solid fa-user-group text-slate-400 mr-1"></i>
+              <template v-if="exam.assignedTo?.length">
+                Assigned to {{ exam.assignedTo.map(id => school.student(id).name.split(' ')[0]).join(', ') }}
+              </template>
+              <template v-else>Not assigned to anyone yet</template>
+            </p>
           </div>
 
           <div class="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
             <span class="text-[11px] text-slate-400 font-medium">
-              Updated {{ exam.updatedAt }}
+              Updated {{ updatedLabel(exam.updatedAt) }}
             </span>
             <div class="flex items-center gap-1.5">
+              <!-- Results, with how many submissions are waiting for a grade. -->
+              <button
+                type="button"
+                @click="openResults(exam)"
+                title="Results"
+                class="relative inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition"
+              >
+                <i class="fa-solid fa-square-poll-vertical text-sm text-slate-400"></i>
+                <span>{{ submissionsOf(exam.id).length }}</span>
+                <span
+                  v-if="needsGradingCount(exam.id)"
+                  class="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center"
+                  :title="`${needsGradingCount(exam.id)} to grade`"
+                >
+                  {{ needsGradingCount(exam.id) }}
+                </span>
+              </button>
               <button
                 type="button"
                 @click="openPreview(exam)"
@@ -168,9 +192,21 @@
               >
                 <i class="fa-solid fa-pen-to-square text-sm"></i>
               </button>
+              <!-- Two clicks: the first arms it and says what goes with it. -->
               <button
+                v-if="confirmDeleteId === exam.id"
                 type="button"
-                @click="deleteExam(exam.id)"
+                @click="removeExam(exam.id)"
+                @blur="confirmDeleteId = null"
+                class="px-2.5 py-1.5 rounded-xl bg-rose-600 text-white text-[11px] font-black hover:bg-rose-700 transition"
+                :title="submissionsOf(exam.id).length ? `Also deletes ${submissionsOf(exam.id).length} submission(s)` : 'Delete this test'"
+              >
+                Delete?
+              </button>
+              <button
+                v-else
+                type="button"
+                @click="confirmDeleteId = exam.id"
                 title="Delete"
                 class="p-2 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition"
               >
@@ -202,9 +238,185 @@
     </div>
 
     <!-- ======================================================== -->
+    <!-- VIEW 3: RESULTS (submissions for one exam)               -->
+    <!-- ======================================================== -->
+    <div v-if="!isCreating && resultsExam" class="space-y-4">
+      <div class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="min-w-0">
+          <div class="flex items-center gap-2">
+            <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-extrabold text-xs">{{ resultsExam.subject }}</span>
+            <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Results</span>
+          </div>
+          <h2 class="mt-1.5 text-lg font-extrabold text-slate-900 truncate">{{ resultsExam.title }}</h2>
+        </div>
+        <div class="flex items-center gap-2 text-xs font-bold shrink-0">
+          <span class="px-3 py-1.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-600">
+            {{ resultsSubmissions.length }} / {{ resultsExam.assignedTo?.length || 0 }} submitted
+          </span>
+          <span
+            class="px-3 py-1.5 rounded-xl border"
+            :class="needsGradingCount(resultsExam.id) ? 'bg-rose-50 border-rose-200 text-rose-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'"
+          >
+            {{ needsGradingCount(resultsExam.id) ? `${needsGradingCount(resultsExam.id)} need grading` : 'All graded' }}
+          </span>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+        <!-- Submission list -->
+        <div class="lg:col-span-4 rounded-3xl border border-slate-200/80 bg-white p-2.5 shadow-xs space-y-1.5 self-start">
+          <button
+            v-for="sub in resultsSubmissions"
+            :key="sub.id"
+            type="button"
+            @click="openSubmission(sub)"
+            class="w-full rounded-2xl border p-3 text-left transition flex items-center gap-3"
+            :class="activeSubmissionId === sub.id ? 'border-amber-300 bg-amber-50/60' : 'border-transparent hover:bg-slate-50'"
+          >
+            <AppImage :src="school.student(sub.studentId).photo" :alt="school.student(sub.studentId).name" class="w-9 h-9 rounded-xl object-cover ring-1 ring-slate-200 shrink-0" />
+            <div class="min-w-0 flex-1">
+              <p class="text-xs font-black text-slate-900 truncate">{{ school.student(sub.studentId).name }}</p>
+              <p class="text-[10px] text-slate-400 font-medium tabular-nums">{{ stampIn(sub.submittedAt, MANILA) }}</p>
+            </div>
+            <div class="text-right shrink-0">
+              <p class="text-xs font-black text-slate-900 tabular-nums">{{ school.submissionScore(sub) }} / {{ school.examMaxScore(resultsExam) }}</p>
+              <span
+                class="inline-block mt-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wide"
+                :class="sub.graded ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'"
+              >
+                {{ sub.graded ? 'Graded' : 'Needs grading' }}
+              </span>
+            </div>
+          </button>
+
+          <div
+            v-for="id in notSubmittedIds"
+            :key="`pending-${id}`"
+            class="rounded-2xl p-3 flex items-center gap-3 opacity-60"
+          >
+            <AppImage :src="school.student(id).photo" :alt="school.student(id).name" class="w-9 h-9 rounded-xl object-cover ring-1 ring-slate-200 shrink-0 grayscale" />
+            <p class="flex-1 min-w-0 text-xs font-bold text-slate-600 truncate">{{ school.student(id).name }}</p>
+            <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400">Not submitted</span>
+          </div>
+
+          <p v-if="!resultsSubmissions.length && !notSubmittedIds.length" class="p-6 text-center text-xs text-slate-500">
+            Nobody is assigned to this test yet.
+          </p>
+        </div>
+
+        <!-- Selected submission -->
+        <div class="lg:col-span-8">
+          <div v-if="activeSubmission" class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs space-y-4">
+            <div class="flex items-center justify-between gap-3 border-b border-slate-100 pb-3">
+              <div class="min-w-0">
+                <p class="text-sm font-extrabold text-slate-900 truncate">{{ school.student(activeSubmission.studentId).name }}</p>
+                <p class="text-[11px] text-slate-500">Submitted {{ stampIn(activeSubmission.submittedAt, MANILA) }} PHT</p>
+              </div>
+              <p class="text-sm font-black text-amber-700 tabular-nums shrink-0">
+                {{ draftScore }} / {{ school.examMaxScore(resultsExam) }} pts
+              </p>
+            </div>
+
+            <div
+              v-for="(q, idx) in resultsExam.questions"
+              :key="q.id"
+              class="rounded-2xl border border-slate-200/80 p-4 space-y-2.5"
+            >
+              <div class="flex items-start justify-between gap-3">
+                <p class="text-sm font-bold text-slate-900">
+                  <span class="text-amber-600 mr-1">Q{{ idx + 1 }}.</span> {{ q.prompt }}
+                </p>
+                <span class="shrink-0 text-[11px] font-bold text-slate-400 bg-slate-50 px-2 py-0.5 rounded-lg border border-slate-100">
+                  {{ q.points }} pts
+                </span>
+              </div>
+
+              <!-- MCQ: the student's pick against the key -->
+              <div v-if="q.type === 'mcq'" class="space-y-1.5">
+                <div
+                  v-for="(opt, optIdx) in q.options"
+                  :key="optIdx"
+                  class="flex items-center gap-2.5 px-3 py-2 rounded-xl border text-xs"
+                  :class="optIdx === q.correctIndex
+                    ? 'border-emerald-200 bg-emerald-50 text-emerald-900'
+                    : optIdx === activeSubmission.answers[q.id]
+                      ? 'border-rose-200 bg-rose-50 text-rose-900'
+                      : 'border-slate-100 text-slate-600'"
+                >
+                  <span class="w-5 h-5 rounded-full border flex items-center justify-center text-[10px] font-black shrink-0 border-current">
+                    {{ ['A', 'B', 'C', 'D', 'E', 'F'][optIdx] }}
+                  </span>
+                  <span class="flex-1">{{ opt }}</span>
+                  <span v-if="optIdx === activeSubmission.answers[q.id]" class="text-[10px] font-black uppercase tracking-wide">Chosen</span>
+                  <span v-if="optIdx === q.correctIndex" class="text-[10px] font-black uppercase tracking-wide text-emerald-700">Correct</span>
+                </div>
+                <p class="text-[11px] font-bold" :class="activeSubmission.answers[q.id] === q.correctIndex ? 'text-emerald-700' : 'text-rose-600'">
+                  {{ activeSubmission.answers[q.id] === q.correctIndex ? `+${q.points} marked automatically` : (activeSubmission.answers[q.id] === undefined ? 'Not answered — 0' : 'Incorrect — 0') }}
+                </p>
+              </div>
+
+              <!-- Essay: the text, and a mark for the instructor to give -->
+              <div v-else class="space-y-2.5">
+                <p class="whitespace-pre-wrap rounded-xl bg-slate-50 border border-slate-100 p-3 text-sm leading-relaxed text-slate-800">{{ activeSubmission.answers[q.id] || '(No answer)' }}</p>
+                <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-[11px] text-slate-500">
+                  <span>
+                    <strong class="tabular-nums" :class="wordCountOk(q, activeSubmission.answers[q.id]) ? 'text-slate-800' : 'text-rose-600'">{{ countWords(activeSubmission.answers[q.id]) }}</strong>
+                    words (target {{ q.minWords }}–{{ q.maxWords }})
+                  </span>
+                  <span v-if="q.rubricFocus">Rubric: <em>{{ q.rubricFocus }}</em></span>
+                </div>
+                <p v-if="q.sampleAnswer" class="text-[11px] text-slate-500 italic">Reference: {{ q.sampleAnswer }}</p>
+                <label class="inline-flex items-center gap-2 text-xs font-bold text-slate-700">
+                  Points
+                  <input
+                    v-model.number="gradeDraft.essayScores[q.id]"
+                    type="number"
+                    min="0"
+                    :max="q.points"
+                    @change="clampScore(q)"
+                    class="w-16 text-center px-2 py-1 rounded-lg border border-slate-200 font-black text-slate-900 focus:outline-none focus:border-amber-400"
+                  />
+                  <span class="text-slate-400 font-medium">/ {{ q.points }}</span>
+                </label>
+              </div>
+            </div>
+
+            <div class="space-y-1.5">
+              <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">Overall comment</label>
+              <textarea
+                v-model="gradeDraft.comment"
+                rows="3"
+                placeholder="What went well, and what to work on next..."
+                class="w-full px-3.5 py-2 text-sm rounded-2xl border border-slate-200 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-200/50 text-slate-800"
+              ></textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-3">
+              <span v-if="gradeSaved" class="text-xs font-bold text-emerald-600">
+                <i class="fa-solid fa-check mr-1"></i> Grade saved — the student can see it now.
+              </span>
+              <button
+                type="button"
+                @click="saveGrade"
+                class="px-5 py-2 rounded-2xl bg-brighture-gold hover:brightness-105 active:scale-[0.98] text-xs font-black text-slate-900 shadow-sm transition"
+              >
+                <i class="fa-solid fa-floppy-disk mr-1"></i> Save grade
+              </button>
+            </div>
+          </div>
+
+          <div v-else class="rounded-3xl border border-dashed border-slate-200 bg-white p-10 text-center">
+            <p class="text-sm font-bold text-slate-700">Select a submission</p>
+            <p class="text-xs text-slate-400 mt-1">Answers, marks and your comment appear here.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ======================================================== -->
     <!-- VIEW 2: EXAM BUILDER / EDITOR                            -->
     <!-- ======================================================== -->
-    <div v-else class="space-y-6">
+    <div v-else-if="isCreating && currentExam" class="space-y-6">
       <!-- General Settings Card -->
       <div class="rounded-3xl border border-slate-200/80 bg-white p-5 sm:p-6 shadow-xs space-y-4">
         <div class="flex items-center justify-between border-b border-slate-100 pb-3">
@@ -279,6 +491,33 @@
                 <option value="Draft">Draft</option>
                 <option value="Published">Published</option>
               </select>
+            </div>
+          </div>
+
+          <!-- Who sits it. Only published tests reach these students. -->
+          <div class="md:col-span-3 space-y-1.5">
+            <label class="block text-xs font-bold uppercase tracking-wider text-slate-600">
+              Assigned students
+              <span class="ml-1 normal-case tracking-normal font-medium text-slate-400">
+                ({{ currentExam.assignedTo.length }} selected{{ currentExam.status === 'Draft' ? ' — visible to them once published' : '' }})
+              </span>
+            </label>
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="s in assignableStudents"
+                :key="s.id"
+                type="button"
+                @click="toggleAssigned(s.id)"
+                :aria-pressed="currentExam.assignedTo.includes(s.id)"
+                class="inline-flex items-center gap-2 pl-1 pr-3 py-1 rounded-full border text-xs font-bold transition"
+                :class="currentExam.assignedTo.includes(s.id)
+                  ? 'bg-amber-50 border-amber-300 text-amber-900'
+                  : 'bg-white border-slate-200 text-slate-600 hover:bg-slate-50'"
+              >
+                <AppImage :src="s.photo" :alt="s.name" class="w-6 h-6 rounded-full object-cover" />
+                <span>{{ s.name }}</span>
+                <i v-if="currentExam.assignedTo.includes(s.id)" class="fa-solid fa-check text-[10px] text-amber-600"></i>
+              </button>
             </div>
           </div>
         </div>
@@ -528,8 +767,13 @@
       <!-- Action Footer -->
       <div class="sticky bottom-4 z-10 flex items-center justify-between rounded-3xl border border-slate-200/90 bg-white/95 backdrop-blur-md px-5 py-4 shadow-lg">
         <div class="text-xs text-slate-500">
-          <span class="font-bold text-slate-800">{{ currentExam.questions.length }}</span> questions &bull;
-          <span class="font-bold text-slate-800">{{ currentExamTotalPoints }}</span> total points
+          <p v-if="builderError" class="font-bold text-rose-600">
+            <i class="fa-solid fa-circle-exclamation mr-1"></i>{{ builderError }}
+          </p>
+          <template v-else>
+            <span class="font-bold text-slate-800">{{ currentExam.questions.length }}</span> questions &bull;
+            <span class="font-bold text-slate-800">{{ currentExamTotalPoints }}</span> total points
+          </template>
         </div>
 
         <div class="flex items-center gap-2">
@@ -542,7 +786,7 @@
           </button>
           <button
             type="button"
-            @click="saveExam"
+            @click="saveCurrentExam"
             class="px-5 py-2 rounded-2xl bg-brighture-gold hover:brightness-105 active:scale-[0.98] text-xs font-black text-slate-900 shadow-sm transition"
           >
             <i class="fa-solid fa-floppy-disk mr-1"></i> Save Test
@@ -650,118 +894,23 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, watch } from 'vue';
+import AppImage from '../../components/AppImage.vue';
+import { useSchoolStore } from '../../stores/useSchoolStore';
+import { useTeacherStore } from '../../stores/useTeacherStore';
+import { MANILA, stampIn, relativeLabel } from '../../lib/schoolTime';
 
-// Pre-seeded exams
-const initialExams = [
-  {
-    id: 'exam-1',
-    title: 'Speech Fluency (SF) - Level 3 Assessment',
-    subject: 'SF',
-    description: 'Comprehensive evaluation of conversational fluidity, idiom usage, and structured discourse.',
-    durationMinutes: 45,
-    status: 'Published',
-    updatedAt: 'Oct 8, 2026',
-    questions: [
-      {
-        id: 'q1',
-        type: 'mcq',
-        prompt: 'Which transitional phrase best introduces a contrasting argument in a persuasive speech?',
-        options: [
-          'In addition to that',
-          'On the other hand',
-          'For instance',
-          'As a matter of fact'
-        ],
-        correctIndex: 1,
-        explanation: '"On the other hand" signals a direct contrast or opposing viewpoint.',
-        points: 5,
-      },
-      {
-        id: 'q2',
-        type: 'mcq',
-        prompt: 'Identify the sentence with natural conversational cadence:',
-        options: [
-          'I did go to the store yesterday because I wanted to buy apples.',
-          'I went to the store yesterday to grab some apples.',
-          'The apples were bought by me yesterday at the store.',
-          'Going yesterday store apples grabbed.'
-        ],
-        correctIndex: 1,
-        explanation: 'Active voice with "grab some apples" reflects natural colloquial phrasing.',
-        points: 5,
-      },
-      {
-        id: 'q3',
-        type: 'essay',
-        prompt: 'Discuss the advantages and challenges of remote working compared to traditional office environments. Provide personal examples or observations.',
-        minWords: 150,
-        maxWords: 250,
-        rubricFocus: 'Discourse markers, cohesion, varied vocabulary, coherence',
-        sampleAnswer: 'Expect clear introduction stating preference, 2 body paragraphs balancing flexibility vs isolation, and concise conclusion.',
-        points: 20,
-      }
-    ]
-  },
-  {
-    id: 'exam-2',
-    title: 'Daily Conversation (DC) Idioms & Phrasal Verbs',
-    subject: 'DC',
-    description: 'Weekly quiz targeting high-frequency phrasal verbs and workplace expressions.',
-    durationMinutes: 30,
-    status: 'Published',
-    updatedAt: 'Oct 5, 2026',
-    questions: [
-      {
-        id: 'q4',
-        type: 'mcq',
-        prompt: 'What does "call it a day" mean?',
-        options: [
-          'To phone a friend during daylight',
-          'To stop working on something for the rest of the day',
-          'To celebrate a calendar holiday',
-          'To postpone until next week'
-        ],
-        correctIndex: 1,
-        explanation: '"Call it a day" means to conclude an activity or work session.',
-        points: 5,
-      },
-      {
-        id: 'q5',
-        type: 'essay',
-        prompt: 'Describe a memorable travel experience where you had to communicate with someone who spoke a different language. How did you overcome the barrier?',
-        minWords: 100,
-        maxWords: 180,
-        rubricFocus: 'Storytelling past tense forms, descriptive adjectives',
-        sampleAnswer: 'Evaluate past tense accuracy (simple past vs past continuous), narrative pacing.',
-        points: 15,
-      }
-    ]
-  },
-  {
-    id: 'exam-3',
-    title: 'Reading & Writing (RW) Essay Practice: Climate Action',
-    subject: 'RW',
-    description: 'Argumentative essay test evaluating thesis construction and counterarguments.',
-    durationMinutes: 50,
-    status: 'Draft',
-    updatedAt: 'Oct 9, 2026',
-    questions: [
-      {
-        id: 'q6',
-        type: 'essay',
-        prompt: 'Should single-use plastics be completely banned worldwide, or should recycling programs be modernized instead? Present your thesis and supporting arguments.',
-        minWords: 200,
-        maxWords: 350,
-        rubricFocus: 'Thesis clarity, argumentation, paragraph structure, lexical sophistication',
-        sampleAnswer: 'Well-structured 4-paragraph argument essay with counter-argument concession.',
-        points: 30,
-      }
-    ]
-  }
-];
+const school = useSchoolStore();
+const teacher = useTeacherStore();
+const TEACHER_ID = teacher.teacherId;
 
-const examsList = ref([...initialExams]);
+// Tests live in the school's records, so a published one reaches the students
+// it is assigned to, and their answers come back here.
+const examsList = computed(() => school.examsForTeacher(TEACHER_ID));
+
+/** 'Just now', '3h', 'Oct 2' — the card footer's "Updated" label. */
+const updatedLabel = (iso) => (iso ? relativeLabel(iso, school.now) : '');
+
 const searchQuery = ref('');
 const activeStatusFilter = ref('All');
 
@@ -806,15 +955,20 @@ const filteredExams = computed(() => {
 });
 
 // Actions
+const builderError = ref('');
+
 const startNewExam = () => {
+  builderError.value = '';
   currentExam.value = {
-    id: 'exam-' + Date.now(),
+    // No id yet: the school store assigns one on first save.
+    id: '',
+    teacherId: TEACHER_ID,
+    assignedTo: [],
     title: '',
     subject: 'SF',
     description: '',
     durationMinutes: 40,
     status: 'Draft',
-    updatedAt: 'Just now',
     questions: [
       {
         id: 'q_' + Date.now() + '_1',
@@ -831,42 +985,132 @@ const startNewExam = () => {
 };
 
 const editExam = (exam) => {
+  builderError.value = '';
   currentExam.value = JSON.parse(JSON.stringify(exam));
+  if (!Array.isArray(currentExam.value.assignedTo)) currentExam.value.assignedTo = [];
   isCreating.value = true;
 };
 
 const cancelCreate = () => {
   isCreating.value = false;
   currentExam.value = null;
+  builderError.value = '';
 };
 
-const saveExam = () => {
+const backToList = () => {
+  cancelCreate();
+  closeResults();
+};
+
+const saveCurrentExam = () => {
   if (!currentExam.value.title.trim()) {
-    alert('Please enter a test title.');
+    builderError.value = 'Please enter a test title.';
     return;
   }
   if (currentExam.value.questions.length === 0) {
-    alert('Please add at least one question.');
+    builderError.value = 'Please add at least one question.';
     return;
   }
-
-  currentExam.value.updatedAt = 'Just now';
-
-  const existingIdx = examsList.value.findIndex(e => e.id === currentExam.value.id);
-  if (existingIdx >= 0) {
-    examsList.value[existingIdx] = JSON.parse(JSON.stringify(currentExam.value));
-  } else {
-    examsList.value.unshift(JSON.parse(JSON.stringify(currentExam.value)));
-  }
-
-  isCreating.value = false;
-  currentExam.value = null;
+  school.saveExam({ ...currentExam.value, teacherId: TEACHER_ID });
+  cancelCreate();
 };
 
-const deleteExam = (id) => {
-  if (confirm('Are you sure you want to delete this test?')) {
-    examsList.value = examsList.value.filter(e => e.id !== id);
-  }
+// The builder's message is about the last attempt; editing clears it.
+watch(() => currentExam.value && JSON.stringify(currentExam.value), () => { builderError.value = ''; });
+
+/** Armed by the first click on a card's bin; the second click deletes. */
+const confirmDeleteId = ref(null);
+const removeExam = (id) => {
+  school.deleteExam(id);
+  confirmDeleteId.value = null;
+};
+
+/** Students who take lessons with this instructor — the ones a test can go to. */
+const assignableStudents = computed(() => {
+  const ids = [...new Set(school.lessonsForTeacher(TEACHER_ID).map((l) => l.studentId))];
+  return ids.map((id) => school.student(id)).sort((a, b) => a.name.localeCompare(b.name));
+});
+
+const toggleAssigned = (studentId) => {
+  const list = currentExam.value.assignedTo;
+  const i = list.indexOf(studentId);
+  if (i === -1) list.push(studentId); else list.splice(i, 1);
+};
+
+// ── Results ────────────────────────────────────────────────────────────────
+const submissionsOf = (examId) => school.submissionsForExam(examId);
+const needsGradingCount = (examId) => submissionsOf(examId).filter((sub) => !sub.graded).length;
+
+const resultsExamId = ref(null);
+const resultsExam = computed(() => (resultsExamId.value ? school.findExam(resultsExamId.value) ?? null : null));
+
+/** Ungraded first, then newest — the order the marking actually happens in. */
+const resultsSubmissions = computed(() => {
+  if (!resultsExam.value) return [];
+  return [...submissionsOf(resultsExam.value.id)].sort((a, b) =>
+    Number(a.graded) - Number(b.graded) || b.submittedAt.localeCompare(a.submittedAt)
+  );
+});
+
+const notSubmittedIds = computed(() => {
+  if (!resultsExam.value) return [];
+  const done = new Set(resultsSubmissions.value.map((sub) => sub.studentId));
+  return (resultsExam.value.assignedTo ?? []).filter((id) => !done.has(id));
+});
+
+const activeSubmissionId = ref(null);
+const activeSubmission = computed(() =>
+  resultsSubmissions.value.find((sub) => sub.id === activeSubmissionId.value) ?? null
+);
+
+const gradeDraft = ref({ essayScores: {}, comment: '' });
+const gradeSaved = ref(false);
+
+const openSubmission = (sub) => {
+  activeSubmissionId.value = sub.id;
+  gradeDraft.value = { essayScores: { ...(sub.essayScores ?? {}) }, comment: sub.teacherComment ?? '' };
+  gradeSaved.value = false;
+};
+
+const openResults = (exam) => {
+  resultsExamId.value = exam.id;
+  const first = resultsSubmissions.value[0];
+  if (first) openSubmission(first);
+  else activeSubmissionId.value = null;
+};
+
+const closeResults = () => {
+  resultsExamId.value = null;
+  activeSubmissionId.value = null;
+};
+
+const countWords = (text) => (String(text ?? '').trim().match(/\S+/g) ?? []).length;
+const wordCountOk = (q, text) => {
+  const n = countWords(text);
+  return (!q.minWords || n >= q.minWords) && (!q.maxWords || n <= q.maxWords);
+};
+
+/** Keeps a typed mark inside 0..the question's points. */
+const clampScore = (q) => {
+  const raw = Number(gradeDraft.value.essayScores[q.id]);
+  const value = Number.isFinite(raw) ? Math.min(Math.max(0, raw), Number(q.points) || 0) : 0;
+  gradeDraft.value.essayScores[q.id] = value;
+};
+
+/** The score as it would stand if the draft were saved now. */
+const draftScore = computed(() => {
+  if (!activeSubmission.value) return 0;
+  return school.submissionScore({ ...activeSubmission.value, essayScores: gradeDraft.value.essayScores });
+});
+
+const saveGrade = () => {
+  if (!activeSubmission.value || !resultsExam.value) return;
+  resultsExam.value.questions.filter((q) => q.type === 'essay').forEach(clampScore);
+  school.gradeSubmission(activeSubmission.value.id, {
+    essayScores: gradeDraft.value.essayScores,
+    comment: gradeDraft.value.comment.trim(),
+  });
+  gradeSaved.value = true;
 };
 
 const addQuestion = (type) => {

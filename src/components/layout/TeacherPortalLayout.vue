@@ -158,6 +158,18 @@
             <span>Timezones</span>
           </button>
 
+          <!-- Two taps, not a browser confirm: the first arms it, the second
+               throws away every change made in either portal. -->
+          <button
+            type="button"
+            @click="onResetDemo"
+            class="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-xs font-bold transition"
+            :class="resetArmed ? 'bg-rose-50 text-rose-700 hover:bg-rose-100' : 'text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink'"
+          >
+            <i class="fa-solid fa-rotate-left w-4 text-center" :class="resetArmed ? 'text-rose-500' : 'text-slate-400'"></i>
+            <span>{{ resetArmed ? 'Click again to reset' : 'Reset demo data' }}</span>
+          </button>
+
           <div class="my-1.5 border-t border-slate-100"></div>
 
           <button
@@ -214,7 +226,7 @@
           class="absolute top-4 right-4 w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center font-bold"
           aria-label="Close navigation"
         >
-          ✕
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
 
         <RouterLink to="/profile" @click="isMobileMenuOpen = false" class="mb-2 rounded-full">
@@ -298,6 +310,15 @@
             <span>Timezones</span>
           </button>
           <button
+            type="button"
+            @click="onResetDemo"
+            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold rounded-xl transition"
+            :class="resetArmed ? 'bg-rose-50 text-rose-700' : 'text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink'"
+          >
+            <i class="fa-solid fa-rotate-left w-4 text-center" :class="resetArmed ? 'text-rose-500' : 'text-slate-400'"></i>
+            <span>{{ resetArmed ? 'Tap again to reset' : 'Reset demo data' }}</span>
+          </button>
+          <button
             @click="isMobileMenuOpen = false; isUserMenuOpen = false"
             class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
           >
@@ -344,7 +365,7 @@
           rel="noopener"
           class="shrink-0 inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] sm:text-xs transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
         >
-          <i class="fa-solid fa-video text-[11px]"></i>
+          <GoogleMeetIcon size="sm" />
           <span class="hidden sm:inline">Start Lesson</span>
           <span class="sm:hidden">Start</span>
         </a>
@@ -584,6 +605,17 @@
                 <span class="ml-auto text-[11px] font-bold text-slate-400">{{ activeZoneAbbr }}</span>
               </button>
 
+              <button
+                type="button"
+                @click="onResetDemo"
+                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold transition active:scale-[0.99]"
+                :class="resetArmed ? 'bg-rose-50 text-rose-700' : 'text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink'"
+              >
+                <i class="fa-solid fa-rotate-left w-5 text-center" :class="resetArmed ? 'text-rose-500' : 'text-slate-400'"></i>
+                <span>{{ resetArmed ? 'Tap again to reset' : 'Reset demo data' }}</span>
+                <span v-if="resetArmed" class="ml-auto text-[11px] font-bold text-rose-500">Both portals</span>
+              </button>
+
               <div class="my-1.5 border-t border-slate-100"></div>
 
               <button
@@ -609,6 +641,7 @@
 </template>
 
 <script setup>
+import GoogleMeetIcon from '../GoogleMeetIcon.vue';
 import { ref, computed, watch, onUnmounted } from 'vue';
 import { useRoute } from 'vue-router';
 import RouteProgress from '../RouteProgress.vue';
@@ -617,9 +650,11 @@ import CalendarLinkModal from '../teacher/CalendarLinkModal.vue';
 import TimezoneToolbar from '../teacher/TimezoneToolbar.vue';
 import { getTimeZoneInfo, normalizeTimeZone } from '../../lib/timezoneUtils';
 import { useTeacherStore } from '../../stores/useTeacherStore';
+import { useSchoolStore } from '../../stores/useSchoolStore';
 
 const route = useRoute();
 const teacher = useTeacherStore();
+const school = useSchoolStore();
 
 // TODO: confirm the real instructor-support address before launch.
 const SUPPORT_EMAIL = 'support@brighture-edu.com';
@@ -649,7 +684,7 @@ const offNavTitles = { '/profile': 'Profile Setting', '/schedule': 'Availability
 const badgeFor = (item) => {
   if (item.badge === 'writing') return teacher.pendingWritingCount || 0;
   if (item.badge === 'feedback') return teacher.pendingFeedback.length || 0;
-  if (item.badge === 'chat') return 1; // 1 unread message from Aiko Tanaka
+  if (item.badge === 'chat') return teacher.unreadMessageCount || 0;
   return 0;
 };
 
@@ -747,6 +782,27 @@ watch(() => route.path, () => {
   isUserMenuOpen.value = false;
   isSettingsSheetOpen.value = false;
   isMobileMenuOpen.value = false;
+});
+
+/**
+ * Reset the shared demo records — lessons, messages, writing, exams, hours —
+ * for both portals. The first press arms it and the second does it; closing
+ * the menu in between disarms it, so a stray tap later cannot wipe anything.
+ */
+const resetArmed = ref(false);
+const onResetDemo = () => {
+  if (!resetArmed.value) {
+    resetArmed.value = true;
+    return;
+  }
+  resetArmed.value = false;
+  school.resetDemo();
+  isUserMenuOpen.value = false;
+  isSettingsSheetOpen.value = false;
+  isMobileMenuOpen.value = false;
+};
+watch([isUserMenuOpen, isSettingsSheetOpen], ([menu, sheet]) => {
+  if (!menu && !sheet) resetArmed.value = false;
 });
 
 onUnmounted(() => { if (switchTimer) clearTimeout(switchTimer); });

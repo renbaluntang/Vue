@@ -73,7 +73,7 @@
               class="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl object-cover ring-2 ring-brighture-gold/80 shadow-md"
             />
             <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] text-slate-950 font-black ring-2 ring-slate-900">
-              ✓
+              <i class="fa-solid fa-check" aria-hidden="true"></i>
             </span>
           </div>
 
@@ -112,7 +112,7 @@
             rel="noopener"
             class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-md transition-all active:scale-95 whitespace-nowrap"
           >
-            <i class="fa-solid fa-video text-[11px]"></i>
+            <GoogleMeetIcon size="sm" />
             <span>Join Room</span>
           </a>
           <button
@@ -147,7 +147,7 @@
           class="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 text-xs p-1"
           aria-label="Clear search"
         >
-          ✕
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
 
@@ -237,7 +237,7 @@
           role="button"
           aria-label="Clear the date filter"
           @click.stop="clearJumpDate"
-        >✕</span>
+        ><i class="fa-solid fa-xmark" aria-hidden="true"></i></span>
       </button>
 
       <!-- Jump to a date -->
@@ -543,7 +543,7 @@
                     class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-500 text-[9px] text-white shadow-2xs transition hover:bg-emerald-600"
                     title="Join Google Meet"
                   >
-                    <i class="fa-solid fa-video"></i>
+                    <GoogleMeetIcon size="md" />
                   </a>
                 </div>
               </div>
@@ -709,7 +709,7 @@
                         class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-3 py-2 text-xs font-black text-slate-950 shadow-2xs transition hover:scale-105 active:scale-95"
                         title="Open Google Meet room"
                       >
-                        <i class="fa-solid fa-video text-[11px]"></i>
+                        <GoogleMeetIcon size="sm" />
                         <span>Meet</span>
                       </a>
                       <span
@@ -834,7 +834,7 @@
                 rel="noopener"
                 class="flex-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 py-2 px-3 text-center text-xs font-extrabold text-slate-950 transition active:scale-95 shadow-2xs"
               >
-                <i class="fa-solid fa-video text-[11px]"></i> Join Meet
+                <GoogleMeetIcon size="sm" /> Join Meet
               </a>
               <span
                 v-else
@@ -935,7 +935,7 @@
                 rel="noopener"
                 class="flex-1 rounded-xl border border-transparent bg-emerald-500 py-3 px-3 text-center text-xs font-extrabold text-slate-950 transition hover:bg-emerald-400 active:scale-95 shadow-2xs"
               >
-                <i class="fa-solid fa-video text-[11px]"></i> Join Meet
+                <GoogleMeetIcon size="sm" /> Join Meet
               </a>
               <span
                 v-else
@@ -1006,6 +1006,7 @@
 </template>
 
 <script setup>
+import GoogleMeetIcon from '../../components/GoogleMeetIcon.vue';
 import { ref, computed, watch } from 'vue';
 import AppImage from '../../components/AppImage.vue';
 import StudentDetailModal from '../../components/teacher/StudentDetailModal.vue';

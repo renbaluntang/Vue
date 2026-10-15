@@ -30,7 +30,7 @@
           class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-white/10 text-sm font-bold text-white transition hover:bg-white/20 cursor-pointer"
           aria-label="Close"
         >
-          ✕
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         </button>
       </div>
 
@@ -177,7 +177,7 @@
                   <button
                     v-if="isSlotAvailable(col.dayIndex, i) && !isSelected(col.dayIndex, i)"
                     type="button"
-                    :title="`Stage 30 min starting ${formatSlotTo12Hour(slot)}`"
+                    :title="`Stage ${lessonMinutes} min starting ${formatSlotTo12Hour(slot)}`"
                     @mouseenter="hoveredSlot = { dayKey: col.key, dayIndex: col.dayIndex, slotIndex: i, slotTime: formatSlotTo12Hour(slot) }"
                     @click="selectSlot(col, i, slot)"
                     class="absolute left-1 right-1 flex items-center justify-start overflow-hidden rounded-md border-l-2 border-emerald-500 bg-emerald-50 px-2 py-0.5 text-left text-[11px] font-semibold text-emerald-800 transition hover:bg-emerald-100 cursor-pointer shadow-2xs z-10"
@@ -198,7 +198,7 @@
                 >
                   <!-- Tooltip Balloon (Exact replica of screenshot) -->
                   <div class="absolute -top-7 left-1 z-30 whitespace-nowrap rounded bg-slate-800/95 px-2 py-0.5 text-[10px] font-semibold text-white shadow-lg pointer-events-none flex items-center gap-1">
-                    <span>Stage 30 min starting {{ hoveredSlot.slotTime }}</span>
+                    <span>Stage {{ lessonMinutes }} min starting {{ hoveredSlot.slotTime }}</span>
                     <span class="absolute -bottom-1 left-2 h-1.5 w-1.5 rotate-45 bg-slate-800/95"></span>
                   </div>
                 </div>
@@ -213,8 +213,8 @@
                   }"
                 >
                   <div class="flex items-center justify-between">
-                    <span class="truncate">✓ Rescheduled: {{ selectedBooking.start12 }}</span>
-                    <span class="text-[9px] font-bold text-amber-900 opacity-90 hidden sm:inline">30 min</span>
+                    <span class="truncate"><i class="fa-solid fa-check" aria-hidden="true"></i> Rescheduled: {{ selectedBooking.start12 }}</span>
+                    <span class="text-[9px] font-bold text-amber-900 opacity-90 hidden sm:inline">{{ lessonMinutes }} min</span>
                   </div>
                 </div>
 
@@ -239,7 +239,7 @@
         >
           <div class="flex items-center gap-3">
             <div class="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-900 border border-amber-300 flex items-center justify-center text-base shrink-0">
-              🗓️
+              <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
             </div>
             <div>
               <div class="text-[10px] uppercase font-bold text-amber-800 tracking-wider">New Selected Time:</div>
@@ -308,13 +308,25 @@ import { ref, computed, watch, nextTick } from 'vue';
 import AppImage from './AppImage.vue';
 import {
   INSTRUCTORS,
-  BOOKING_DAYS,
   BOOKING_TIME_SLOTS,
   formatSlotTo12Hour,
   addMinutesToSlotLabel,
   getSlotStatus,
   CALENDAR_ROW_HEIGHT,
 } from '@/pages/student-view-v4/constants';
+import { useSchoolStore } from '@/stores/useSchoolStore';
+import { TOKYO, partsIn, tokyoAt } from '@/lib/schoolTime';
+
+const school = useSchoolStore();
+const DAYS_SHOWN = 10;
+const WEEKDAY_NAMES = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+/** Tokyo calendar date `offset` days from today, as 'YYYY-MM-DD'. The grid is JST. */
+const tokyoDayIso = (offset) => {
+  const p = partsIn(new Date().toISOString(), TOKYO);
+  const d = new Date(Date.UTC(p.year, p.month, p.day + offset));
+  return d.toISOString().slice(0, 10);
+};
 
 const props = defineProps({
   lesson: Object,
@@ -329,9 +341,11 @@ const hoveredSlot = ref(null);
 const rescheduleReason = ref('');
 const calendarGridRef = ref(null);
 
-// Identify teacher
+// Identify teacher: by the shared-store id when the lesson has one, else by name.
 const teacher = computed(() => {
   if (!props.lesson) return null;
+  const byKey = INSTRUCTORS.find((t) => t.imageKey === props.lesson.teacherId);
+  if (byKey) return byKey;
   const name = props.lesson.teacherName?.trim().toLowerCase();
   return (
     INSTRUCTORS.find(
@@ -340,31 +354,34 @@ const teacher = computed(() => {
   );
 });
 
+/** The teacher id the shared store knows them by. */
+const teacherKey = computed(() => props.lesson?.teacherId ?? teacher.value?.imageKey);
+const lessonMinutes = computed(() => props.lesson?.duration || 30);
+
 const teacherName = computed(() => props.lesson?.teacherName || teacher.value?.name || 'Instructor');
 
-// Days list (starting from today idx = 0 or tomorrow idx = 1 through 10 days)
+// Days list (today idx = 0 through 10 days), as Tokyo dates.
 const availableDaysList = computed(() => {
   if (!teacher.value) return [];
-  return BOOKING_DAYS.slice(0, 10).map((d, i) => {
+  return Array.from({ length: DAYS_SHOWN }, (_, i) => {
+    const key = tokyoDayIso(i);
     let openCount = 0;
     BOOKING_TIME_SLOTS.forEach((_, slotIdx) => {
-      if (getSlotStatus(teacher.value.id, i, slotIdx) === 'Available') {
-        openCount++;
-      }
+      if (isSlotAvailable(i, slotIdx)) openCount++;
     });
 
-    const dateParts = d.key.split('-');
-    const dateObj = new Date(Number(dateParts[0]), Number(dateParts[1]) - 1, Number(dateParts[2]));
-    const monthStr = String(dateObj.getMonth() + 1).padStart(2, '0');
-    const dayStr = String(dateObj.getDate()).padStart(2, '0');
-    const shortDay = i === 0 ? 'Today' : d.day.slice(0, 3);
+    const [y, m, dd] = key.split('-').map(Number);
+    const day = WEEKDAY_NAMES[new Date(Date.UTC(y, m - 1, dd)).getUTCDay()];
+    const monthStr = String(m).padStart(2, '0');
+    const dayStr = String(dd).padStart(2, '0');
+    const shortDay = i === 0 ? 'Today' : day.slice(0, 3);
     const shortDate = `${monthStr}/${dayStr}`;
-    const fullLabel = `${d.day}, ${monthStr}/${dayStr}`;
+    const fullLabel = `${day}, ${monthStr}/${dayStr}`;
 
     return {
       dayIndex: i,
-      key: d.key,
-      day: d.day,
+      key,
+      day,
       shortDay,
       shortDate,
       fullLabel,
@@ -391,20 +408,19 @@ const selectDayKey = (key) => {
   scrollToPreferredTime();
 };
 
-const getDayOpenSlotCount = (dayIndex) => {
-  if (!teacher.value) return 0;
-  let count = 0;
-  BOOKING_TIME_SLOTS.forEach((_, slotIdx) => {
-    if (getSlotStatus(teacher.value.id, dayIndex, slotIdx) === 'Available') count++;
-  });
-  return count;
-};
+const getDayOpenSlotCount = (dayIndex) =>
+  availableDaysList.value.find((d) => d.dayIndex === dayIndex)?.openCount ?? 0;
 
-// Check if a specific slot is available for this teacher
-const isSlotAvailable = (dayIndex, slotIndex) => {
-  if (!teacher.value) return false;
-  return getSlotStatus(teacher.value.id, dayIndex, slotIndex) === 'Available';
-};
+/** The instant a grid cell (JST) starts at. */
+const slotStartIso = (dayIndex, slotIndex) => tokyoAt(tokyoDayIso(dayIndex), BOOKING_TIME_SLOTS[slotIndex]);
+
+// A slot is open when the shared store says the teacher is free for the whole
+// lesson. Teachers without a published board fall back to the sample pattern.
+function isSlotAvailable(dayIndex, slotIndex) {
+  if (!teacher.value || !teacherKey.value) return false;
+  const mockOpen = getSlotStatus(teacher.value.id, dayIndex, slotIndex) === 'Available';
+  return school.isTeacherSlotOpen(teacherKey.value, slotStartIso(dayIndex, slotIndex), lessonMinutes.value, mockOpen, props.lesson?.id ?? null);
+}
 
 const isSelected = (dayIndex, slotIndex) => {
   return (
@@ -415,7 +431,7 @@ const isSelected = (dayIndex, slotIndex) => {
 
 const selectSlot = (col, slotIndex, rawSlot) => {
   const start12 = formatSlotTo12Hour(rawSlot);
-  const endSlot = addMinutesToSlotLabel(BOOKING_TIME_SLOTS, slotIndex, 30);
+  const endSlot = addMinutesToSlotLabel(BOOKING_TIME_SLOTS, slotIndex, lessonMinutes.value);
   const end12 = formatSlotTo12Hour(endSlot);
 
   selectedBooking.value = {
@@ -423,6 +439,7 @@ const selectSlot = (col, slotIndex, rawSlot) => {
     dayIndex: col.dayIndex,
     slotIndex,
     rawSlot,
+    start: slotStartIso(col.dayIndex, slotIndex),
     start12,
     end12,
     dateLabel: col.fullLabel,
@@ -452,11 +469,13 @@ const scrollToPreferredTime = () => {
   });
 };
 
-// Reset on modal open
+// Reset on modal open. Keyed on the lesson only: availability re-computes as
+// the clock ticks, and that must not wipe a slot the student already picked.
 watch(
-  [() => props.lesson, availableDaysList],
-  ([newLesson, days]) => {
-    if (newLesson && days.length) {
+  () => props.lesson?.id,
+  () => {
+    const days = availableDaysList.value;
+    if (props.lesson && days.length) {
       // Default to today or tomorrow with open slots
       const firstOpen = days.find((d) => d.openCount > 0) || days[0];
       selectedDayKey.value = firstOpen.key;
@@ -473,6 +492,7 @@ const handleConfirm = () => {
   if (!selectedBooking.value || !props.lesson) return;
   emit('confirm', {
     lesson: props.lesson,
+    start: selectedBooking.value.start,
     newDate: selectedBooking.value.dateLabel,
     newTime: selectedBooking.value.timeFull,
     reason: rescheduleReason.value,

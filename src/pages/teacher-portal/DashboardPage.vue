@@ -134,7 +134,7 @@
             rel="noopener"
             class="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm py-3 px-4 shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-[0.98] group"
           >
-            <i class="fa-solid fa-video text-base transition-transform group-hover:scale-110"></i>
+            <GoogleMeetIcon size="lg" />
             <span>Join Google Meet</span>
           </a>
 
@@ -406,7 +406,7 @@
                   rel="noopener"
                   class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black transition active:scale-95 shadow-xs"
                 >
-                  <i class="fa-solid fa-video text-[11px]"></i>
+                  <GoogleMeetIcon size="sm" />
                   <span>Meet</span>
                 </a>
                 <span
@@ -562,7 +562,7 @@
             <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
               <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Avg Rating</p>
               <p class="text-lg sm:text-xl font-black text-amber-500 mt-1 tabular-nums">
-                {{ weeklyAnalytics?.rating ?? '4.98' }} ★
+                {{ weeklyAnalytics?.rating ?? '4.98' }} <i class="fa-solid fa-star text-base" aria-hidden="true"></i>
               </p>
               <p class="text-[10px] font-semibold text-slate-500 mt-0.5">Top percentile</p>
             </div>
@@ -695,7 +695,7 @@
               <div class="flex items-center justify-between gap-2">
                 <span class="text-xs font-black text-slate-900">{{ lesson.studentName }}</span>
                 <div class="flex items-center gap-0.5 text-amber-500 text-xs">
-                  <span v-for="i in lesson.rating" :key="i">★</span>
+                  <i v-for="i in lesson.rating" :key="i" class="fa-solid fa-star" aria-hidden="true"></i>
                 </div>
               </div>
 
@@ -766,6 +766,7 @@
 </template>
 
 <script setup>
+import GoogleMeetIcon from '../../components/GoogleMeetIcon.vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import AppImage from '../../components/AppImage.vue';
 import StudentDetailModal from '../../components/teacher/StudentDetailModal.vue';

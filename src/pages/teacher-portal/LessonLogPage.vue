@@ -84,7 +84,10 @@
           <div class="flex justify-between gap-2"><dt class="text-slate-400">Manila</dt><dd class="font-bold text-slate-700">{{ lesson.dateManila }}</dd></div>
           <div class="flex justify-between gap-2">
             <dt class="text-slate-400">Student rating</dt>
-            <dd class="font-bold text-slate-700">{{ lesson.studentRating ? `★ ${lesson.studentRating}` : '—' }}</dd>
+            <dd class="font-bold text-slate-700">
+              <template v-if="lesson.studentRating"><i class="fa-solid fa-star text-amber-500" aria-hidden="true"></i> {{ lesson.studentRating }}</template>
+              <template v-else>—</template>
+            </dd>
           </div>
         </dl>
 
@@ -153,7 +156,7 @@
                 </span>
               </td>
               <td class="px-4 py-3 max-w-xs">
-                <p v-if="lesson.studentRating" class="font-bold text-amber-600">★ {{ lesson.studentRating }}</p>
+                <p v-if="lesson.studentRating" class="font-bold text-amber-600"><i class="fa-solid fa-star text-amber-500" aria-hidden="true"></i> {{ lesson.studentRating }}</p>
                 <p v-if="lesson.studentComment" class="text-[12px] italic text-slate-500">“{{ lesson.studentComment }}”</p>
                 <p v-if="!lesson.studentRating && !lesson.studentComment" class="text-slate-400">—</p>
               </td>

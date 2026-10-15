@@ -1,10 +1,51 @@
 import { defineStore } from 'pinia';
-import { ref, computed } from 'vue';
-import { teacherImage, imageForKey } from '@/lib/teacherImages';
+import { ref, computed, watch } from 'vue';
 import { findPlan, isSubscription } from '@/lib/plans';
-import { seedMaterials } from '@/lib/lessonMaterials';
+import { useSchoolStore } from '@/stores/useSchoolStore';
+import { CURRENT_STUDENT_ID } from '@/lib/schoolSeed';
+import { TOKYO, partsIn, dateIn, clockIn, rangeIn, minutesUntil } from '@/lib/schoolTime';
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const pad = (n) => String(n).padStart(2, '0');
+
+/** Calendar-day number of an instant in Tokyo, for "today / tomorrow" sums. */
+const tokyoDayNumber = (iso) => {
+  const p = partsIn(iso, TOKYO);
+  return Math.round(Date.UTC(p.year, p.month, p.day) / 86_400_000);
+};
+
+/** 'Today, Oct 14' / 'Tomorrow, Oct 15' / 'Fri, Oct 17' — in Tokyo time. */
+const relativeDayLabel = (iso, now) => {
+  const p = partsIn(iso, TOKYO);
+  const short = `${MONTHS[p.month]} ${p.day}`;
+  const diff = tokyoDayNumber(iso) - tokyoDayNumber(new Date(now).toISOString());
+  if (diff === 0) return `Today, ${short}`;
+  if (diff === 1) return `Tomorrow, ${short}`;
+  return `${WEEKDAYS[new Date(Date.UTC(p.year, p.month, p.day)).getUTCDay()]}, ${short}`;
+};
+
+/** 'Oct 14, 09:00' — the stamp on a writing message, in Tokyo time. */
+const messageStamp = (iso) => {
+  if (!iso) return '';
+  const p = partsIn(iso, TOKYO);
+  return `${MONTHS[p.month]} ${p.day}, ${pad(p.hour)}:${pad(p.minute)}`;
+};
+
+/** Wallet reasons as the shared store writes them, in the ledger's own words. */
+const LEDGER_REASONS = {
+  'Lesson booked': 'Online Lesson Booking',
+  Refund: 'Class Cancellation Refund',
+  'Writing correction': 'Writing Correction Submitted',
+};
 
 export const useUserStore = defineStore('user', () => {
+  // Lessons, writing, materials and points live in the shared school store, so
+  // the instructor portal sees the same records. This store projects student
+  // 21's side of them into the shapes the student pages already use.
+  const school = useSchoolStore();
+  const STUDENT_ID = CURRENT_STUDENT_ID;
+
   const profile = ref({
     firstName: 'Taro',
     lastName: 'Yamada',
@@ -20,6 +61,7 @@ export const useUserStore = defineStore('user', () => {
     level: 'B2 Upper-Intermediate',
     targetGoal: 'Business Negotiations & IELTS 7.5',
     memberSince: 'March 2025',
+    // Mirrors the shared wallet; kept on the profile for the layouts that read it.
     pointsBalance: 120,
     pointsExpiry: '2026-09-30',
     planId: 'sub-40',
@@ -141,7 +183,9 @@ export const useUserStore = defineStore('user', () => {
     },
   ]);
 
-  const pointLedger = ref([
+  // History from before the shared wallet existed. Its last balance (120) is
+  // where the wallet starts, so live rows continue it without a jump.
+  const seedLedger = [
     {
       id: 1,
       date: 'Aug 20, 2026',
@@ -212,6 +256,39 @@ export const useUserStore = defineStore('user', () => {
       type: 'credit',
       balanceAfter: 15,
     },
+  ];
+
+  const wallet = computed(() => school.walletFor(STUDENT_ID));
+
+  // The wallet is the source of truth; the profile copy follows it.
+  watch(
+    () => wallet.value.balance,
+    (balance) => { profile.value.pointsBalance = balance; },
+    // sync: a page that books and then reads the balance sees the new one.
+    { immediate: true, flush: 'sync' }
+  );
+
+  // The photo lives on the shared student record (instructors see it too);
+  // the profile copy follows it, so a new photo survives a reload.
+  watch(
+    () => school.db.students[STUDENT_ID]?.photo,
+    (photo) => { if (photo) profile.value.photo = photo; },
+    { immediate: true }
+  );
+
+  /** Live wallet rows (newest first), then the static history behind them. */
+  const pointLedger = computed(() => [
+    ...wallet.value.entries.map((entry) => ({
+      id: entry.id,
+      date: dateIn(entry.at, TOKYO),
+      time: `${clockIn(entry.at, TOKYO)} JST`,
+      points: entry.points,
+      reason: LEDGER_REASONS[entry.reason] ?? entry.reason,
+      detail: entry.detail,
+      type: entry.type,
+      balanceAfter: entry.balanceAfter,
+    })),
+    ...seedLedger,
   ]);
 
   const skills = ref([
@@ -285,262 +362,176 @@ export const useUserStore = defineStore('user', () => {
     },
   ]);
 
-  // Completed / cancelled classes behind the Lesson History page. The Aug 15
-  // cancellation is the same event as the "Class Cancellation Refund" ledger row.
-  const pastLessons = ref([
-    {
-      id: 101,
-      date: 'Aug 19, 2026',
-      time: '7:00 PM - 7:30 PM JST',
-      teacherName: 'Jirvy Dela Torre',
-      teacherPhoto: teacherImage('Jirvy Dela Torre'),
-      subject: '[SF] Speech Fluency & Discussion',
-      topic: 'International Marketing & Market Fit',
-      duration: 30,
-      pointsDeducted: 5,
-      status: 'completed',
-      yourRating: null,
-      yourComment: '',
-      rating: 5,
-      feedback: `Taro showed strong vocabulary in strategic discussion today.
+  // ── Lessons ───────────────────────────────────────────────────────────
+  const teacherOf = (id) => school.teacher(id);
+  const myLessons = computed(() => school.lessonsForStudent(STUDENT_ID));
 
-Key takeaways:
-1. Improved cadence when delivering conclusions.
-2. Use linking phrases like "In light of that" or "Consequently" instead of repeatedly saying "And so".`,
-    },
-    {
-      id: 102,
-      date: 'Aug 16, 2026',
-      time: '8:00 PM - 8:50 PM JST',
-      teacherName: 'Jane Pasanting',
-      teacherPhoto: teacherImage('Jane Pasanting'),
-      subject: '[PP101] Pronunciation — Vowels',
-      topic: 'Short vowels vs long vowels',
-      duration: 50,
-      pointsDeducted: 9,
-      status: 'completed',
-      yourRating: null,
-      yourComment: '',
-      rating: 4.8,
-      feedback: `Good effort distinguishing /ɪ/ and /iː/ (ship vs sheep) and /æ/ vs /ʌ/ (cat vs cut).
+  /** A booked lesson in the dashboard's row shape. */
+  const toUpcoming = (l, index) => {
+    const t = teacherOf(l.teacherId);
+    const range = rangeIn(l.start, l.duration, TOKYO);
+    return {
+      id: l.id,
+      date: relativeDayLabel(l.start, school.now),
+      time: `${range} JST`,
+      teacherId: l.teacherId,
+      teacherName: t.name,
+      teacherPhoto: t.photo,
+      isSubstitute: !!l.substitution,
+      isNext: index === 0,
+      subject: l.subject,
+      classType: l.topic,
+      topic: l.topic,
+      meetLink: l.meetLink,
+      note: l.note,
+      minutesUntil: minutesUntil(l.start, school.now),
+      start: l.start,
+      duration: l.duration,
+      points: l.points,
+    };
+  };
 
-Homework: read the five tongue twisters aloud for three minutes before sleep.`,
-    },
-    {
-      id: 103,
-      date: 'Aug 15, 2026',
-      time: '7:00 PM - 7:30 PM JST',
-      teacherName: 'Sandra Auman',
-      teacherPhoto: teacherImage('Sandra Auman'),
-      subject: '[DC] Daily Conversation',
-      topic: 'Open topic & fluency',
-      duration: 30,
-      pointsDeducted: 0,
-      status: 'cancelled',
-      yourRating: null,
-      yourComment: '',
-      rating: null,
-      feedback: 'Cancelled more than 3 hours before the start time — 5 points were refunded in full.',
-    },
-    {
-      id: 104,
-      date: 'Aug 12, 2026',
-      time: '7:00 PM - 7:30 PM JST',
-      teacherName: 'Analyn Yosores',
-      teacherPhoto: teacherImage('Analyn Yosores'),
-      subject: '[DC] Daily Conversation',
-      topic: 'Weekend activities & travel in Kyoto',
-      duration: 30,
-      pointsDeducted: 5,
-      status: 'completed',
-      yourRating: null,
-      yourComment: '',
-      rating: 5,
-      feedback: `Great casual flow and natural reactions. You asked engaging follow-up questions without prompting.`,
-    },
-    {
-      id: 105,
-      date: 'Aug 08, 2026',
-      time: '8:00 PM - 8:50 PM JST',
-      teacherName: 'Jirvy Dela Torre',
-      teacherPhoto: teacherImage('Jirvy Dela Torre'),
-      subject: '[EP] Exam Prep',
-      topic: 'IELTS Speaking Part 2 — long turn',
-      duration: 50,
-      pointsDeducted: 9,
-      status: 'completed',
-      yourRating: null,
-      yourComment: '',
-      rating: 4.9,
-      feedback: `Your two-minute long turn is now well structured. Watch the filler pause before examples — try "for instance" to buy the same time.`,
-    },
-    {
-      id: 106,
-      date: 'Aug 05, 2026',
-      time: '7:30 PM - 8:00 PM JST',
-      teacherName: 'Jane Pasanting',
-      teacherPhoto: teacherImage('Jane Pasanting'),
-      subject: '[LS1] Listening & Speaking',
-      topic: 'Following fast native speech',
-      duration: 30,
-      pointsDeducted: 5,
-      status: 'completed',
-      yourRating: null,
-      yourComment: '',
-      rating: 4.7,
-      feedback: `You caught most reduced forms ("gonna", "wanna"). Next time we will work on numbers and dates at speed.`,
-    },
-  ]);
+  /** Booked lessons that have not ended yet, soonest first. */
+  const upcomingLessons = computed(() =>
+    myLessons.value
+      .filter((l) => l.status === 'booked' && minutesUntil(l.start, school.now) + l.duration > 0)
+      .map(toUpcoming)
+  );
 
-  // Same lesson as the first entry of the dashboard's upcomingLessons — the id
-  // is shared so the schedule table can exclude whatever is already featured.
-  const nextUpcomingClass = ref({
-    id: 1,
-    date: 'Today',
-    time: '7:00 PM - 7:30 PM',
-    timeFull: '7:00 PM - 7:30 PM JST',
-    minutesUntil: 28,
-    isLiveSoon: true,
-    teacherName: 'Jirvy Dela Torre',
-    teacherPhoto: imageForKey(184),
-    subject: '[SF] Speech Fluency & Discussion',
-    topic: 'Cross-Border Negotiations & Pitching',
-    meetLink: 'https://meet.google.com/abc-defg-hij',
-    isSubstitute: false,
+  // The legacy dashboards clear the spotlight by assigning null; remember
+  // which lesson they dismissed rather than breaking on a read-only value.
+  const dismissedNextId = ref(null);
+  const nextUpcomingClass = computed({
+    get: () => {
+      const lesson = upcomingLessons.value.find((l) => l.id !== dismissedNextId.value);
+      if (!lesson) return null;
+      return {
+        ...lesson,
+        time: rangeIn(lesson.start, lesson.duration, TOKYO),
+        timeFull: lesson.time,
+        isLiveSoon: lesson.minutesUntil <= 60,
+      };
+    },
+    set: (value) => {
+      if (value === null) dismissedNextId.value = upcomingLessons.value[0]?.id ?? null;
+    },
   });
 
-  // Writing correction tickets, newest activity first. Mirrors the instructor
-  // side: `messages[0]` is always the student's original passage, so a thread
-  // needs no separate "submission" field, and a correction travels attached to
-  // the message that explains it.
-  const writingTickets = ref([
-    {
-      id: 'wt-1',
-      title: 'Self Introduction Draft',
-      status: 'In Progress',
-      date: 'Oct 14, 2026',
-      teacherName: 'Analyn Y.',
-      teacherPhoto: teacherImage('Analyn Y.'),
-      words: 34,
-      remainingSends: 3,
-      messages: [
-        {
-          id: 'm-1',
-          from: 'student',
-          time: 'Oct 14, 09:00',
-          body: `Hi, I wrote this self introduction for my new job. Please check if the grammar is natural.
+  // Completed / cancelled classes behind the Lesson History page, newest first.
+  // A no-show counts as cancelled here, with its points kept.
+  const pastLessons = computed(() =>
+    myLessons.value
+      .filter((l) => l.status !== 'booked' && minutesUntil(l.start, school.now) <= 0)
+      .reverse()
+      .map((l) => {
+        const t = teacherOf(l.teacherId);
+        const completed = l.status === 'completed';
+        let feedback;
+        if (completed) feedback = l.feedback || 'Your teacher has not written feedback for this lesson yet. Check back soon.';
+        else if (l.status === 'no-show') feedback = 'Marked as a no-show — the points for this lesson were not refunded.';
+        else feedback = l.cancelReason || 'This lesson was cancelled.';
+        return {
+          id: l.id,
+          date: dateIn(l.start, TOKYO),
+          time: `${rangeIn(l.start, l.duration, TOKYO)} JST`,
+          teacherId: l.teacherId,
+          teacherName: t.name,
+          teacherPhoto: t.photo,
+          subject: l.subject,
+          topic: l.topic,
+          duration: l.duration,
+          pointsDeducted: l.refunded ? 0 : l.points,
+          status: completed ? 'completed' : 'cancelled',
+          yourRating: l.studentRating,
+          yourComment: l.studentComment ?? '',
+          rating: l.teacherScore,
+          feedback,
+        };
+      })
+  );
 
-"Hello everyone, my name is Taro. I am joining the marketing team. I looking forward to work with you all."`,
-        },
-        {
-          id: 'm-2',
-          from: 'teacher',
-          time: 'Oct 15, 10:30',
-          correction: 'Hello everyone, my name is Taro. I am joining the marketing team. I am looking forward to working with you all.',
-          body: `Hi Taro!
+  /** The student's rating of the teacher for one past lesson. */
+  const rateLesson = (id, rating, comment = '') => {
+    school.rateLesson(id, rating, (comment ?? '').trim());
+  };
 
-This is a good start. The only change is the last sentence: when we use "look forward to", it must be followed by a noun or an -ing verb (gerund).`,
-        },
-      ],
-    },
-    {
-      id: 'wt-2',
-      title: 'Weekly Journal — Entry 5',
-      status: 'Complete',
-      date: 'Oct 10, 2026',
-      teacherName: 'Jirvy Dela Torre',
-      teacherPhoto: teacherImage('Jirvy Dela Torre'),
-      words: 12,
-      remainingSends: 0,
-      messages: [
-        {
-          id: 'm-1',
-          from: 'student',
-          time: 'Oct 10, 20:00',
-          body: 'Here is my journal entry about my weekend trip to Kyoto.',
-        },
-        {
-          id: 'm-2',
-          from: 'teacher',
-          time: 'Oct 11, 09:15',
-          body: 'Excellent writing! Very few mistakes this time, and the vocabulary was very descriptive.',
-        },
-      ],
-    },
-  ]);
+  /**
+   * Books a lesson for this student and takes the points. Returns the lesson,
+   * or null when the slot is taken or the balance is short.
+   */
+  const bookLesson = ({ teacherId, start, duration = 30, subject, topic = '', note = '', points = 5 }) => {
+    if (!school.isTeacherSlotOpen(teacherId, start, duration)) return null;
+    return school.bookLesson({ studentId: STUDENT_ID, teacherId, start, duration, points, subject, topic, note });
+  };
+
+  /**
+   * Cancels a lesson. Returns { refunded, points } so the page can say what
+   * happened, or null if it could not be cancelled.
+   */
+  const cancelLesson = (id, reason = '') => {
+    const lesson = school.cancelLesson(id, { reason });
+    return lesson ? { refunded: lesson.refunded, points: lesson.points } : null;
+  };
+
+  /** Moves a lesson to a new start (ISO). Null if the teacher is busy then. */
+  const rescheduleLesson = (id, startIso) => school.rescheduleLesson(id, startIso);
+
+  /** Subject, topic and the message to the teacher. */
+  const editLesson = (id, { subject, topic, note } = {}) => school.updateLesson(id, { subject, topic, note });
+
+  // ── Writing ───────────────────────────────────────────────────────────
+  // Writing correction tickets, newest activity first. `messages[0]` is always
+  // the student's original passage, and a correction travels attached to the
+  // message that explains it.
+  const writingTickets = computed(() =>
+    school.writingForStudent(STUDENT_ID)
+      .map((w) => {
+        const t = w.teacherId === null ? null : teacherOf(w.teacherId);
+        const first = w.messages[0]?.body ?? '';
+        return {
+          id: w.id,
+          title: w.title,
+          status: w.status,
+          date: dateIn(w.submittedAt, TOKYO),
+          teacherName: t?.name ?? null,
+          teacherPhoto: t?.photo ?? null,
+          words: first.trim().split(/\s+/).filter(Boolean).length,
+          remainingSends: w.remainingSends,
+          lastAt: w.messages[w.messages.length - 1]?.at ?? w.submittedAt,
+          messages: w.messages.map((m) => ({ ...m, time: messageStamp(m.at) })),
+        };
+      })
+      .sort((a, b) => b.lastAt.localeCompare(a.lastAt))
+  );
 
   const openWritingCount = computed(
     () => writingTickets.value.filter((ticket) => ticket.status !== 'Complete').length
   );
 
   /** What a single correction costs, and what the ledger row will say. */
-  const WRITING_COST = 5;
+  const WRITING_COST = school.WRITING_COST;
 
   /** Appends the student's follow-up and spends one of the thread's sends. */
   const sendWritingReply = (ticketId, body) => {
-    const ticket = writingTickets.value.find((t) => t.id === ticketId);
-    if (!ticket || ticket.status === 'Complete' || ticket.remainingSends < 1) return;
-    const text = (body ?? '').trim();
-    if (!text) return;
-    ticket.messages.push({
-      id: `m-${ticket.messages.length + 1}`,
-      from: 'student',
-      time: 'Just now',
-      body: text,
-    });
-    ticket.remainingSends -= 1;
+    school.replyWriting(ticketId, { from: 'student', body: body ?? '' });
   };
 
   /** Closes the thread. It stays readable — only the reply box goes away. */
   const finishWritingTicket = (ticketId) => {
-    const ticket = writingTickets.value.find((t) => t.id === ticketId);
-    if (ticket) ticket.status = 'Complete';
+    school.completeWriting(ticketId);
   };
 
   /**
-   * Opens a new ticket and charges the points, writing the ledger row the
-   * Point History page already shows for past corrections. Returns the new
-   * ticket so the page can jump straight to it, or null if the balance is short.
+   * Opens a new ticket; the shared store charges the points and writes the
+   * ledger row. Returns the new ticket so the page can jump straight to it, or
+   * null if the balance is short.
    */
-  const submitWriting = ({ title, body }) => {
-    const text = (body ?? '').trim();
-    if (!text || profile.value.pointsBalance < WRITING_COST) return null;
+  const submitWriting = ({ title, body }) =>
+    school.submitWriting({ studentId: STUDENT_ID, title: (title ?? '').trim() || 'Untitled passage', body });
 
-    const name = (title ?? '').trim() || 'Untitled passage';
-    const words = text.split(/\s+/).filter(Boolean).length;
-
-    const ticket = {
-      id: `wt-${Date.now()}`,
-      title: name,
-      status: 'In Progress',
-      date: 'Just now',
-      teacherName: null,
-      teacherPhoto: null,
-      words,
-      remainingSends: 3,
-      messages: [{ id: 'm-1', from: 'student', time: 'Just now', body: text }],
-    };
-    writingTickets.value.unshift(ticket);
-
-    profile.value.pointsBalance -= WRITING_COST;
-    pointLedger.value.unshift({
-      id: Date.now(),
-      date: 'Just now',
-      time: '',
-      points: -WRITING_COST,
-      reason: 'Writing Correction Submitted',
-      detail: name,
-      type: 'debit',
-      balanceAfter: profile.value.pointsBalance,
-    });
-
-    return ticket;
-  };
-
-  // The same shelf the instructor sees against this student's name — id 21 is
-  // Taro in the instructor portal's lesson log.
-  const STUDENT_ID = 21;
-  const lessonMaterials = ref(seedMaterials()[STUDENT_ID] ?? []);
+  // ── Materials ─────────────────────────────────────────────────────────
+  // The same shelf the instructor sees against this student's name.
+  const lessonMaterials = computed(() => school.materialsFor(STUDENT_ID));
 
   /** Newest first, and grouped by subject for the materials page. */
   const materialsBySubject = computed(() => {
@@ -552,14 +543,6 @@ This is a good start. The only change is the last sentence: when we use "look fo
     });
     return [...groups.entries()].map(([subject, items]) => ({ subject, items }));
   });
-
-  /** The student's rating of the teacher for one past lesson. */
-  const rateLesson = (id, rating, comment = '') => {
-    const lesson = pastLessons.value.find((item) => item.id === id);
-    if (!lesson || lesson.status !== 'completed') return;
-    lesson.yourRating = rating;
-    lesson.yourComment = comment.trim();
-  };
 
   const bannerNotice = ref(null);
   
@@ -608,6 +591,11 @@ This is a good start. The only change is the last sentence: when we use "look fo
     lastPurchase,
     pastLessons,
     rateLesson,
+    upcomingLessons,
+    bookLesson,
+    cancelLesson,
+    rescheduleLesson,
+    editLesson,
     lessonMaterials,
     materialsBySubject,
     writingTickets,

@@ -394,7 +394,7 @@ const shareVia = (channel) => {
               v-if="plan.popular"
               class="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-slate-900 px-3 py-0.5 text-[10px] font-extrabold uppercase tracking-wider text-amber-300 shadow-sm"
             >
-              ★ Most Popular
+              <i class="fa-solid fa-star" aria-hidden="true"></i> Most Popular
             </div>
             <div
               v-else-if="plan.bestValue"
