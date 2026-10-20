@@ -446,6 +446,8 @@ export const useUserStore = defineStore('user', () => {
           yourComment: l.studentComment ?? '',
           rating: l.teacherScore,
           feedback,
+          // What the teacher provided for this lesson; none for a cancelled one.
+          materials: completed ? school.materialsForLesson(l.id) : [],
         };
       })
   );

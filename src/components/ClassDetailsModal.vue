@@ -156,8 +156,8 @@
                 <i :class="prepDone ? 'fa-solid fa-circle-check' : 'fa-solid fa-book-open'" class="mr-1" aria-hidden="true"></i>
                 Before your class
               </p>
-              <span class="text-[11px] font-bold tabular-nums" :class="prepDone ? 'text-emerald-700' : 'text-amber-800'">
-                {{ prep.reviewed }} of {{ prep.total }} reviewed
+              <span class="text-[11px] font-bold" :class="prepDone ? 'text-emerald-700' : 'text-amber-800'">
+                {{ prepDone ? 'Reviewed' : 'Not opened yet' }}
               </span>
             </div>
             <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
@@ -203,7 +203,7 @@
               </li>
             </ul>
             <p class="m-0 mt-2 text-[11px] text-slate-500">
-              {{ prep.chosen ? `Picked by ${firstName} for this lesson.` : 'Materials in this lesson’s subject.' }}
+              {{ prep.chosen ? `Picked by ${firstName} for this lesson.` : 'The latest material in this lesson’s subject.' }}
               {{ firstName }} can see what you’ve reviewed.
             </p>
           </div>
@@ -216,7 +216,7 @@
             role="status"
           >
             <p class="m-0 text-sm font-bold text-amber-900">
-              You haven’t opened {{ unreviewed }} material{{ unreviewed === 1 ? '' : 's' }} for this class.
+              You haven’t opened the material for this class yet.
             </p>
             <p class="m-0 mt-0.5 text-xs text-amber-800">A quick look now makes the lesson go further.</p>
             <div class="mt-3 grid grid-cols-2 gap-2">
@@ -384,6 +384,21 @@
                 {{ past.date }} · {{ past.time }}<template v-if="past.topic"> · {{ past.topic }}</template>
               </p>
               <p v-if="past.feedback" class="m-0 mt-2 whitespace-pre-line rounded-xl bg-[#f8fafc] p-3 text-xs leading-relaxed text-slate-700">{{ past.feedback }}</p>
+              <div v-if="past.materials?.length" class="mt-2 flex flex-wrap gap-1.5">
+                <a
+                  v-for="m in past.materials"
+                  :key="m.id"
+                  :href="m.url || undefined"
+                  target="_blank"
+                  rel="noopener"
+                  class="inline-flex max-w-full items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold ring-1 transition hover:brightness-95"
+                  :class="materialKind(m.kind).chip"
+                  :title="m.note || m.title"
+                >
+                  <i :class="materialKind(m.kind).icon" class="text-[10px]" aria-hidden="true"></i>
+                  <span class="truncate">{{ m.title }}</span>
+                </a>
+              </div>
               <p v-if="past.yourRating" class="m-0 mt-2 text-[11px] font-semibold text-amber-700">
                 <i class="fa-solid fa-star text-[10px]" aria-hidden="true"></i> You rated {{ past.yourRating }}/5
               </p>

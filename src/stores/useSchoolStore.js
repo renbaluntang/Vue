@@ -195,6 +195,19 @@ export const useSchoolStore = defineStore('school', () => {
     return l;
   };
 
+  /**
+   * Takes back a booking made moments ago: the lesson is removed outright
+   * (not cancelled — it never really happened) and the points come back in
+   * full. Only for a lesson still booked.
+   */
+  const undoBooking = (id) => {
+    const i = db.value.lessons.findIndex((l) => l.id === id && l.status === 'booked');
+    if (i === -1) return false;
+    const [l] = db.value.lessons.splice(i, 1);
+    if (l.points) adjustWallet(l.studentId, l.points, { reason: 'Booking undone', detail: `${l.subject} with ${teacher(l.teacherId).name}`, type: 'refund' });
+    return true;
+  };
+
   const rescheduleLesson = (id, start) => {
     const l = findLesson(id);
     if (!l || l.status !== 'booked') return null;
@@ -302,17 +315,36 @@ export const useSchoolStore = defineStore('school', () => {
     // Once the teacher has chosen — even "none" — their choice stands.
     const chosen = Array.isArray(l.prepMaterialIds);
     const code = subjectCode(l.subject);
+    // One material per class: the teacher's pick, or else the newest in the
+    // lesson's subject (the shelf is newest first).
     const picked = chosen
-      ? l.prepMaterialIds.map((id) => mats.find((m) => m.id === id)).filter(Boolean)
-      : mats.filter((m) => code && subjectCode(m.subject) === code);
+      ? l.prepMaterialIds.map((id) => mats.find((m) => m.id === id)).filter(Boolean).slice(0, 1)
+      : mats.filter((m) => code && subjectCode(m.subject) === code).slice(0, 1);
     const items = picked.map((m) => ({ ...m, reviewedAt: l.reviewed?.[m.id] ?? null }));
     return { items, total: items.length, reviewed: items.filter((i) => i.reviewedAt).length, chosen };
   };
 
-  /** The teacher's pick of materials for one lesson. */
+  /**
+   * What the teacher provided for a lesson, for looking back at it: their own
+   * pick if they made one, otherwise their materials in the lesson's subject.
+   * Unlike prepFor, it never borrows another teacher's files.
+   */
+  const materialsForLesson = (lessonId) => {
+    const l = findLesson(lessonId);
+    if (!l) return [];
+    const mats = materialsFor(l.studentId);
+    if (Array.isArray(l.prepMaterialIds)) {
+      return l.prepMaterialIds.map((id) => mats.find((m) => m.id === id)).filter(Boolean).slice(0, 1);
+    }
+    const code = subjectCode(l.subject);
+    const name = teacher(l.teacherId).name;
+    return mats.filter((m) => code && subjectCode(m.subject) === code && m.addedBy === name).slice(0, 1);
+  };
+
+  /** The teacher's pick for one lesson: one material, or none. */
   const setLessonPrep = (lessonId, ids) => {
     const l = findLesson(lessonId);
-    if (l) l.prepMaterialIds = [...new Set(ids)];
+    if (l) l.prepMaterialIds = [...new Set(ids)].slice(0, 1);
   };
 
   /** The student marks a material reviewed (or un-reviewed) for a lesson. */
@@ -428,11 +460,11 @@ export const useSchoolStore = defineStore('school', () => {
     db, now, resetDemo,
     student, teacher,
     lessons, lessonsForTeacher, lessonsForStudent, findLesson, teacherBusy, isTeacherSlotOpen,
-    bookLesson, cancelLesson, rescheduleLesson, updateLesson, submitFeedback, rateLesson,
+    bookLesson, cancelLesson, undoBooking, rescheduleLesson, updateLesson, submitFeedback, rateLesson,
     walletFor, adjustWallet,
     writing, writingForStudent, writingForTeacher, findTicket, submitWriting, replyWriting, completeWriting, WRITING_COST,
     materialsFor, addMaterial, removeMaterial,
-    subjectCode, prepFor, setLessonPrep, markMaterialReviewed,
+    subjectCode, prepFor, materialsForLesson, setLessonPrep, markMaterialReviewed,
     threadsForTeacher, threadsForStudent, threadBetween, unreadIn, sendMessage, markThreadRead, toggleReaction,
     exams, examsForTeacher, examsForStudent, findExam, saveExam, deleteExam,
     submissionsForExam, submissionFor, examMaxScore, submissionScore, submitExam, gradeSubmission,

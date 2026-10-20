@@ -1,22 +1,45 @@
 <template>
   <div class="p-4 sm:p-6 lg:p-10 max-w-7xl mx-auto space-y-8 animate-in fade-in duration-500">
-    <!-- Top-level orientation: concise, dated, and action-led. -->
-    <section class="flex flex-col lg:flex-row gap-6 justify-between items-start lg:items-center">
-      <div class="space-y-1.5">
-        <img :src="brightureLogo" alt="Brighture" class="h-5 sm:h-6 w-auto" />
-        <div class="flex items-baseline gap-3 flex-wrap">
-          <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-950 tracking-tight">
-            Learning overview
-          </h1>
-          <span class="text-xs font-semibold uppercase tracking-[0.14em] text-slate-400">This week</span>
+    <!-- Top of the page: this week's progress, with the two quick actions
+         beside it on wide screens (xl) and under it below that. -->
+    <section class="flex flex-col xl:flex-row gap-5 xl:gap-6 items-stretch xl:items-center">
+      <!-- The week is the dashboard's one primary metric; the rest is supporting evidence. -->
+      <section aria-label="Learning progress" class="min-w-0 w-full flex-1 border-y border-slate-200 py-3.5 sm:py-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,0.6fr))] gap-4 lg:gap-0">
+        <div class="lg:pr-8">
+          <div class="flex items-end justify-between gap-4">
+            <div>
+              <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Weekly class goal</p>
+              <p class="mt-1 text-3xl sm:text-4xl font-black tracking-[-0.06em] tabular-nums text-slate-950 leading-none">
+                {{ user.stats.weeklyGoalMet }}<span class="text-slate-300">/{{ user.stats.weeklyGoalTotal }}</span>
+              </p>
+            </div>
+            <p class="max-w-[13rem] text-right text-xs leading-4 font-medium text-slate-500">
+              {{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet }} more class{{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet === 1 ? '' : 'es' }} completes your target for {{ weekRangeLabel }}.
+            </p>
+          </div>
+          <div class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
+            <div class="h-full rounded-full bg-[#FFCD00]" :style="{ width: `${(user.stats.weeklyGoalMet / user.stats.weeklyGoalTotal) * 100}%` }"></div>
+          </div>
         </div>
-        <p class="text-sm text-slate-500 font-medium">
-          {{ user.profile.firstName }}, your next class and weekly progress are ready to review.
-        </p>
-      </div>
+        <div class="lg:border-l lg:border-slate-200 lg:px-6">
+          <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Lessons completed</p>
+          <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.totalLessons }}</p>
+          <p class="mt-0.5 text-xs text-slate-500">all time</p>
+        </div>
+        <div class="lg:border-l lg:border-slate-200 lg:px-6">
+          <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Attendance</p>
+          <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.attendanceRate }}%</p>
+          <p class="mt-0.5 text-xs text-slate-500">last 90 days</p>
+        </div>
+        <div class="lg:border-l lg:border-slate-200 lg:pl-6">
+          <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Points available</p>
+          <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.profile.pointsBalance }}</p>
+          <RouterLink to="/points" class="mt-0.5 inline-block text-xs font-bold text-slate-600 hover:text-slate-950">View point history →</RouterLink>
+        </div>
+      </section>
 
       <!-- Quick Action Buttons -->
-      <div class="grid grid-cols-2 gap-2.5 sm:gap-3 w-full lg:w-auto lg:shrink-0">
+      <div class="grid grid-cols-2 xl:grid-cols-1 gap-2.5 sm:gap-3 w-full xl:w-52 xl:shrink-0">
         <RouterLink
           to="/booking"
           class="inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-lg bg-[#FFCD00] text-black font-bold text-[13px] sm:text-sm leading-tight text-center hover:bg-[#FFD933] active:scale-[0.98] transition-all"
@@ -38,9 +61,6 @@
       </div>
     </section>
 
-    <!-- Subscription reminder: from five days out until it is renewed, and
-         stronger once it has lapsed. Dismissing hides it for this visit only,
-         so it is back on the next one while the date still stands. -->
     <!-- Subscription reminder: from five days out until it is renewed, and
          stronger once it has lapsed. Dismissing hides it for this visit only,
          so it is back on the next one while the date still stands. -->
@@ -97,40 +117,6 @@
       </div>
     </div>
 
-    <!-- The week is the dashboard's one primary metric; the rest is supporting evidence. -->
-    <section aria-label="Learning progress" class="border-y border-slate-200 py-3.5 sm:py-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,0.6fr))] gap-4 lg:gap-0">
-      <div class="lg:pr-8">
-        <div class="flex items-end justify-between gap-4">
-          <div>
-            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Weekly class goal</p>
-            <p class="mt-1 text-3xl sm:text-4xl font-black tracking-[-0.06em] tabular-nums text-slate-950 leading-none">
-              {{ user.stats.weeklyGoalMet }}<span class="text-slate-300">/{{ user.stats.weeklyGoalTotal }}</span>
-            </p>
-          </div>
-          <p class="max-w-[13rem] text-right text-xs leading-4 font-medium text-slate-500">
-            {{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet }} more class{{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet === 1 ? '' : 'es' }} completes your target for {{ weekRangeLabel }}.
-          </p>
-        </div>
-        <div class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
-          <div class="h-full rounded-full bg-[#FFCD00]" :style="{ width: `${(user.stats.weeklyGoalMet / user.stats.weeklyGoalTotal) * 100}%` }"></div>
-        </div>
-      </div>
-      <div class="lg:border-l lg:border-slate-200 lg:px-6">
-        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Lessons completed</p>
-        <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.totalLessons }}</p>
-        <p class="mt-0.5 text-xs text-slate-500">all time</p>
-      </div>
-      <div class="lg:border-l lg:border-slate-200 lg:px-6">
-        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Attendance</p>
-        <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.attendanceRate }}%</p>
-        <p class="mt-0.5 text-xs text-slate-500">last 90 days</p>
-      </div>
-      <div class="lg:border-l lg:border-slate-200 lg:pl-6">
-        <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Points available</p>
-        <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.profile.pointsBalance }}</p>
-        <RouterLink to="/points" class="mt-0.5 inline-block text-xs font-bold text-slate-600 hover:text-slate-950">View point history →</RouterLink>
-      </div>
-    </section>
 
     <!-- Result toast for reschedule / cancel / edit: pinned to the top right
          of the window, so it never pushes the page down. It closes itself
@@ -230,7 +216,7 @@
                     : 'bg-amber-400/20 text-amber-200 ring-1 ring-amber-400/40 hover:bg-amber-400/30'"
               >
                 <i :class="nextPrepLeft === 0 ? 'fa-solid fa-circle-check' : 'fa-solid fa-book-open'" aria-hidden="true"></i>
-                {{ nextPrepLeft === 0 ? 'Materials reviewed' : `${nextPrepLeft} material${nextPrepLeft === 1 ? '' : 's'} to review` }}
+                {{ nextPrepLeft === 0 ? 'Material reviewed' : 'Material to review' }}
               </button>
             </div>
 
@@ -805,7 +791,6 @@ import { imageForKey } from '@/lib/teacherImages';
 import AppImage from '../../components/AppImage.vue';
 import { ref, computed } from 'vue';
 import { useRouter } from 'vue-router';
-import brightureLogo from '@/assets/logo-black.svg';
 import coinsImage from '@/assets/coins.svg';
 import { useUserStore } from '../../stores/useUserStore';
 import { useSchoolStore } from '../../stores/useSchoolStore';

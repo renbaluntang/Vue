@@ -86,6 +86,23 @@
               {{ lesson.date }} · {{ lesson.time }} · {{ lesson.duration }} min ·
               {{ lesson.pointsDeducted ? `${lesson.pointsDeducted} pts` : 'refunded' }}
             </p>
+            <!-- What the teacher provided for this lesson -->
+            <div v-if="lesson.materials?.length" class="mt-2 flex flex-wrap items-center gap-1.5">
+              <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Materials</span>
+              <a
+                v-for="m in lesson.materials"
+                :key="m.id"
+                :href="m.url || undefined"
+                target="_blank"
+                rel="noopener"
+                class="inline-flex max-w-[16rem] items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-bold ring-1 transition hover:brightness-95"
+                :class="materialKind(m.kind).chip"
+                :title="m.note || m.title"
+              >
+                <i :class="materialKind(m.kind).icon" class="text-[10px]" aria-hidden="true"></i>
+                <span class="truncate">{{ m.title }}</span>
+              </a>
+            </div>
           </div>
         </div>
 
@@ -180,6 +197,32 @@
           <p class="whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
             {{ openLesson.feedback }}
           </p>
+
+          <div v-if="openLesson.materials?.length">
+            <p class="m-0 mb-2 text-[10px] font-black uppercase tracking-wider text-slate-400">
+              Materials from {{ openLesson.teacherName.split(' ')[0] }}
+            </p>
+            <ul class="m-0 list-none space-y-2 p-0">
+              <li v-for="m in openLesson.materials" :key="m.id">
+                <a
+                  :href="m.url || undefined"
+                  target="_blank"
+                  rel="noopener"
+                  class="flex items-start gap-3 rounded-xl border border-slate-100 p-3 transition hover:border-slate-200 hover:bg-slate-50"
+                >
+                  <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg ring-1" :class="materialKind(m.kind).chip">
+                    <i :class="materialKind(m.kind).icon" class="text-xs" aria-hidden="true"></i>
+                  </span>
+                  <span class="min-w-0 flex-1">
+                    <span class="block truncate text-sm font-bold text-slate-900">{{ m.title }}</span>
+                    <span class="block text-[11px] font-medium text-slate-500">{{ materialKind(m.kind).label }} · added {{ m.addedOn }}</span>
+                    <span v-if="m.note" class="mt-0.5 block text-xs italic text-slate-600">{{ m.note }}</span>
+                  </span>
+                  <i v-if="m.url" class="fa-solid fa-arrow-up-right-from-square mt-1 text-[11px] text-slate-400" aria-hidden="true"></i>
+                </a>
+              </li>
+            </ul>
+          </div>
         </div>
 
         <div class="flex justify-end border-t border-slate-100 bg-slate-50 p-4">
@@ -274,6 +317,7 @@
 import AppImage from '../../components/AppImage.vue';
 import { computed, ref } from 'vue';
 import { useUserStore } from '../../stores/useUserStore';
+import { materialKind } from '@/lib/lessonMaterials';
 
 const user = useUserStore();
 

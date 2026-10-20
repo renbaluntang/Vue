@@ -1,7 +1,6 @@
 <script setup>
 import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
-import DurationToggle from "../student-view-v4/DurationToggle.vue";
-import CalendarViewToggle from "../student-view-v4/CalendarViewToggle.vue";
+import BookingScheduler from "../../components/BookingScheduler.vue";
 import BookingConfirmationPage from "../student-view-v4/BookingConfirmationPage.vue";
 import FreeConversationModal from "../../components/FreeConversationModal.vue";
 import TeacherIntroVideo from "../../components/TeacherIntroVideo.vue";
@@ -16,26 +15,20 @@ import {
   BOOKING_DAYS,
   BOOKING_TIME_SLOTS,
   formatSlotTo12Hour,
-  addMinutesToSlotLabel,
   getTeacherPhoto,
   getTeacherModalImage,
   INTRO_VIDEO_ID,
   DEMO_VIDEO_ID,
   getTeacherProfile,
-  getTeacherSubjectOptions,
   parseSubjectCodes,
   getSubjectBadgeStyle,
   getSubjectCategory,
   getSlotStatus,
-  DURATIONS,
   pointsForDuration,
-  CALENDAR_ROW_HEIGHT,
-  computeCalendarBlocks,
   getInitialFavorites,
 } from "../student-view-v4/constants";
 import { useUserStore } from "../../stores/useUserStore";
 import { useSchoolStore } from "../../stores/useSchoolStore";
-import { CURRENT_STUDENT_ID } from "../../lib/schoolSeed";
 import { TOKYO, partsIn, tokyoAt } from "../../lib/schoolTime";
 
 const user = useUserStore();
@@ -66,30 +59,12 @@ const getSlotStatusLive = (teacherId, dayIndex, slotIndex) => {
   return mock === "Available" ? "Reserved" : mock;
 };
 
-/** Whether this student already has a booked lesson with the teacher covering the cell. */
-const isOwnLessonSlot = (teacherId, dayIndex, slotIndex) => {
-  const key = instructorById(teacherId)?.imageKey;
-  if (!key) return false;
-  const start = new Date(slotStartIso(dayIndex, slotIndex)).getTime();
-  return school.lessonsForStudent(CURRENT_STUDENT_ID).some((lesson) => {
-    if (lesson.teacherId !== key || lesson.status !== "booked") return false;
-    const s = new Date(lesson.start).getTime();
-    return s <= start && start < s + lesson.duration * 60_000;
-  });
-};
 
 const favorites = ref(getInitialFavorites());
 const showFreeConversationModal = ref(false);
 const profileTeacher = ref(null);
-const hoveredBookingCell = ref(null);
-const bookingDuration = ref(30);
+
 const bookingNotice = ref(null);
-const calendarViewMode = ref("week");
-const calendarDayCursor = ref(0);
-const pendingBooking = ref(null);
-const confirmationDraft = ref(null);
-const confirmMessage = ref("");
-const confirmSubject = ref("");
 
 // Modern Redesign state
 const search = ref("");
@@ -235,61 +210,150 @@ watch(
   { immediate: true }
 );
 
-watch(bookingNotice, (value, _oldValue, onCleanup) => {
-  if (!value) {
-    return;
-  }
-  const timer = setTimeout(() => {
-    bookingNotice.value = null;
-  }, 4500);
-  onCleanup(() => clearTimeout(timer));
+// The notice stays exactly as long as its border countdown runs. Hovering or
+// focusing it pauses both (WCAG 2.2.1: people get the time they need to read
+// it or reach Undo), and leaving resumes from where it stopped.
+const NOTICE_MS = 15000;
+const noticeKey = ref(0);
+const noticePaused = ref(false);
+let noticeTimer = null;
+let noticeLeft = NOTICE_MS;
+let noticeStartedAt = 0;
+const startNoticeTimer = () => {
+  clearTimeout(noticeTimer);
+  noticeStartedAt = Date.now();
+  noticeTimer = setTimeout(() => { bookingNotice.value = null; }, noticeLeft);
+};
+const pauseNotice = () => {
+  if (!bookingNotice.value || noticePaused.value) return;
+  noticePaused.value = true;
+  clearTimeout(noticeTimer);
+  noticeLeft -= Date.now() - noticeStartedAt;
+};
+const resumeNotice = () => {
+  if (!bookingNotice.value || !noticePaused.value) return;
+  noticePaused.value = false;
+  startNoticeTimer();
+};
+watch(bookingNotice, (value) => {
+  clearTimeout(noticeTimer);
+  noticePaused.value = false;
+  if (!value) return;
+  noticeKey.value += 1; // restarts the countdown when a new notice replaces one
+  noticeLeft = NOTICE_MS;
+  startNoticeTimer();
 });
+onBeforeUnmount(() => clearTimeout(noticeTimer));
+
+/** Takes back the booking the notice is about, with a full refund. */
+const undoLastBooking = () => {
+  const id = bookingNotice.value?.lessonId;
+  if (!id) return;
+  const undone = school.undoBooking(id);
+  bookingNotice.value = undone
+    ? { type: "info", title: "Booking undone", message: "The lesson was removed and your points were refunded." }
+    : { type: "error", title: "Could not undo", message: "That lesson can no longer be undone. Cancel it from your dashboard instead." };
+};
 
 const openTeacherProfile = (teacher) => {
   profileTeacher.value = teacher;
-  hoveredBookingCell.value = null;
+  lastPick.value = null;
   bookingNotice.value = null;
-  // Carry the searched subject into the booking page, but only when this
+  // Carry the searched subject into the booking calendar, but only when this
   // teacher actually teaches it — otherwise the code has no matching option
   // (also covers a subject left over from the previously opened teacher).
   bookingSubject.value = parseSubjectCodes(teacher.specialty).includes(subjectFilter.value)
     ? subjectFilter.value
     : "ALL";
+};
 
-  const dayIndex = selectedDayKey.value
-    ? BOOKING_DAYS.findIndex((day) => day.key === selectedDayKey.value)
-    : -1;
-  const slotIndex = selectedTime.value ? BOOKING_TIME_SLOTS.indexOf(selectedTime.value) : -1;
+/**
+ * Where the calendar opens: back on the slot just reviewed, if the student
+ * cancelled out of the confirmation page; otherwise the page's date/time
+ * filter, if one is set.
+ */
+const lastPick = ref(null);
+const schedulerStart = computed(() => {
+  if (lastPick.value) return { date: lastPick.value.dateIso, time: lastPick.value.time, minutes: lastPick.value.minutes };
+  const dayIndex = selectedDayKey.value ? BOOKING_DAYS.findIndex((day) => day.key === selectedDayKey.value) : -1;
+  return {
+    date: dayIndex >= 0 ? tokyoDayIso(dayIndex) : "",
+    time: dayIndex >= 0 ? selectedTime.value || "" : "",
+    minutes: filterDuration.value,
+  };
+});
 
-  // A filtered date means the student already picked a day — open straight to it
-  // in Day view instead of dropping them on week one.
-  if (dayIndex >= 0) {
-    calendarViewMode.value = "day";
-    calendarDayCursor.value = dayIndex;
-  } else {
-    calendarViewMode.value = "week";
-    calendarDayCursor.value = 0;
-  }
+// --- Confirmation page ---
+const confirmationDraft = ref(null);
+const confirmSubject = ref("");
+const confirmMessage = ref("");
+const confirmSubjectOptions = computed(() =>
+  confirmationDraft.value
+    ? parseSubjectCodes(confirmationDraft.value.teacher.specialty).map((code) => ({ value: code, label: SUBJECT_LABELS[code] ?? code }))
+    : []
+);
 
-  if (dayIndex >= 0 && slotIndex >= 0) {
-    bookingDuration.value = filterDuration.value;
-    pendingBooking.value = {
-      teacherId: teacher.id,
-      dayIndex,
-      slotIndex,
-      minutes: filterDuration.value,
-      span: filterDuration.value === 60 ? 2 : 1,
+/** The card beside the slot hands its pick over for the full confirmation. */
+const openConfirmation = (pick) => {
+  confirmationDraft.value = { ...pick, teacher: profileTeacher.value };
+  lastPick.value = pick;
+  confirmMessage.value = "";
+  // Carry the searched subject over; "ALL" is not a real lesson subject.
+  confirmSubject.value = bookingSubject.value === "ALL" ? "" : bookingSubject.value;
+};
+
+const cancelConfirmation = () => {
+  confirmationDraft.value = null;
+};
+
+const finalizeBooking = () => {
+  const draft = confirmationDraft.value;
+  if (!draft) return;
+  // Booked in the shared store, so it shows on the dashboard and in the
+  // teacher's reservations. It refuses a taken slot or a short balance.
+  const booked = user.bookLesson({
+    teacherId: draft.teacher.imageKey,
+    start: draft.start,
+    duration: draft.minutes,
+    subject: confirmSubject.value ? SUBJECT_LABELS[confirmSubject.value] ?? confirmSubject.value : "Lesson",
+    note: confirmMessage.value.trim(),
+    points: draft.points,
+  });
+  confirmationDraft.value = null;
+  if (!booked) {
+    bookingNotice.value = {
+      type: "error",
+      message:
+        user.profile.pointsBalance < draft.points
+          ? `Not enough points — this lesson costs ${draft.points} pts and you have ${user.profile.pointsBalance}.`
+          : "That slot was just taken. Please choose another time.",
     };
-  } else {
-    pendingBooking.value = null;
+    return;
   }
+  bookingNotice.value = {
+    type: "success",
+    title: "Lesson booked",
+    lessonId: booked.id,
+    teacherName: draft.teacher.name,
+    photo: getTeacherPhoto(draft.teacher),
+    subject: booked.subject,
+    when: draft.dayLabel,
+    time: `${draft.startLabel} – ${draft.endLabel} JST`,
+    length: draft.minutes === 60 ? "1 hour" : "30 min",
+    points: draft.points,
+    left: user.profile.pointsBalance,
+    // Kept for screen readers and the error path, which only has text.
+    message: `${draft.minutes === 60 ? "1 hour" : "30 min"} with ${draft.teacher.name}, ${draft.dayLabel}, ${draft.startLabel} – ${draft.endLabel} JST.`,
+  };
+  lastPick.value = null;
+  confirmSubject.value = "";
+  confirmMessage.value = "";
+  closeTeacherProfile();
 };
 
 const closeTeacherProfile = () => {
   profileTeacher.value = null;
-  hoveredBookingCell.value = null;
-  pendingBooking.value = null;
-  confirmationDraft.value = null;
+  lastPick.value = null;
 };
 
 const filteredInstructors = computed(() => {
@@ -373,145 +437,8 @@ const toggleFavorite = (teacherId) => {
 };
 
 
-// "Selected" marks the student's own booked lessons, read from the shared store.
-const getDisplaySlotStatus = (teacherId, dayIndex, slotIndex) => {
-  if (isOwnLessonSlot(teacherId, dayIndex, slotIndex)) return "Selected";
-  return getSlotStatusLive(teacherId, dayIndex, slotIndex);
-};
 
-const isPendingSlot = (teacherId, dayIndex, slotIndex) =>
-  pendingBooking.value !== null &&
-  pendingBooking.value.teacherId === teacherId &&
-  pendingBooking.value.dayIndex === dayIndex &&
-  slotIndex >= pendingBooking.value.slotIndex &&
-  slotIndex < pendingBooking.value.slotIndex + pendingBooking.value.span;
 
-const handleBookingSlotClick = (teacher, dayIndex, slotIndex) => {
-  if (isPendingSlot(teacher.id, dayIndex, slotIndex)) {
-    pendingBooking.value = null;
-    return;
-  }
-
-  const durationConfig = DURATIONS.find((option) => option.minutes === bookingDuration.value);
-  const span = durationConfig.spanSlots;
-
-  if (slotIndex + span > BOOKING_TIME_SLOTS.length) {
-    bookingNotice.value = {
-      type: "error",
-      message: `${durationConfig.label} won't fit before the schedule closes for this day. Pick an earlier time.`,
-    };
-    return;
-  }
-
-  const indices = Array.from({ length: span }, (_, offset) => slotIndex + offset);
-  const allAvailable = indices.every(
-    (index) => getDisplaySlotStatus(teacher.id, dayIndex, index) === "Available"
-  );
-
-  if (!allAvailable) {
-    bookingNotice.value = {
-      type: "error",
-      message:
-        span > 1
-          ? `That start time only has 30 min free. Switch to a 30-min lesson or choose another time for a full hour.`
-          : `That slot is no longer available. Please choose another time.`,
-    };
-    return;
-  }
-
-  pendingBooking.value = { teacherId: teacher.id, dayIndex, slotIndex, span, minutes: bookingDuration.value };
-  hoveredBookingCell.value = null;
-};
-
-const cancelPendingBooking = () => {
-  pendingBooking.value = null;
-};
-
-const goToBookingConfirmation = () => {
-  if (!pendingBooking.value) {
-    return;
-  }
-  confirmationDraft.value = pendingBooking.value;
-  confirmMessage.value = "";
-  // Carry over the subject chosen on the booking page. "ALL" isn't a real
-  // lesson subject, so it starts the confirmation on the placeholder instead.
-  confirmSubject.value = bookingSubject.value === "ALL" ? "" : bookingSubject.value;
-};
-
-const cancelBookingConfirmation = () => {
-  confirmationDraft.value = null;
-};
-
-const finalizeBooking = () => {
-  if (!confirmationDraft.value) {
-    return;
-  }
-  const teacher = INSTRUCTORS.find((item) => item.id === confirmationDraft.value.teacherId);
-  const { dayIndex, slotIndex, minutes } = confirmationDraft.value;
-  const points = pointsForDuration(teacher, minutes);
-
-  // Book in the shared store, so the lesson shows on the dashboard and in the
-  // teacher's reservations. It refuses a taken slot or a short balance.
-  const booked = user.bookLesson({
-    teacherId: teacher.imageKey,
-    start: slotStartIso(dayIndex, slotIndex),
-    duration: minutes,
-    subject: confirmSubject.value ? SUBJECT_LABELS[confirmSubject.value] ?? confirmSubject.value : "Lesson",
-    note: confirmMessage.value.trim(),
-    points,
-  });
-  if (!booked) {
-    bookingNotice.value = {
-      type: "error",
-      message:
-        user.profile.pointsBalance < points
-          ? `Not enough points — this lesson costs ${points} pts and you have ${user.profile.pointsBalance}.`
-          : "That slot was just taken. Please choose another time.",
-    };
-    confirmationDraft.value = null;
-    pendingBooking.value = null;
-    return;
-  }
-
-  const day = BOOKING_DAYS[dayIndex];
-  const dayLabel = day ? `${day.day} ${day.label}` : "";
-  const startLabel = formatSlotTo12Hour(BOOKING_TIME_SLOTS[slotIndex]);
-  const endLabel = formatSlotTo12Hour(addMinutesToSlotLabel(BOOKING_TIME_SLOTS, slotIndex, minutes));
-  const durationConfig = DURATIONS.find((option) => option.minutes === minutes);
-  const subjectLabel = confirmSubject.value ? `${SUBJECT_LABELS[confirmSubject.value] ?? confirmSubject.value} · ` : "";
-  bookingNotice.value = {
-    type: "success",
-    message: `Booked! ${subjectLabel}${durationConfig.label} with ${teacher.name} on ${dayLabel}, ${startLabel} – ${endLabel} JST (${points} pts).`,
-  };
-  confirmationDraft.value = null;
-  pendingBooking.value = null;
-  confirmMessage.value = "";
-  confirmSubject.value = "";
-  closeTeacherProfile();
-};
-
-// --- Booking confirmation page derived state ---
-const draftTeacher = computed(() =>
-  confirmationDraft.value ? INSTRUCTORS.find((item) => item.id === confirmationDraft.value.teacherId) : null
-);
-const draftDay = computed(() => (confirmationDraft.value ? BOOKING_DAYS[confirmationDraft.value.dayIndex] : null));
-const draftDayLabel = computed(() => (draftDay.value ? `${draftDay.value.day} ${draftDay.value.label}` : ""));
-const draftStartLabel = computed(() =>
-  confirmationDraft.value ? formatSlotTo12Hour(BOOKING_TIME_SLOTS[confirmationDraft.value.slotIndex]) : ""
-);
-const draftEndLabel = computed(() =>
-  confirmationDraft.value
-    ? formatSlotTo12Hour(
-        addMinutesToSlotLabel(BOOKING_TIME_SLOTS, confirmationDraft.value.slotIndex, confirmationDraft.value.minutes)
-      )
-    : ""
-);
-const draftPoints = computed(() =>
-  confirmationDraft.value && draftTeacher.value ? pointsForDuration(draftTeacher.value, confirmationDraft.value.minutes) : 0
-);
-const draftSubjectOptions = computed(() =>
-  draftTeacher.value ? getTeacherSubjectOptions(draftTeacher.value).filter((opt) => opt.value !== "ALL") : []
-);
 
 // --- Date & time filter popover wiring ---
 const openDateTimePopover = () => {
@@ -542,55 +469,6 @@ const confirmDateTimeFilters = () => {
   isPopoverOpen.value = false;
 };
 
-// --- Teacher profile modal / calendar navigation ---
-const weekStartIndex = computed(() => Math.floor(calendarDayCursor.value / 7) * 7);
-const columns = computed(() =>
-  calendarViewMode.value === "week"
-    ? BOOKING_DAYS.slice(weekStartIndex.value, weekStartIndex.value + 7)
-    : [BOOKING_DAYS[calendarDayCursor.value]]
-);
-const dayIndexForColumn = (colIdx) =>
-  calendarViewMode.value === "week" ? weekStartIndex.value + colIdx : calendarDayCursor.value;
-const prevDisabled = computed(() =>
-  calendarViewMode.value === "week" ? weekStartIndex.value === 0 : calendarDayCursor.value === 0
-);
-const nextDisabled = computed(() =>
-  calendarViewMode.value === "week"
-    ? weekStartIndex.value + 7 >= BOOKING_DAYS.length
-    : calendarDayCursor.value >= BOOKING_DAYS.length - 1
-);
-const goPrev = () => {
-  calendarDayCursor.value =
-    calendarViewMode.value === "week"
-      ? Math.max(0, Math.floor(calendarDayCursor.value / 7) * 7 - 7)
-      : Math.max(0, calendarDayCursor.value - 1);
-};
-const goNext = () => {
-  calendarDayCursor.value =
-    calendarViewMode.value === "week"
-      ? Math.min(BOOKING_DAYS.length - 7, Math.floor(calendarDayCursor.value / 7) * 7 + 7)
-      : Math.min(BOOKING_DAYS.length - 1, calendarDayCursor.value + 1);
-};
-const goToday = () => {
-  calendarDayCursor.value = 0;
-};
-const headerLabel = computed(() =>
-  calendarViewMode.value === "week"
-    ? `${columns.value[0].label} – ${columns.value[columns.value.length - 1].label}`
-    : `${columns.value[0].day}, ${columns.value[0].label}`
-);
-
-// Mirrors the React component computing `now = new Date()` fresh on every
-// render — there is no ticking timer in the original, so this is a plain
-// function (not a cached computed) re-evaluated whenever the template
-// re-renders for any other reason.
-const getNowLineTop = () => {
-  const now = new Date();
-  const nowMinutesFromStart = now.getHours() * 60 + now.getMinutes() - 8 * 60;
-  return nowMinutesFromStart >= 0 && nowMinutesFromStart <= (BOOKING_TIME_SLOTS.length - 1) * 30
-    ? (nowMinutesFromStart / 30) * CALENDAR_ROW_HEIGHT
-    : null;
-};
 
 // --- Grid layout (single column; the runtime switcher was removed) ---
 const containerMaxWidthClass = "max-w-[1240px]";
@@ -600,24 +478,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
 </script>
 
 <template>
-  <BookingConfirmationPage
-    v-if="confirmationDraft"
-    :teacher="draftTeacher"
-    :day-label="draftDayLabel"
-    :start-label="draftStartLabel"
-    :end-label="draftEndLabel"
-    :minutes="confirmationDraft.minutes"
-    :points="draftPoints"
-    :subject="confirmSubject"
-    :subject-options="draftSubjectOptions"
-    :message="confirmMessage"
-    @update:subject="confirmSubject = $event"
-    @update:message="confirmMessage = $event"
-    @cancel="cancelBookingConfirmation"
-    @submit="finalizeBooking"
-  />
-
-  <div v-else class="min-h-screen bg-[#f1f5f9] px-3 py-6 pb-10 text-slate-800 sm:px-6">
+  <div class="min-h-screen bg-[#f1f5f9] px-3 py-6 pb-10 text-slate-800 sm:px-6">
     <div :class="`mx-auto space-y-6 transition-all duration-300 ${containerMaxWidthClass}`">
       <!-- Two ways in: start something now, or bring someone with you.
            Stacked, these two cost a whole phone screen before the teachers —
@@ -1098,25 +959,130 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
       </div>
     </div>
 
-    <div
-      v-if="bookingNotice"
-      :class="`fixed inset-x-0 top-4 z-[60] mx-auto w-full max-w-md rounded-xl border px-4 py-3 text-sm font-semibold shadow-xl sm:top-6 ${
-        bookingNotice.type === 'success' ? 'border-emerald-300 bg-emerald-50 text-emerald-800' : 'border-rose-300 bg-rose-50 text-rose-800'
-      }`"
-      role="status"
+    <!-- Result notice, top right, below the header so it never covers the
+         next-class bar. Its border is a countdown: a coloured line runs down
+         around the edge over 15 seconds, and the notice closes as it runs
+         out. Hover or focus pauses it. -->
+    <Transition
+      enter-active-class="transition duration-300 ease-out"
+      enter-from-class="opacity-0 translate-x-6"
+      leave-active-class="transition duration-200 ease-in"
+      leave-to-class="opacity-0 translate-x-6"
     >
-      <div class="flex items-start justify-between gap-3">
-        <p class="m-0">{{ bookingNotice.message }}</p>
-        <button
-          type="button"
-          @click="bookingNotice = null"
-          class="rounded-md px-1.5 text-xs font-bold opacity-70 transition hover:opacity-100"
-          aria-label="Dismiss notice"
-        >
-          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
-        </button>
+      <div
+        v-if="bookingNotice"
+        :key="noticeKey"
+        class="fixed right-4 top-28 z-[70] w-[calc(100vw-2rem)] max-w-sm"
+        :role="bookingNotice.type === 'error' ? 'alert' : 'status'"
+        aria-live="polite"
+        @mouseenter="pauseNotice"
+        @mouseleave="resumeNotice"
+        @focusin="pauseNotice"
+        @focusout="resumeNotice"
+      >
+        <div class="relative rounded-2xl bg-white shadow-xl">
+          <svg class="pointer-events-none absolute inset-0 h-full w-full overflow-visible" aria-hidden="true">
+            <rect x="0" y="0" width="100%" height="100%" rx="16" ry="16" fill="none" class="stroke-slate-200" stroke-width="2" />
+            <rect
+              x="0" y="0" width="100%" height="100%" rx="16" ry="16" fill="none"
+              pathLength="100"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              class="notice-countdown"
+              :class="bookingNotice.type === 'success' ? 'stroke-emerald-500' : bookingNotice.type === 'error' ? 'stroke-rose-500' : 'stroke-slate-400'"
+              :style="{ animationDuration: `${NOTICE_MS}ms`, animationPlayState: noticePaused ? 'paused' : 'running' }"
+            />
+          </svg>
+
+          <!-- Booked: who, when, and what it cost, as scannable lines -->
+          <div v-if="bookingNotice.type === 'success'" class="relative p-4">
+            <div class="flex items-start gap-3">
+              <div class="relative shrink-0">
+                <img :src="bookingNotice.photo" :alt="bookingNotice.teacherName" class="h-11 w-11 rounded-xl object-cover" />
+                <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[9px] text-white ring-2 ring-white">
+                  <i class="fa-solid fa-check" aria-hidden="true"></i>
+                </span>
+              </div>
+              <div class="min-w-0 flex-1">
+                <p class="m-0 text-sm font-black text-slate-900">{{ bookingNotice.title }}</p>
+                <p class="m-0 truncate text-xs font-medium text-slate-500">
+                  {{ bookingNotice.length }} with <span class="font-bold text-slate-700">{{ bookingNotice.teacherName }}</span>
+                </p>
+              </div>
+              <button
+                type="button"
+                @click="bookingNotice = null"
+                class="-mr-1 -mt-1 flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+                aria-label="Dismiss notice"
+              >
+                <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
+              </button>
+            </div>
+
+            <dl class="m-0 mt-3 space-y-1.5 rounded-xl bg-slate-50 px-3 py-2.5 text-xs">
+              <div class="flex items-center gap-2.5">
+                <dt class="w-4 shrink-0 text-center text-sky-600"><i class="fa-regular fa-calendar" aria-hidden="true"></i><span class="sr-only">Date</span></dt>
+                <dd class="m-0 font-bold text-slate-900">{{ bookingNotice.when }}</dd>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <dt class="w-4 shrink-0 text-center text-sky-600"><i class="fa-regular fa-clock" aria-hidden="true"></i><span class="sr-only">Time</span></dt>
+                <dd class="m-0 font-semibold text-slate-700 tabular-nums">{{ bookingNotice.time }}</dd>
+              </div>
+              <div v-if="bookingNotice.subject" class="flex items-center gap-2.5">
+                <dt class="w-4 shrink-0 text-center text-indigo-500"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span class="sr-only">Subject</span></dt>
+                <dd class="m-0 truncate font-semibold text-slate-700">{{ bookingNotice.subject }}</dd>
+              </div>
+              <div class="flex items-center gap-2.5">
+                <dt class="w-4 shrink-0 text-center text-amber-500"><i class="fa-solid fa-coins" aria-hidden="true"></i><span class="sr-only">Points</span></dt>
+                <dd class="m-0 font-semibold text-slate-700 tabular-nums">
+                  {{ bookingNotice.points }} pts used · <span class="text-slate-500">{{ bookingNotice.left }} left</span>
+                </dd>
+              </div>
+            </dl>
+
+            <div class="mt-3 flex items-center justify-between gap-2">
+              <button
+                type="button"
+                @click="undoLastBooking"
+                class="rounded-lg px-2.5 py-1.5 text-xs font-bold text-slate-600 transition hover:bg-slate-100 hover:text-slate-900"
+              >
+                <i class="fa-solid fa-rotate-left mr-1 text-[11px]" aria-hidden="true"></i> Undo
+              </button>
+              <RouterLink
+                to="/"
+                class="inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-3 py-1.5 text-xs font-bold text-white transition hover:bg-slate-800"
+              >
+                View on dashboard <i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i>
+              </RouterLink>
+            </div>
+          </div>
+
+          <!-- Errors and simple notes -->
+          <div v-else class="relative flex items-start gap-3 p-4">
+            <span
+              class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm"
+              :class="bookingNotice.type === 'error' ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-600'"
+            >
+              <i :class="bookingNotice.type === 'error' ? 'fa-solid fa-triangle-exclamation' : 'fa-solid fa-rotate-left'" aria-hidden="true"></i>
+            </span>
+            <div class="min-w-0 flex-1 pt-0.5">
+              <p class="m-0 text-xs font-black" :class="bookingNotice.type === 'error' ? 'text-rose-800' : 'text-slate-800'">
+                {{ bookingNotice.title || (bookingNotice.type === 'error' ? 'Could not book' : 'Done') }}
+              </p>
+              <p class="m-0 mt-0.5 text-xs font-semibold leading-snug text-slate-700 sm:text-sm">{{ bookingNotice.message }}</p>
+            </div>
+            <button
+              type="button"
+              @click="bookingNotice = null"
+              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700"
+              aria-label="Dismiss notice"
+            >
+              <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
       </div>
-    </div>
+    </Transition>
 
     <div
       v-if="profileTeacher"
@@ -1178,225 +1144,43 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
           </div>
         </div>
 
+        <!-- Booking calendar: lesson length, date jumping up to six months
+             ahead, and a confirmation card beside the chosen slot. -->
         <div class="p-3 sm:p-5">
-          <div class="rounded-2xl border border-slate-200 bg-white p-3 text-slate-800 shadow-sm sm:p-4">
-            <!-- Calendar toolbar: stacks to two rows on mobile -->
-            <div class="mb-3 flex flex-col gap-2">
-              <!-- Row 1: controls -->
-              <div class="flex flex-wrap items-center gap-2">
-                <CalendarViewToggle :value="calendarViewMode" @change="calendarViewMode = $event" />
-                <DurationToggle
-                  :value="bookingDuration"
-                  @change="bookingDuration = $event"
-                  :teacher="profileTeacher"
-                  size="sm"
-                />
-                <div class="relative">
-                  <select
-                    v-model="bookingSubject"
-                    class="appearance-none rounded-full border border-slate-200 bg-slate-100 py-1.5 pl-3 pr-8 text-[11px] font-semibold text-slate-700 outline-none transition hover:bg-slate-200 focus:border-brighture-gold focus:ring-2 focus:ring-brighture-gold/20"
-                  >
-                    <option v-for="opt in getTeacherSubjectOptions(profileTeacher)" :key="opt.value" :value="opt.value">{{ opt.label }}</option>
-                  </select>
-                  <svg class="pointer-events-none absolute right-2.5 top-1/2 h-3 w-3 -translate-y-1/2 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </div>
-              </div>
-              <!-- Row 2: date nav -->
-              <div class="flex items-center justify-between gap-2">
-                <span class="text-xs font-semibold text-slate-700">
-                  {{ headerLabel }}
-                </span>
-                <div class="inline-flex items-center gap-0.5 rounded-full border border-slate-200 bg-slate-100 p-1">
-                  <button
-                    type="button"
-                    @click="goPrev"
-                    :disabled="prevDisabled"
-                    aria-label="Previous"
-                    class="rounded-full px-2.5 py-1 text-slate-600 transition hover:bg-white hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    ‹
-                  </button>
-                  <button
-                    type="button"
-                    @click="goToday"
-                    class="rounded-full px-2.5 py-1 text-[11px] font-semibold text-slate-800 transition hover:bg-white"
-                  >
-                    Today
-                  </button>
-                  <button
-                    type="button"
-                    @click="goNext"
-                    :disabled="nextDisabled"
-                    aria-label="Next"
-                    class="rounded-full px-2.5 py-1 text-slate-600 transition hover:bg-white hover:text-slate-900 disabled:cursor-not-allowed disabled:opacity-30"
-                  >
-                    ›
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div class="overflow-x-auto rounded-xl border border-slate-200 bg-white -mx-1 sm:mx-0">
-              <!-- week mode: min 480px so 7 cols are usable; day mode: 220px -->
-              <div :style="{ minWidth: (calendarViewMode === 'week' ? 480 : 220) + 'px' }">
-                <div
-                  class="grid border-b border-slate-200 bg-slate-50"
-                  :style="{ gridTemplateColumns: `56px repeat(${columns.length}, 1fr)` }"
-                >
-                  <div class="border-r border-slate-200 bg-slate-50" />
-                  <div
-                    v-for="(day, colIdx) in columns"
-                    :key="day.key"
-                    class="border-r border-slate-200 bg-slate-50 px-0.5 py-2 text-center last:border-r-0"
-                  >
-                    <div class="text-[9px] sm:text-[10px] uppercase tracking-wide text-slate-500">
-                      {{ day.day.slice(0, 3) }}
-                    </div>
-                    <div
-                      :class="`mx-auto mt-1 flex h-6 w-6 items-center justify-center rounded-full text-[11px] font-semibold ${
-                        dayIndexForColumn(colIdx) === 0 ? 'bg-primary text-white' : 'text-slate-800'
-                      }`"
-                    >
-                      {{ day.label.slice(3) }}
-                    </div>
-                  </div>
-                </div>
-
-                <div class="max-h-[50dvh] sm:max-h-[420px] overflow-y-auto">
-                  <div
-                    class="grid"
-                    :style="{ gridTemplateColumns: `56px repeat(${columns.length}, 1fr)` }"
-                  >
-                    <div class="relative border-r border-slate-200 bg-slate-50/50">
-                      <div
-                        v-for="(slot, i) in BOOKING_TIME_SLOTS"
-                        :key="slot"
-                        class="absolute right-1 -translate-y-1/2 whitespace-nowrap text-[9px] sm:text-[10px] font-medium text-slate-500"
-                        :style="{ top: i * CALENDAR_ROW_HEIGHT + 'px' }"
-                      >
-                        {{ formatSlotTo12Hour(slot) }}
-                      </div>
-                      <div :style="{ height: BOOKING_TIME_SLOTS.length * CALENDAR_ROW_HEIGHT + 'px' }" />
-                    </div>
-
-                    <div
-                      v-for="(day, colIdx) in columns"
-                      :key="day.key"
-                      class="relative border-r border-slate-200 last:border-r-0"
-                      :style="{ height: BOOKING_TIME_SLOTS.length * CALENDAR_ROW_HEIGHT + 'px' }"
-                      @mouseleave="hoveredBookingCell = null"
-                    >
-                      <div
-                        v-for="(slot, i) in BOOKING_TIME_SLOTS"
-                        :key="`grid-${slot}`"
-                        :class="`absolute left-0 right-0 border-t ${i % 2 === 0 ? 'border-slate-200' : 'border-slate-100'}`"
-                        :style="{ top: i * CALENDAR_ROW_HEIGHT + 'px' }"
-                      />
-
-                      <!-- Reserved blocks removed as per request -->
-
-                      <template v-for="(slot, i) in BOOKING_TIME_SLOTS" :key="`open-wrap-${slot}`">
-                        <button
-                          v-if="!isPendingSlot(profileTeacher.id, dayIndexForColumn(colIdx), i) && getDisplaySlotStatus(profileTeacher.id, dayIndexForColumn(colIdx), i) === 'Available'"
-                          type="button"
-                          :title="`Stage ${bookingDuration === 60 ? '1 hour' : '30 min'} starting ${formatSlotTo12Hour(slot)}`"
-                          @mouseenter="hoveredBookingCell = { dayIndex: dayIndexForColumn(colIdx), slotIndex: i }"
-                          @click="handleBookingSlotClick(profileTeacher, dayIndexForColumn(colIdx), i)"
-                          class="absolute left-0.5 right-0.5 flex items-center justify-start overflow-hidden rounded-md border-l-2 border-emerald-500 bg-emerald-50 px-1.5 py-0.5 text-left text-[10px] font-semibold text-emerald-800 transition hover:bg-emerald-100"
-                          :style="{ top: (i * CALENDAR_ROW_HEIGHT + 1) + 'px', height: (CALENDAR_ROW_HEIGHT - 2) + 'px' }"
-                        >
-                          <span>Open</span>
-                        </button>
-                      </template>
-
-                      <div
-                        v-if="hoveredBookingCell && hoveredBookingCell.dayIndex === dayIndexForColumn(colIdx) && getDisplaySlotStatus(profileTeacher.id, dayIndexForColumn(colIdx), hoveredBookingCell.slotIndex) === 'Available'"
-                        class="pointer-events-none absolute left-0.5 right-0.5 rounded-md border-2 border-dashed border-amber-400 bg-amber-500/10"
-                        :style="{
-                          top: (hoveredBookingCell.slotIndex * CALENDAR_ROW_HEIGHT + 1) + 'px',
-                          height: ((bookingDuration === 60 ? 2 : 1) * CALENDAR_ROW_HEIGHT - 2) + 'px'
-                        }"
-                      />
-
-                      <div
-                        v-for="block in computeCalendarBlocks(profileTeacher.id, dayIndexForColumn(colIdx), BOOKING_TIME_SLOTS, getDisplaySlotStatus)"
-                        :key="`sel-${block.startIndex}`"
-                        class="absolute left-0.5 right-0.5 overflow-hidden rounded-md border-l-2 border-brighture-gold bg-brighture-cream px-1.5 py-0.5 text-[10px] font-semibold leading-tight text-brighture-ink"
-                        :style="{ top: (block.startIndex * CALENDAR_ROW_HEIGHT + 1) + 'px', height: (block.span * CALENDAR_ROW_HEIGHT - 2) + 'px' }"
-                      >
-                        <div>Your lesson</div>
-                        <div class="font-normal opacity-80">
-                          {{ formatSlotTo12Hour(BOOKING_TIME_SLOTS[block.startIndex]) }} – {{ formatSlotTo12Hour(addMinutesToSlotLabel(BOOKING_TIME_SLOTS, block.startIndex, block.span * 30)) }}
-                        </div>
-                      </div>
-
-                      <button
-                        v-if="pendingBooking && pendingBooking.teacherId === profileTeacher.id && pendingBooking.dayIndex === dayIndexForColumn(colIdx)"
-                        type="button"
-                        @click="handleBookingSlotClick(profileTeacher, dayIndexForColumn(colIdx), pendingBooking.slotIndex)"
-                        title="Tap to remove this selection"
-                        class="absolute left-0.5 right-0.5 animate-breathe overflow-hidden rounded-md border-l-2 border-amber-400 px-1.5 py-0.5 text-left text-[10px] font-semibold text-amber-900 hover:border-amber-600 motion-reduce:animate-none motion-reduce:bg-amber-50"
-                        :style="{ top: (pendingBooking.slotIndex * CALENDAR_ROW_HEIGHT + 1) + 'px', height: (pendingBooking.span * CALENDAR_ROW_HEIGHT - 2) + 'px' }"
-                      >
-                        <div>Pending — tap to remove</div>
-                        <div class="font-normal opacity-80">
-                          {{ formatSlotTo12Hour(BOOKING_TIME_SLOTS[pendingBooking.slotIndex]) }} –
-                          {{ formatSlotTo12Hour(addMinutesToSlotLabel(BOOKING_TIME_SLOTS, pendingBooking.slotIndex, pendingBooking.minutes)) }}
-                        </div>
-                      </button>
-
-                      <div
-                        v-if="dayIndexForColumn(colIdx) === 0 && getNowLineTop() !== null"
-                        class="pointer-events-none absolute left-0 right-0 z-10 flex items-center"
-                        :style="{ top: getNowLineTop() + 'px' }"
-                      >
-                        <div class="-ml-0.5 h-1.5 w-1.5 rounded-full bg-brighture-gold-deep" />
-                        <div class="h-px flex-1 bg-brighture-gold-deep" />
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div
-              v-if="pendingBooking && pendingBooking.teacherId === profileTeacher.id"
-              class="mt-3 flex flex-col gap-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between"
-            >
-              <p class="m-0">
-                <span class="font-semibold">Selected:</span>
-                {{ BOOKING_DAYS[pendingBooking.dayIndex].day }}
-                {{ BOOKING_DAYS[pendingBooking.dayIndex].label }},
-                {{ formatSlotTo12Hour(BOOKING_TIME_SLOTS[pendingBooking.slotIndex]) }} –
-                {{ formatSlotTo12Hour(addMinutesToSlotLabel(BOOKING_TIME_SLOTS, pendingBooking.slotIndex, pendingBooking.minutes)) }}
-                ({{ pointsForDuration(profileTeacher, pendingBooking.minutes) }} pts)
-              </p>
-              <div class="flex gap-2">
-                <button
-                  type="button"
-                  @click="cancelPendingBooking"
-                  class="rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="button"
-                  @click="goToBookingConfirmation"
-                  class="rounded-full bg-emerald-600 px-4 py-1.5 text-xs font-semibold text-white transition hover:bg-emerald-700 shadow-xs"
-                >
-                  Confirm Booking
-                </button>
-              </div>
-            </div>
-
-            <!-- Legend removed as per request -->
-          </div>
+          <BookingScheduler
+            :key="profileTeacher.id"
+            :teacher="profileTeacher"
+            :initial-date="schedulerStart.date"
+            :initial-time="schedulerStart.time"
+            :initial-duration="schedulerStart.minutes"
+            @review="openConfirmation"
+          />
         </div>
       </div>
     </div>
   </div>
+  <!-- Final step: the confirmation modal, opened from the card beside the
+       chosen slot. It floats over the calendar, so Cancel leaves the pick
+       exactly where it was. -->
+  <BookingConfirmationPage
+    v-if="confirmationDraft"
+    variant="modal"
+    :teacher="confirmationDraft.teacher"
+    :day-label="confirmationDraft.dayLabel"
+    :start-label="confirmationDraft.startLabel"
+    :end-label="confirmationDraft.endLabel"
+    :minutes="confirmationDraft.minutes"
+    :points="confirmationDraft.points"
+    :subject="confirmSubject"
+    :subject-options="confirmSubjectOptions"
+    :message="confirmMessage"
+    :balance="user.profile.pointsBalance"
+    @update:subject="confirmSubject = $event"
+    @update:message="confirmMessage = $event"
+    @cancel="cancelConfirmation"
+    @submit="finalizeBooking"
+  />
+
   <FreeConversationModal
     :isOpen="showFreeConversationModal"
     @close="showFreeConversationModal = false"
@@ -1404,6 +1188,22 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
 </template>
 
 <style scoped>
+/* The notice border drains like a loading bar: full at the start, gone when
+   the notice closes. pathLength="100" makes the dash maths length-free. */
+.notice-countdown {
+  stroke-dasharray: 100;
+  stroke-dashoffset: 0;
+  animation-name: notice-drain;
+  animation-timing-function: linear;
+  animation-fill-mode: forwards;
+}
+@keyframes notice-drain {
+  to { stroke-dashoffset: 100; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .notice-countdown { animation: none; }
+}
+
 /* The rail is swiped, so its scrollbar is noise on top of the cards. */
 .promo-rail {
   scrollbar-width: none;

@@ -157,13 +157,13 @@
                how much of it they have opened. The teacher picks the list. -->
           <div v-if="lessonRecord" class="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
-              <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Pre-class materials</p>
+              <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Pre-class material</p>
               <span
                 v-if="prep.total"
                 class="rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
                 :class="prep.reviewed === prep.total ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'"
               >
-                {{ firstName }} reviewed {{ prep.reviewed }} of {{ prep.total }}
+                {{ prep.reviewed ? `${firstName} has opened it` : `${firstName} hasn’t opened it yet` }}
               </span>
               <span v-else class="text-[11px] font-semibold text-slate-400">Nothing set for this lesson</span>
             </div>
@@ -199,9 +199,10 @@
                 class="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-xs hover:bg-slate-50"
               >
                 <input
-                  type="checkbox"
+                  type="radio"
+                  name="class-material"
                   :checked="prepIds.has(item.id)"
-                  @change="togglePrep(item.id)"
+                  @change="togglePrep(item.id, true)"
                   class="h-4 w-4 accent-[#c5a059]"
                 />
                 <i :class="materialKind(item.kind).icon" class="w-4 text-center text-slate-400" aria-hidden="true"></i>
@@ -218,7 +219,7 @@
                 class="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50"
               >
                 <i class="fa-solid fa-list-check mr-1 text-slate-400" aria-hidden="true"></i>
-                {{ choosingPrep ? 'Done' : 'Choose materials' }}
+                {{ choosingPrep ? 'Done' : (prep.total ? 'Change material' : 'Choose material') }}
               </button>
               <button
                 type="button"
@@ -227,7 +228,7 @@
               >
                 <i class="fa-solid fa-plus mr-1" aria-hidden="true"></i> Add a new one
               </button>
-              <span v-if="!prep.chosen && prep.total" class="text-[11px] text-slate-400">Showing materials in this subject until you choose.</span>
+              <span v-if="!prep.chosen && prep.total" class="text-[11px] text-slate-400">Matched by subject until you choose one.</span>
             </div>
           </div>
 
@@ -468,11 +469,34 @@
                 <span><span class="font-semibold text-slate-800">{{ materials.length }}</span> shared</span>
               </div>
 
+              <!-- This class: which of the shelf the student should review before
+                   the upcoming lesson. The same list they see in Class Details. -->
+              <div
+                v-if="lessonRecord && materials.length"
+                class="flex flex-wrap items-center justify-between gap-2 rounded-2xl border border-emerald-200 bg-emerald-50/60 px-3.5 py-2.5"
+              >
+                <p class="m-0 text-xs text-emerald-900">
+                  <i class="fa-solid fa-chalkboard-user mr-1 text-emerald-600" aria-hidden="true"></i>
+                  <span class="font-bold">This class</span> · {{ lessonLabel }}
+                  <span class="ml-1 rounded-full bg-white px-2 py-0.5 text-[11px] font-bold text-emerald-700 ring-1 ring-emerald-200">
+                    {{ prep.total ? '1 material set' : 'No material set' }}
+                  </span>
+                  <span v-if="!prep.chosen && prep.total" class="ml-1 text-[11px] text-emerald-700/80">(matched by subject until you choose)</span>
+                </p>
+                <button
+                  v-if="prep.total"
+                  type="button"
+                  @click="clearClassMaterial"
+                  class="rounded-lg px-2 py-1 text-[11px] font-bold text-emerald-800 transition hover:bg-white"
+                >Clear</button>
+              </div>
+
               <ul v-if="materials.length" class="space-y-2">
                 <li
                   v-for="item in materials"
                   :key="item.id"
-                  class="flex items-start gap-3 rounded-2xl border border-slate-200/80 bg-white p-3"
+                  class="flex items-start gap-3 rounded-2xl border bg-white p-3 transition-colors"
+                  :class="lessonRecord && prepIds.has(item.id) ? 'border-emerald-300 ring-1 ring-emerald-100' : 'border-slate-200/80'"
                 >
                   <span
                     class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-xs ring-1"
@@ -491,6 +515,20 @@
                     <p v-if="item.note" class="m-0 mt-1 text-xs italic text-slate-600">{{ item.note }}</p>
                   </div>
                   <div class="flex shrink-0 items-center gap-1">
+                    <button
+                      v-if="lessonRecord"
+                      type="button"
+                      @click="togglePrep(item.id)"
+                      :aria-pressed="prepIds.has(item.id)"
+                      class="inline-flex h-8 items-center gap-1.5 rounded-lg border px-2.5 text-[11px] font-bold transition"
+                      :class="prepIds.has(item.id)
+                        ? 'border-emerald-500 bg-emerald-500 text-white hover:bg-emerald-600'
+                        : 'border-slate-200 text-slate-600 hover:border-emerald-300 hover:bg-emerald-50 hover:text-emerald-700'"
+                      :title="prepIds.has(item.id) ? 'Remove from this class' : `Give this to ${firstName} for this class`"
+                    >
+                      <i :class="prepIds.has(item.id) ? 'fa-solid fa-check' : 'fa-solid fa-plus'" class="text-[10px]" aria-hidden="true"></i>
+                      For this class
+                    </button>
                     <a
                       v-if="item.url"
                       :href="item.url"
@@ -552,7 +590,7 @@
                   />
                   <label v-if="lessonRecord" class="sm:col-span-12 flex cursor-pointer items-center gap-2 text-xs font-semibold text-slate-600">
                     <input v-model="draft.forLesson" type="checkbox" class="h-4 w-4 accent-[#c5a059]" />
-                    {{ firstName }} should review this before the upcoming lesson
+                    Make this the material for the upcoming lesson
                   </label>
                   <button
                     type="button"
@@ -709,13 +747,27 @@ const prepIds = computed(() => new Set(prep.value.items.map((i) => i.id)));
 const choosingPrep = ref(false);
 watch(() => props.student?.id, () => { choosingPrep.value = false; });
 
-/** Adds or removes one material from this lesson's list (force = always add). */
+/**
+ * One material per class: picking one replaces the last; picking the current
+ * one again clears it (force = always pick, for a newly added material).
+ */
 const togglePrep = (id, force = false) => {
   if (!lessonRecord.value) return;
-  const ids = new Set(prepIds.value);
-  if (ids.has(id) && !force) ids.delete(id); else ids.add(id);
-  school.setLessonPrep(lessonRecord.value.id, [...ids]);
+  const isCurrent = prepIds.value.has(id) && prep.value.chosen;
+  school.setLessonPrep(lessonRecord.value.id, isCurrent && !force ? [] : [id]);
 };
+
+const clearClassMaterial = () => {
+  if (lessonRecord.value) school.setLessonPrep(lessonRecord.value.id, []);
+};
+
+/** "Wed, Oct 14 · 6:00 PM" for the upcoming lesson, on the teacher's clock. */
+const lessonLabel = computed(() => {
+  const start = lessonRecord.value?.start;
+  if (!start) return '';
+  const day = new Intl.DateTimeFormat('en-US', { timeZone: MANILA, weekday: 'short' }).format(new Date(start));
+  return `${day}, ${dateIn(start, MANILA).replace(/, \d{4}$/, '')} · ${clockIn(start, MANILA)}`;
+});
 
 const reviewedLabel = (iso) => `${dateIn(iso, MANILA)}, ${clockIn(iso, MANILA)}`;
 

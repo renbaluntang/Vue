@@ -59,8 +59,8 @@ export const seedLessons = (anchor) => {
   return [
     // ── Booked ──────────────────────────────────────────────────────────
     L({ id: 'r-501', studentId: 21, teacherId: 184, start: at(0, '18:00'), status: 'booked', subject: SF, topic: 'Cross-Border Negotiations & Pitching', meetLink: 'https://meet.google.com/abc-defg-hij', note: 'I want to focus on cross-border negotiation phrasing. Please correct my intonation.',
-      // Jirvy picked two things to read first; Taro has opened one of them.
-      prepMaterialIds: ['m-2101', 'm-2104'], reviewed: { 'm-2101': at(-1, '21:10') } }),
+      // Jirvy set one thing to read first; Taro has not opened it yet.
+      prepMaterialIds: ['m-2104'], reviewed: {} }),
     L({ id: 'r-502', studentId: 34, teacherId: 184, start: at(0, '20:00'), status: 'booked', subject: PP, topic: 'Vowel contrasts: /æ/ versus /ʌ/', meetLink: 'https://meet.google.com/klm-nopq-rst', note: 'Vowel drills again please — /æ/ and /ʌ/ are still hard for me.' }),
     L({ id: 'r-503', studentId: 12, teacherId: 184, start: at(1, '09:00'), status: 'booked', subject: DC, topic: 'Everyday small talk & self-introduction', substitution: true, note: 'First lesson — nervous about speaking, please go slowly.' }),
     L({ id: 'r-504', studentId: 45, teacherId: 184, start: at(1, '13:00'), status: 'booked', subject: RW, topic: 'IELTS Task 2 essay structure', meetLink: 'https://meet.google.com/uvw-xyza-bcd', note: 'Reviewing my IELTS Task 2 essay structure.' }),
@@ -72,7 +72,7 @@ export const seedLessons = (anchor) => {
     L({ id: 'r-513', studentId: 21, teacherId: 176, start: at(5, '20:00'), duration: 50, points: 9, status: 'booked', subject: RW, topic: 'Business Email Drafting', meetLink: 'https://meet.google.com/klm-nopq-tuv', note: 'Can we review a follow-up email to a client after a missed deadline?' }),
 
     // ── Past, with Jirvy ────────────────────────────────────────────────
-    L({ id: 'l-410', studentId: 21, teacherId: 184, start: at(-1, '18:00'), status: 'completed', subject: SF, topic: 'Counter-offers and closing a deal', feedbackSubmitted: true, teacherScore: 5, studentRating: 5, studentComment: 'Very clear explanations, I could follow every correction.', feedback: `Strong session, Taro. Your counter-offer phrasing was natural and confident.
+    L({ id: 'l-410', studentId: 21, teacherId: 184, start: at(-1, '18:00'), status: 'completed', subject: SF, topic: 'Counter-offers and closing a deal', prepMaterialIds: ['m-2101'], feedbackSubmitted: true, teacherScore: 5, studentRating: 5, studentComment: 'Very clear explanations, I could follow every correction.', feedback: `Strong session, Taro. Your counter-offer phrasing was natural and confident.
 
 Next time:
 1. Pause before your key pitch point so it lands.
@@ -80,7 +80,7 @@ Next time:
     L({ id: 'l-409', studentId: 34, teacherId: 184, start: at(-1, '15:00'), status: 'completed', subject: PP, topic: 'Short vowels in context', studentRating: 5 }),
     L({ id: 'l-408', studentId: 12, teacherId: 184, start: at(-2, '11:00'), status: 'completed', subject: DC, topic: 'Trial lesson: introductions', studentRating: 4, studentComment: 'Friendly and patient.' }),
     L({ id: 'l-407', studentId: 45, teacherId: 184, start: at(-3, '13:00'), status: 'no-show', subject: RW, topic: 'IELTS Task 2 essay structure', feedbackSubmitted: true }),
-    L({ id: 'l-101', studentId: 21, teacherId: 184, start: at(-14, '18:00'), status: 'completed', subject: SF, topic: 'International Marketing & Market Fit', feedbackSubmitted: true, teacherScore: 5, feedback: `Taro showed strong vocabulary in strategic discussion today.
+    L({ id: 'l-101', studentId: 21, teacherId: 184, start: at(-14, '18:00'), status: 'completed', subject: SF, topic: 'International Marketing & Market Fit', prepMaterialIds: [], feedbackSubmitted: true, teacherScore: 5, feedback: `Taro showed strong vocabulary in strategic discussion today.
 
 Key takeaways:
 1. Improved cadence when delivering conclusions.
@@ -88,7 +88,7 @@ Key takeaways:
     L({ id: 'l-105', studentId: 21, teacherId: 184, start: at(-25, '19:00'), duration: 50, points: 9, status: 'completed', subject: EP, topic: 'IELTS Speaking Part 2 — long turn', feedbackSubmitted: true, teacherScore: 4.9, feedback: 'Your two-minute long turn is now well structured. Watch the filler pause before examples — try "for instance" to buy the same time.' }),
 
     // ── Taro's past lessons with other instructors ──────────────────────
-    L({ id: 'l-102', studentId: 21, teacherId: 178, start: at(-17, '19:00'), duration: 50, points: 9, status: 'completed', subject: PP, topic: 'Short vowels vs long vowels', feedbackSubmitted: true, teacherScore: 4.8, feedback: `Good effort distinguishing /ɪ/ and /iː/ (ship vs sheep) and /æ/ vs /ʌ/ (cat vs cut).
+    L({ id: 'l-102', studentId: 21, teacherId: 178, start: at(-17, '19:00'), duration: 50, points: 9, status: 'completed', subject: PP, topic: 'Short vowels vs long vowels', prepMaterialIds: ['m-2102'], feedbackSubmitted: true, teacherScore: 4.8, feedback: `Good effort distinguishing /ɪ/ and /iː/ (ship vs sheep) and /æ/ vs /ʌ/ (cat vs cut).
 
 Homework: read the five tongue twisters aloud for three minutes before sleep.` }),
     L({ id: 'l-103', studentId: 21, teacherId: 175, start: at(-18, '18:00'), status: 'cancelled', subject: DC, topic: 'Open topic & fluency', refunded: true, cancelReason: 'Cancelled more than 3 hours before the start time — 5 points were refunded in full.' }),
