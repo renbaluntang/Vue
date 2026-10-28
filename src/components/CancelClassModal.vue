@@ -1,7 +1,7 @@
 <template>
   <div
     v-if="lesson"
-    class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/70 p-4 backdrop-blur-xs animate-in fade-in duration-200"
+    class="fixed inset-0 z-[60] flex items-start justify-center bg-slate-900/70 p-4 pt-6 sm:pt-12 backdrop-blur-xs animate-in fade-in duration-200"
     @click.self="$emit('close')"
   >
     <div
@@ -18,9 +18,33 @@
         <strong class="font-bold text-slate-700">{{ lesson.subject }}</strong> with
         {{ lesson.teacherName }} on {{ lesson.date }}, {{ lesson.time }}.
       </p>
+      <!-- Level checks (trial / counseling) have their own rule: cancellable
+           until 50 minutes before, and whatever was paid comes back. -->
+      <template v-if="checkType">
+        <p
+          v-if="!cancellable"
+          class="mt-3 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] font-semibold leading-relaxed text-amber-900"
+          role="alert"
+        >
+          Level checks can be cancelled until {{ LEVEL_CHECK_CANCEL_MINUTES }} minutes before the start.
+          This one starts too soon to cancel.
+        </p>
+        <p
+          v-else-if="lesson.points"
+          class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[11px] font-semibold leading-relaxed text-emerald-800"
+        >
+          Free cancellation — your {{ lesson.points }} points are refunded in full.
+        </p>
+        <p
+          v-else
+          class="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3 text-[11px] font-semibold leading-relaxed text-slate-600"
+        >
+          This is your free trial lesson, so there are no points to refund.
+        </p>
+      </template>
       <!-- With a known start, say which side of the 3h line this cancellation falls. -->
       <p
-        v-if="refundKnown && isFree"
+        v-else-if="refundKnown && isFree"
         class="mt-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-[11px] font-semibold leading-relaxed text-emerald-800"
       >
         Free cancellation — it is more than 3h before the start, so your
@@ -63,7 +87,8 @@
         </button>
         <button
           @click="$emit('confirm', lesson)"
-          class="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-red-700 cursor-pointer"
+          :disabled="!cancellable"
+          class="flex-1 rounded-xl bg-red-600 px-4 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-red-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-red-600"
         >
           Cancel class
         </button>
@@ -74,6 +99,8 @@
 
 <script setup>
 import { computed } from 'vue';
+import { assessmentTypeOf, LEVEL_CHECK_CANCEL_MINUTES } from '@/lib/brelas';
+import { useSchoolStore } from '@/stores/useSchoolStore';
 
 const props = defineProps({
   lesson: Object,
@@ -84,4 +111,10 @@ defineEmits(['close', 'confirm', 'reschedule']);
 const FREE_CANCEL_MINUTES = 180;
 const refundKnown = computed(() => typeof props.lesson?.minutesUntil === 'number');
 const isFree = computed(() => refundKnown.value && props.lesson.minutesUntil > FREE_CANCEL_MINUTES);
+
+const school = useSchoolStore();
+/** 'TA' / 'CS' for a level check, else null (a regular lesson). */
+const checkType = computed(() => assessmentTypeOf(props.lesson?.subject));
+/** Regular lessons keep their old behaviour; level checks ask the shared store. */
+const cancellable = computed(() => !checkType.value || school.canCancel(props.lesson?.id));
 </script>

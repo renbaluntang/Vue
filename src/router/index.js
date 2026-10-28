@@ -46,6 +46,11 @@ const routes = [
         component: () => import('../pages/portal/MaterialsPage.vue'),
       },
       {
+        path: 'feedback',
+        name: 'feedback',
+        component: () => import('../pages/portal/FeedbackPage.vue'),
+      },
+      {
         path: 'points',
         name: 'points',
         component: () => import('../pages/portal/PointHistoryPage.vue'),

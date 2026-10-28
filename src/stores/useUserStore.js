@@ -4,6 +4,7 @@ import { findPlan, isSubscription } from '@/lib/plans';
 import { useSchoolStore } from '@/stores/useSchoolStore';
 import { CURRENT_STUDENT_ID } from '@/lib/schoolSeed';
 import { TOKYO, partsIn, dateIn, clockIn, rangeIn, minutesUntil } from '@/lib/schoolTime';
+import { ASSESSMENT_TYPES, assessmentTypeOf } from '@/lib/brelas';
 
 const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
@@ -58,7 +59,8 @@ export const useUserStore = defineStore('user', () => {
     learningObjective: 'business',
     timezone: 'Asia/Tokyo (JST)',
     locale: 'en',
-    level: 'B2 Upper-Intermediate',
+    // No level here on purpose: students never see their level, only their
+    // instructor's assessment feedback (see assessmentFeedback below).
     targetGoal: 'Business Negotiations & IELTS 7.5',
     memberSince: 'March 2025',
     // Mirrors the shared wallet; kept on the profile for the layouts that read it.
@@ -481,6 +483,60 @@ export const useUserStore = defineStore('user', () => {
   /** Subject, topic and the message to the teacher. */
   const editLesson = (id, { subject, topic, note } = {}) => school.updateLesson(id, { subject, topic, note });
 
+  /** True while the student can still take their one free trial (TA). */
+  const taEligible = computed(() => school.taEligible(STUDENT_ID));
+
+  /** Whether a booked lesson can still be cancelled now (CS / TA close 50 minutes before). */
+  const canCancel = (id) => school.canCancel(id);
+
+  // ── Assessment feedback ───────────────────────────────────────────────
+  // What the student may see of an assessment: the teacher's feedback and
+  // nothing else. Fields are picked one by one, never spread, so the level,
+  // the NFA and the template answers can never leak into student state.
+  const assessmentFeedback = computed(() =>
+    // feedbackForStudent already returns submitted feedback only, never the level.
+    school.feedbackForStudent(STUDENT_ID)
+      .map(({ type, teacherId, submittedAt, scheduledAt, performance, workOn, nextCs }) => {
+        const t = teacherOf(teacherId);
+        return {
+          type,
+          typeLabel: ASSESSMENT_TYPES[type]?.label ?? 'Assessment',
+          teacherId,
+          teacherName: t.name,
+          teacherPhoto: t.photo,
+          submittedAt,
+          scheduledAt,
+          performance: performance ?? '',
+          workOn: workOn ?? '',
+          nextCs: nextCs ?? '',
+        };
+      })
+      .sort((a, b) => (b.scheduledAt ?? b.submittedAt ?? '').localeCompare(a.scheduledAt ?? a.submittedAt ?? ''))
+  );
+
+  /**
+   * Level-check lessons that have ended but whose feedback is not submitted
+   * yet, newest first. Built from the lessons, not the assessment records, so
+   * nothing from a draft (where the level may already be filled in) is read.
+   */
+  const pendingFeedback = computed(() => {
+    const submitted = new Set(
+      school.feedbackForStudent(STUDENT_ID).map((a) => a.lessonId)
+    );
+    return myLessons.value
+      .filter((l) => assessmentTypeOf(l.subject) && !['cancelled', 'no-show'].includes(l.status)
+        && minutesUntil(l.start, school.now) + l.duration <= 0 && !submitted.has(l.id))
+      .map((l) => {
+        const type = assessmentTypeOf(l.subject);
+        const t = teacherOf(l.teacherId);
+        return {
+          lessonId: l.id, type, typeLabel: ASSESSMENT_TYPES[type].label,
+          teacherName: t.name, teacherPhoto: t.photo, scheduledAt: l.start,
+        };
+      })
+      .sort((a, b) => b.scheduledAt.localeCompare(a.scheduledAt));
+  });
+
   // ── Writing ───────────────────────────────────────────────────────────
   // Writing correction tickets, newest activity first. `messages[0]` is always
   // the student's original passage, and a correction travels attached to the
@@ -596,6 +652,10 @@ export const useUserStore = defineStore('user', () => {
     upcomingLessons,
     bookLesson,
     cancelLesson,
+    canCancel,
+    taEligible,
+    assessmentFeedback,
+    pendingFeedback,
     rescheduleLesson,
     editLesson,
     lessonMaterials,

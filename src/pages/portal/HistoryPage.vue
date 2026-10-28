@@ -68,7 +68,7 @@
           />
           <div class="min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-sm font-bold text-slate-900">{{ lesson.subject }}</span>
+              <span class="flex min-w-0 text-sm font-bold text-slate-900"><SubjectCode :subject="lesson.subject" size="sm" /></span>
               <span
                 :class="`px-2 py-0.5 rounded-md text-[10px] font-bold ${
                   lesson.status === 'completed'
@@ -157,8 +157,8 @@
             <p class="text-[11px] font-bold uppercase tracking-wider text-brighture-gold">
               {{ openLesson.status === 'completed' ? 'Teacher feedback' : 'Cancelled class' }}
             </p>
-            <h2 id="lesson-feedback-title" class="mt-1 truncate text-lg font-extrabold sm:text-xl">
-              {{ openLesson.subject }}
+            <h2 id="lesson-feedback-title" class="mt-1 flex min-w-0 text-lg font-extrabold sm:text-xl">
+              <SubjectCode :subject="openLesson.subject" />
             </h2>
             <p class="mt-0.5 text-xs font-semibold text-slate-300">
               {{ openLesson.date }} · {{ openLesson.duration }} min
@@ -258,8 +258,8 @@
           <h2 id="rate-teacher-title" class="mt-3 text-lg font-extrabold text-slate-900">
             Rate {{ ratingTarget.teacherName }}
           </h2>
-          <p class="mt-1 text-xs font-semibold text-slate-500">
-            {{ ratingTarget.subject }} · {{ ratingTarget.date }}
+          <p class="mt-1 flex flex-wrap items-center justify-center gap-1.5 text-xs font-semibold text-slate-500">
+            <SubjectCode :subject="ratingTarget.subject" size="sm" /><span aria-hidden="true">·</span><span>{{ ratingTarget.date }}</span>
           </p>
 
           <!-- Stars -->
@@ -315,6 +315,7 @@
 
 <script setup>
 import AppImage from '../../components/AppImage.vue';
+import SubjectCode from '../../components/SubjectCode.vue';
 import { computed, ref } from 'vue';
 import { useUserStore } from '../../stores/useUserStore';
 import { materialKind } from '@/lib/lessonMaterials';

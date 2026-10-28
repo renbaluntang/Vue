@@ -69,7 +69,9 @@
         <div class="flex items-start justify-between gap-3">
           <div class="min-w-0">
             <p class="truncate text-sm font-bold text-slate-900">{{ lesson.studentName }}</p>
-            <p class="truncate text-[11px] text-slate-500">{{ lesson.subject }}</p>
+            <div class="mt-0.5 flex min-w-0 text-[11px] text-slate-500">
+              <SubjectCode :subject="lesson.subject" size="sm" />
+            </div>
           </div>
           <span
             class="inline-flex shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-1 text-[10px] font-bold ring-1"
@@ -143,7 +145,7 @@
               </td>
               <td class="px-4 py-3 font-bold text-slate-800">{{ lesson.studentName }}</td>
               <td class="px-4 py-3">
-                <p class="text-slate-800">{{ lesson.subject }}</p>
+                <SubjectCode :subject="lesson.subject" size="sm" class="text-slate-800" />
                 <p class="text-[11px] text-slate-500">{{ lesson.category }}</p>
               </td>
               <td class="px-4 py-3 text-center">
@@ -208,6 +210,7 @@ import { ref, computed } from 'vue';
 import LessonFeedbackModal from '../../components/teacher/LessonFeedbackModal.vue';
 import StudentMaterialsModal from '../../components/teacher/StudentMaterialsModal.vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
+import SubjectCode from '@/components/SubjectCode.vue';
 
 const teacher = useTeacherStore();
 

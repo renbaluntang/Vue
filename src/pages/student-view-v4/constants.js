@@ -9,10 +9,11 @@ export const INSTRUCTORS = [
     id: 1,
     name: "Jirvy Dela Torre",
     imageKey: 184,
-    points: 2,
+    // Matches Jirvy's production profile: "online 4 points".
+    points: 4,
     rating: 4.98,
     lessonCount: 1240,
-    specialty: "[SF], [LS1], [DC], [EP]",
+    specialty: "[SF], [LS1], [DC], [PP101], [PP102], [PP201], [PP202], [FC]",
   },
   {
     id: 2,
@@ -66,6 +67,45 @@ export const SUBJECT_LABELS = {
   "[EP]": "[EP] Exam Prep",
   "[TA]": "[TA] Trial Lesson & Assessment",
   "[CS]": "[CS] Counseling Session",
+  "[FC]": "[FC] Free Conversation",
+};
+
+/** One colour per subject for the square letter boxes (SubjectCode.vue), so no
+ *  two subjects look alike (the category colours would make SF and SC the
+ *  same). Full class strings so Tailwind keeps them. */
+export const SUBJECT_BOX_CLASSES = {
+  "[SF]": "bg-sky-100 text-sky-800 border-sky-200",
+  "[LS1]": "bg-teal-100 text-teal-800 border-teal-200",
+  "[DC]": "bg-emerald-100 text-emerald-800 border-emerald-200",
+  "[RW]": "bg-indigo-100 text-indigo-800 border-indigo-200",
+  "[SC]": "bg-rose-100 text-rose-800 border-rose-200",
+  "[PP101]": "bg-amber-100 text-amber-800 border-amber-200",
+  "[PP102]": "bg-orange-100 text-orange-800 border-orange-200",
+  "[PP201]": "bg-lime-100 text-lime-800 border-lime-200",
+  "[PP202]": "bg-yellow-100 text-yellow-800 border-yellow-200",
+  "[EP]": "bg-violet-100 text-violet-800 border-violet-200",
+  "[TA]": "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200",
+  "[CS]": "bg-cyan-100 text-cyan-800 border-cyan-200",
+  "[FC]": "bg-pink-100 text-pink-800 border-pink-200",
+  "[FA]": "bg-purple-100 text-purple-800 border-purple-200",
+};
+
+/** Reads one subject as written anywhere in the app — "[SF] Speech Fluency",
+ *  "[SF]", "SF" or plain "Conversation" — into { code, badge, name, boxClass }.
+ *  Text without a known code keeps its words and badges its first letter. */
+export const parseSubject = (text) => {
+  const part = (text ?? "").trim();
+  const bracketed = part.match(/^\[([A-Z0-9]+)\]\s*(.*)$/);
+  const bare = !bracketed && /^[A-Z][A-Z0-9]{1,5}$/.test(part) ? part : null;
+  const letters = bracketed?.[1] ?? bare;
+  const code = letters ? `[${letters}]` : null;
+  const known = SUBJECT_LABELS[code]?.replace(/^\[[^\]]+\]\s*/, "");
+  return {
+    code,
+    badge: letters ?? (part.charAt(0).toUpperCase() || "?"),
+    name: (bracketed ? bracketed[2] : bare ? "" : part) || known || letters || part,
+    boxClass: SUBJECT_BOX_CLASSES[code] ?? "bg-slate-100 text-slate-700 border-slate-200",
+  };
 };
 
 export const ALL_SUBJECTS_OPTION = { label: "All Subjects", value: "ALL" };
@@ -263,30 +303,41 @@ export const TEACHER_INTRO_VIDEO =
 
 export const TEACHER_PROFILE_BY_ID = {
   1: {
-    major: "B.A. in English Linguistics & Education",
-    expertise: "[SF] Speech Fluency, [LS1] Listening & Speaking, [EP] Exam Prep",
+    majors: ["Communication", "Education"],
+    areas: ["Pronunciation", "Grammar", "Beginners", "Advanced", "TOEIC", "Teaching History", "Writing"],
+    major: "Communication & Education",
+    expertise: "[SF], [LS1], [DC], [PP101], [PP102], [PP201], [PP202], [FC]",
     selfIntro:
-      "Hello! I specialize in helping students speak English naturally and confidently with structured feedback, fluency drills, and targeted test preparation.",
+      "I'm a friendly English teacher who loves helping students learn in a supportive and enjoyable environment. My goal is to help every student build confidence in using English for everyday conversations, one lesson at a time. See you in class!",
   },
+
   2: {
+    majors: ["Communication", "Education", "Language"],
+    areas: ["Pronunciation", "Grammar", "Beginners", "Advanced", "TOEIC", "Writing", "Business Writing", "Business Correspondence"],
     major: "B.S. in Communication Studies",
     expertise: "[PP101] Vowels, [PP202] American T, [DC] Conversation",
     selfIntro:
       "I focus on natural American intonation and vowel clarity. Master vowels, consonants, and smooth linking to speak everyday English with effortless ease!",
   },
   3: {
+    majors: ["Applied Linguistics", "English"],
+    areas: ["Writing", "Grammar", "Business Writing", "Discussion", "Advanced"],
     major: "M.A. in Applied English Linguistics",
     expertise: "[RW] Reading & Writing, [SC] Social Topics, [TA] Assessment",
     selfIntro:
       "Expressing complex thoughts clearly requires logical structure. I coach students in business email writing, essay composition, and insightful discussions.",
   },
   4: {
+    majors: ["Secondary Education", "English"],
+    areas: ["Conversation", "Beginners", "Pronunciation", "Speaking Confidence"],
     major: "B.A. in Secondary Education",
     expertise: "[SF] Speech Fluency, [SC] Social Conversation, [CS] Counseling",
     selfIntro:
       "My classes are relaxing, fun, and highly communicative. You will do 80% of the talking to overcome speaking hesitation and build lasting fluency!",
   },
   5: {
+    majors: ["Communication", "Phonetics"],
+    areas: ["Pronunciation", "Listening", "IELTS", "TOEFL"],
     major: "B.A. in English Communication & Phonetics",
     expertise: "[PP101] Vowels & Consonants, [LS1] Listening, [EP] Exam Prep",
     selfIntro:
@@ -322,6 +373,13 @@ export const getSubjectBadgeStyle = (code, isMatch = false) => {
 /**
  * Derives teacher profile using `teacher.specialty` as the single source of truth for subjects taught.
  */
+/** The catalogue instructor behind a teacher-like object (a lesson row or a
+ *  dashboard card), matched by teacher-image key, then by name. */
+export const findInstructor = (t) =>
+  INSTRUCTORS.find((i) => t?.teacherId != null && i.imageKey === t.teacherId) ??
+  INSTRUCTORS.find((i) => i.name === (t?.teacherName ?? t?.name)) ??
+  null;
+
 export const getTeacherProfile = (teacher) => {
   if (!teacher) return {};
   const staticProfile = TEACHER_PROFILE_BY_ID[teacher.id] || {};
@@ -331,6 +389,9 @@ export const getTeacherProfile = (teacher) => {
     .join(", ");
 
   return {
+    // Shown as on the production profile: "Major at University" and "Areas of Expertise".
+    majors: staticProfile.majors || ["Education", "Language"],
+    areas: staticProfile.areas || ["Conversation", "Grammar"],
     major: staticProfile.major || "Education & Language Teaching",
     expertise: staticProfile.expertise || "English Language & Communication",
     subjectsTaught,

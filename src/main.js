@@ -4,6 +4,7 @@ import { getRouter } from "./router";
 import { getClassicRouter } from "./router/classic";
 import { getMinimalRouter } from "./router/minimal";
 import { getTeacherRouter } from "./router/teacher";
+import { getAdminRouter } from "./router/admin";
 import i18n from "./i18n";
 import App from "./pages/app-panel/App.vue";
 import LoginRegisterPanel from "./pages/LoginRegisterPanel.vue";
@@ -17,6 +18,7 @@ import StudentViewV4 from "./pages/StudentViewV4.vue";
 import PointsPurchase from "./pages/PointsPurchase.vue";
 import PortalApp from "./pages/PortalApp.vue";
 import TeacherPortalApp from "./pages/TeacherPortalApp.vue";
+import AdminPortalApp from "./pages/AdminPortalApp.vue";
 import "@fortawesome/fontawesome-free/css/all.min.css";
 import "./styles.css";
 
@@ -29,6 +31,8 @@ const normalizedPath =
 const isTeacherView = normalizedPath === "/teacher";
 const isTeacherPortalView =
   normalizedPath === "/teacher-portal" || normalizedPath.startsWith("/teacher-portal/");
+const isAdminPortalView =
+  normalizedPath === "/admin-portal" || normalizedPath.startsWith("/admin-portal/");
 const isStudentView = normalizedPath === "/student";
 const isStudentViewV2 = normalizedPath === "/student-2";
 const isStudentViewV3 = normalizedPath === "/student-3";
@@ -51,6 +55,9 @@ const isStudentPortalView =
   (normalizedPath === "/student-portal" || normalizedPath.startsWith("/student-portal/"));
 
 const getPage = () => {
+  if (isAdminPortalView) {
+    return AdminPortalApp;
+  }
   if (isTeacherPortalView) {
     return TeacherPortalApp;
   }
@@ -95,6 +102,8 @@ if (isStudentPortalView || isStudentPortalClassicView || isStudentPortalV2View) 
   document.title = "Student Panel";
 } else if (isTeacherPortalView || isTeacherView) {
   document.title = "Instructor Panel";
+} else if (isAdminPortalView) {
+  document.title = "Admin Panel";
 }
 
 const app = createApp(page);
@@ -102,6 +111,9 @@ const app = createApp(page);
 if (page === TeacherPortalApp) {
   app.use(createPinia());
   app.use(getTeacherRouter());
+} else if (page === AdminPortalApp) {
+  app.use(createPinia());
+  app.use(getAdminRouter());
 } else if (page === PortalApp) {
   app.use(createPinia());
   if (isStudentPortalV2View) {

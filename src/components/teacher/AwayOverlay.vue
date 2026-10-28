@@ -60,7 +60,9 @@
           <p class="mt-1 truncate text-sm font-bold text-white">
             {{ teacher.imminentReservation.studentName }}
           </p>
-          <p class="truncate text-xs text-slate-400">{{ teacher.imminentReservation.subject }}</p>
+          <div class="mt-0.5 flex min-w-0 text-xs text-slate-400">
+            <SubjectCode :subject="teacher.imminentReservation.subject" size="sm" />
+          </div>
           <a
             v-if="teacher.imminentReservation.meetLink"
             :href="teacher.imminentReservation.meetLink"
@@ -94,6 +96,7 @@
 import GoogleMeetIcon from '../GoogleMeetIcon.vue';
 import { ref, computed, watch, onBeforeUnmount, nextTick } from 'vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
+import SubjectCode from '@/components/SubjectCode.vue';
 
 const teacher = useTeacherStore();
 

@@ -38,11 +38,8 @@
           </p>
         </div>
 
-        <!-- Level & Streak Badges -->
+        <!-- Streak badge (students never see their level) -->
         <div class="mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-600 text-xs font-extrabold rounded-xl border border-indigo-100/80 shadow-2xs">
-            🎯 {{ user.profile.level.split(' ')[0] }}
-          </span>
           <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-indigo-50 text-indigo-600 text-xs font-black rounded-xl border border-indigo-200/80 shadow-2xs">
             🔥 {{ user.stats.currentStreak }}d streak
           </span>

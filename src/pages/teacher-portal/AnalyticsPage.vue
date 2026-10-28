@@ -490,12 +490,9 @@
 
         <ul class="mt-4 space-y-3">
           <li v-for="subject in data.subjects" :key="subject.code" class="flex items-center gap-3">
-            <span class="w-12 shrink-0 rounded-lg bg-slate-100 px-1.5 py-1 text-center text-[10px] font-black text-slate-600">
-              {{ subject.code }}
-            </span>
             <div class="min-w-0 flex-1">
-              <div class="flex items-baseline justify-between gap-2">
-                <p class="truncate text-xs font-bold text-slate-700">{{ subject.label }}</p>
+              <div class="flex items-center justify-between gap-2">
+                <SubjectCode :subject="`[${subject.code}] ${subject.label}`" size="sm" class="text-xs font-bold text-slate-700" />
                 <p class="shrink-0 text-[11px] font-bold text-slate-500 tabular-nums">
                   {{ subject.lessons }} · {{ share(subject.lessons, data.lessons) }}%
                 </p>
@@ -550,6 +547,7 @@
 <script setup>
 import { ref, computed } from 'vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
+import SubjectCode from '@/components/SubjectCode.vue';
 
 const teacher = useTeacherStore();
 

@@ -125,9 +125,13 @@
               </div>
 
               <div class="flex items-center gap-1.5 mb-1">
-                <span class="px-1.5 py-0.2 rounded-md bg-slate-100 text-[10px] font-black text-slate-600 truncate max-w-[130px]">
-                  {{ student.latestSubject }}
-                </span>
+                <SubjectCode
+                  v-if="student.latestSubject !== '—'"
+                  :subject="student.latestSubject"
+                  size="sm"
+                  class="max-w-[130px] text-[10px] font-black text-slate-600"
+                />
+                <span v-else class="text-[10px] font-black text-slate-600">—</span>
                 <span class="text-[10px] text-slate-400 font-medium truncate">
                   &bull; {{ student.totalClassesTaken }} {{ student.totalClassesTaken === 1 ? 'class' : 'classes' }}
                 </span>
@@ -480,6 +484,7 @@ import { ref, computed, nextTick, onMounted, onUnmounted, watch } from 'vue';
 import { useRoute } from 'vue-router';
 import AppImage from '../../components/AppImage.vue';
 import StudentDetailModal from '../../components/teacher/StudentDetailModal.vue';
+import SubjectCode from '@/components/SubjectCode.vue';
 import { useSchoolStore } from '../../stores/useSchoolStore';
 import { useTeacherStore } from '../../stores/useTeacherStore';
 import { MANILA, stampIn, relativeLabel, minutesUntil } from '../../lib/schoolTime';

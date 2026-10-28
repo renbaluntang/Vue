@@ -14,7 +14,7 @@
 import { seedMaterials } from '@/lib/lessonMaterials';
 import { manilaAt } from '@/lib/schoolTime';
 
-export const SEED_VERSION = 1;
+export const SEED_VERSION = 6;
 
 /** Ids of the signed-in user on each side of the prototype. */
 export const CURRENT_STUDENT_ID = 21;
@@ -23,21 +23,22 @@ export const CURRENT_TEACHER_ID = 184;
 const photo = (id) => `https://images.unsplash.com/photo-${id}?w=300&auto=format&fit=crop&q=80`;
 
 export const seedStudents = () => ({
-  21: { id: 21, name: 'Taro Yamada', photo: photo('1535713875002-d1d0cf377fde'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo', level: 'B2 Upper-Intermediate' },
-  34: { id: 34, name: 'Aiko Tanaka', photo: photo('1517841905240-472988babdf9'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo', level: 'B1 Intermediate' },
-  12: { id: 12, name: 'Kenji Sato', photo: photo('1500648767791-00dcc994a43e'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo', level: 'A2 Pre-Intermediate' },
-  45: { id: 45, name: 'Mika Kobayashi', photo: photo('1494790108377-be9c29b29330'), membership: 'Regular', category: 'Online', timezone: 'Europe/London', level: 'B2 Upper-Intermediate' },
-  58: { id: 58, name: 'Daiki Suzuki', photo: photo('1507003211169-0a1dd7228f2d'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo', level: 'B1 Intermediate' },
-  63: { id: 63, name: 'Yuka Morita', photo: photo('1544005313-94ddf0286df2'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo', level: 'A2 Pre-Intermediate' },
+  21: { id: 21, isNew: false, name: 'Taro Yamada', photo: photo('1535713875002-d1d0cf377fde'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
+  34: { id: 34, isNew: false, name: 'Aiko Tanaka', photo: photo('1517841905240-472988babdf9'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
+  12: { id: 12, isNew: true, name: 'Kenji Sato', photo: photo('1500648767791-00dcc994a43e'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo' },
+  45: { id: 45, isNew: false, name: 'Mika Kobayashi', photo: photo('1494790108377-be9c29b29330'), membership: 'Regular', category: 'Online', timezone: 'Europe/London' },
+  58: { id: 58, isNew: false, name: 'Daiki Suzuki', photo: photo('1507003211169-0a1dd7228f2d'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
+  63: { id: 63, isNew: true, name: 'Yuka Morita', photo: photo('1544005313-94ddf0286df2'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo' },
 });
 
 /** Keyed by the teacher-image id the rest of the app already uses. */
 export const seedTeachers = () => ({
-  184: { id: 184, name: 'Jirvy Dela Torre' },
-  178: { id: 178, name: 'Jane Pasanting' },
-  176: { id: 176, name: 'Analyn Yosores' },
-  175: { id: 175, name: 'Sandra Auman' },
-  139: { id: 139, name: 'Nash Tatoy' },
+  // canAssess: an admin has flagged them to run level checks (TA / CS / FA).
+  184: { id: 184, name: 'Jirvy Dela Torre', canAssess: true },
+  178: { id: 178, name: 'Jane Pasanting', canAssess: false },
+  176: { id: 176, name: 'Analyn Yosores', canAssess: true },
+  175: { id: 175, name: 'Sandra Auman', canAssess: true },
+  139: { id: 139, name: 'Nash Tatoy', canAssess: true },
 });
 
 const SF = '[SF] Speech Fluency';
@@ -47,6 +48,8 @@ const RW = '[RW] Reading & Writing';
 const LS = '[LS1] Listening & Speaking';
 const EP = '[EP] Exam Prep';
 const FC = '[FC] Free Conversation';
+const TA = '[TA] Trial Lesson & Assessment';
+const CS = '[CS] Counseling Session';
 
 /**
  * Lessons. status: 'booked' | 'completed' | 'cancelled' | 'no-show'.
@@ -94,6 +97,14 @@ Homework: read the five tongue twisters aloud for three minutes before sleep.` }
     L({ id: 'l-103', studentId: 21, teacherId: 175, start: at(-18, '18:00'), status: 'cancelled', subject: DC, topic: 'Open topic & fluency', refunded: true, cancelReason: 'Cancelled more than 3 hours before the start time — 5 points were refunded in full.' }),
     L({ id: 'l-104', studentId: 21, teacherId: 176, start: at(-21, '18:00'), status: 'completed', subject: DC, topic: 'Weekend activities & travel in Kyoto', feedbackSubmitted: true, teacherScore: 5, feedback: 'Great casual flow and natural reactions. You asked engaging follow-up questions without prompting.' }),
     L({ id: 'l-106', studentId: 21, teacherId: 178, start: at(-28, '18:30'), status: 'completed', subject: LS, topic: 'Following fast native speech', feedbackSubmitted: true, teacherScore: 4.7, feedback: 'You caught most reduced forms ("gonna", "wanna"). Next time we will work on numbers and dates at speed.' }),
+
+    // ── Level checks ────────────────────────────────────────────────────
+    // Yuka's free trial yesterday: taught, assessment still to write.
+    L({ id: 'l-420', studentId: 63, teacherId: 184, start: at(-1, '10:00'), points: 0, status: 'completed', subject: TA, topic: 'Trial lesson', note: 'I want to speak more naturally on my trip to Cebu.' }),
+    // Taro's counseling session a month ago: assessed (see seedAssessments).
+    L({ id: 'l-415', studentId: 21, teacherId: 184, start: at(-30, '19:00'), status: 'completed', subject: CS, topic: 'Progress check', feedbackSubmitted: true, teacherScore: 5 }),
+    // Aiko's next counseling session, booked.
+    L({ id: 'r-520', studentId: 34, teacherId: 184, start: at(3, '18:00'), status: 'booked', subject: CS, topic: 'Counseling session', meetLink: 'https://meet.google.com/csx-aiko-tnk', note: 'I would like advice on which subjects to take next.' }),
   ];
 };
 
@@ -278,32 +289,179 @@ export const seedWallets = () => ({
 
 /**
  * Weekly availability per instructor, in Manila time, keyed `${day}-${slot}`.
- * Same shape the instructor store edits. Only Jirvy publishes real hours in
- * the prototype; other instructors fall back to sample availability.
+ * Same shape the instructor store edits. Every sample instructor keeps the
+ * school's normal hours: 8:00–12:00, a lunch hour, then 13:00–17:00 Manila,
+ * which students see as 9:00–13:00 and 14:00–18:00 Japan time. Each works
+ * five days in a row: most Monday to Friday, two Saturday to Wednesday so
+ * there is someone to book at the weekend.
  */
-export const seedAvailability = () => {
-  const pattern = {};
-  const openByDay = {
-    sun: [],
-    mon: [9, 10, 11, 14, 15, 16, 17, 18, 19, 20],
-    tue: [9, 10, 11, 14, 15, 16, 17, 18, 19, 20],
-    wed: [14, 15, 16, 17, 18, 19],
-    thu: [9, 10, 11, 14, 15, 16, 17, 18, 19, 20],
-    fri: [9, 10, 11, 17, 18, 19],
-    sat: [10, 11, 13, 14],
-  };
-  const key = (day, mins) => `${day}-t${String(Math.floor(mins / 60)).padStart(2, '0')}${String(mins % 60).padStart(2, '0')}`;
-  Object.entries(openByDay).forEach(([day, hours]) => {
-    hours.forEach((h) => { pattern[key(day, h * 60)] = 'open'; pattern[key(day, h * 60 + 30)] = 'open'; });
-  });
-  const hold = (day, h, reason) => {
-    pattern[key(day, h * 60)] = { status: 'reserved', reason };
-    pattern[key(day, h * 60 + 30)] = { status: 'reserved', reason };
-  };
-  hold('wed', 13, 'Demo Lesson');
-  hold('fri', 16, 'Team Meeting / Sync');
-  return { 184: { weekPattern: pattern, weekOverrides: {}, recurringSlots: {} } };
+const WORK_START_HOUR = 8;
+const FIRST_WORK_DAY = {
+  184: 1, // Jirvy: Mon–Fri
+  178: 1, // Jane: Mon–Fri
+  176: 6, // Analyn: Sat–Wed
+  175: 1, // Sandra: Mon–Fri
+  139: 6, // Sat–Wed
 };
+export const seedAvailability = () => {
+  const DAYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'];
+  const key = (day, mins) => `${day}-t${String(Math.floor(mins / 60)).padStart(2, '0')}${String(mins % 60).padStart(2, '0')}`;
+  return Object.fromEntries(Object.entries(FIRST_WORK_DAY).map(([teacherId, firstDay]) => {
+    const pattern = {};
+    // Four hours, the lunch hour off, then four more.
+    const hours = [0, 1, 2, 3, 5, 6, 7, 8].map((h) => WORK_START_HOUR + h);
+    for (let d = 0; d < 5; d += 1) {
+      const day = DAYS[(firstDay + d) % 7];
+      hours.forEach((h) => { pattern[key(day, h * 60)] = 'open'; pattern[key(day, h * 60 + 30)] = 'open'; });
+    }
+    return [teacherId, { weekPattern: pattern, weekOverrides: {}, recurringSlots: {} }];
+  }));
+};
+
+/* ── Level check ──────────────────────────────────────────────────────────
+ * Templates hold the internal questions an admin defines per type. The level,
+ * NFA and the two feedback boxes are fixed parts of every assessment, outside
+ * the template, so no template can ever expose the level to a student.
+ * Field types: rating (options), text, longtext, select, multiselect, checkbox.
+ */
+const RATE = {
+  listening: ['Excellent', 'Decent', 'OK', 'So so', 'Weak'],
+  pronunciation: ['Excellent', 'Decent', 'Not bad', 'Needs work', 'Poor'],
+  fillers: ['Almost none', 'Somewhat', 'Not much', 'A lot'],
+  construction: ['Excellent', 'Decent', 'OK', 'Basics are there', 'Broken'],
+  vocabulary: ['Excellent', 'Decent', 'Fair', 'Limited', 'Very limited'],
+};
+const SUBJECTS = ['PP', '1-1 LS', 'Group LS', 'WR', 'EE', 'ES', 'RC', 'BW', 'BC', 'SC', 'LSE', 'R&W', 'DC', 'SF', 'EP'];
+const f = (id, label, type, extra = {}) => ({ id, label, type, required: false, help: '', options: [], ...extra });
+const skillsSection = () => ({
+  id: 'skills',
+  title: 'Skills',
+  fields: [
+    f('listening', 'Listening', 'rating', { options: RATE.listening, required: true }),
+    f('pronunciation', 'Pronunciation', 'rating', { options: RATE.pronunciation, required: true }),
+    f('fillers', 'Fillers', 'rating', { options: RATE.fillers }),
+    f('construction', 'Sentence construction', 'rating', { options: RATE.construction, required: true }),
+    f('vocabulary', 'Vocabulary', 'rating', { options: RATE.vocabulary, required: true }),
+    f('skills_note', 'Notes on skills', 'longtext', { max: 1000 }),
+  ],
+});
+
+export const seedTemplates = (anchor) => {
+  const at = (day, time) => manilaAt(anchor, day, time);
+  return [
+    {
+      id: 'tpl-ta', type: 'TA', name: 'Trial Lesson Feedback (TA)', version: 1, active: true, updatedAt: at(-60, '10:00'),
+      description: 'First lesson for a new student: a short interview, a skills check and a recommended starting plan.',
+      sections: [
+        { id: 'interview', title: 'Interview', fields: [
+          f('goal', "Student's goal", 'longtext', { required: true, max: 1000, help: 'Why they are learning English, and by when.' }),
+          f('background', 'Background', 'longtext', { max: 1000, help: 'Job, past study, time abroad.' }),
+        ] },
+        skillsSection(),
+        { id: 'plan', title: 'Recommended plan', fields: [
+          f('subjects', 'Recommended subjects', 'multiselect', { options: SUBJECTS, required: true }),
+          f('frequency', 'Recommended lessons per week', 'select', { options: ['1', '2', '3', '4+'] }),
+        ] },
+      ],
+    },
+    {
+      id: 'tpl-cs', type: 'CS', name: 'Counseling Session Feedback (CS)', version: 1, active: true, updatedAt: at(-60, '10:00'),
+      description: 'Interview (~15 min), reading (~10 min), pronunciation (~5 min), feedback (~10 min), Q&A (~5 min).',
+      sections: [
+        { id: 'interview', title: 'Interview', fields: [
+          f('progress', 'Progress since the last session', 'longtext', { max: 1000 }),
+          f('goal', "Student's goal now", 'longtext', { required: true, max: 1000 }),
+        ] },
+        skillsSection(),
+        { id: 'reading', title: 'Reading aloud', fields: [
+          f('reading', 'Reading fluency', 'rating', { options: ['Excellent', 'Decent', 'OK', 'Slow', 'Struggles'] }),
+          f('reading_note', 'Notes on reading', 'longtext', { max: 1000 }),
+        ] },
+        { id: 'plan', title: 'Recommendations', fields: [
+          f('subjects', 'Recommended subjects', 'multiselect', { options: SUBJECTS, required: true }),
+        ] },
+      ],
+    },
+    {
+      id: 'tpl-fa', type: 'FA', name: "Student's Assessment (fixed class / corporate)", version: 1, active: true, updatedAt: at(-60, '10:00'),
+      description: 'Pre-assessment for fixed-class and corporate students, scheduled by an admin.',
+      sections: [
+        { id: 'context', title: 'Context', fields: [
+          f('company', 'Company / group', 'text', { max: 200 }),
+          f('role', "Student's role and English use at work", 'longtext', { max: 1000 }),
+        ] },
+        skillsSection(),
+        { id: 'class', title: 'Class placement', fields: [
+          f('placement_ok', 'Suitable for the planned fixed class', 'checkbox'),
+          f('placement_note', 'Placement notes', 'longtext', { max: 1000 }),
+        ] },
+      ],
+    },
+  ];
+};
+
+/**
+ * Assessment records. level / nfa / performance / workOn are fixed fields;
+ * answers hold the template's questions. templateVersion pins the version the
+ * teacher filled in, so editing a template never rewrites past results.
+ */
+export const seedAssessments = (anchor) => {
+  const at = (day, time) => manilaAt(anchor, day, time);
+  return [
+    {
+      id: 'as-1', type: 'CS', studentId: 21, teacherId: 184, lessonId: 'l-415', templateId: 'tpl-cs', templateVersion: 1,
+      status: 'submitted', scheduledAt: at(-30, '19:00'), submittedAt: at(-30, '21:10'),
+      level: 9, nfa: 'Hesitates before key points in negotiations; check business vocabulary range next time.',
+      performance: 'You speak with confidence and organise your ideas clearly. Your counter-offers sound natural, and your listening is strong even at a fast pace.',
+      workOn: '1. Pause before your key point so it lands.\n2. Use linking phrases like "In light of that" instead of "And so".\n3. Practise reading business articles aloud for rhythm.',
+      nextCs: 'In 3 months',
+      answers: { progress: 'Steady progress on business speaking since spring.', goal: 'Lead a negotiation in English by next year.', listening: 'Excellent', pronunciation: 'Decent', fillers: 'Somewhat', construction: 'Decent', vocabulary: 'Decent', reading: 'Decent', subjects: ['SF', 'BC'] },
+    },
+    {
+      id: 'as-2', type: 'TA', studentId: 63, teacherId: 184, lessonId: 'l-420', templateId: 'tpl-ta', templateVersion: 1,
+      status: 'draft', scheduledAt: at(-1, '10:00'), submittedAt: null,
+      level: null, nfa: '', performance: '', workOn: '', nextCs: '', answers: {},
+    },
+    {
+      // Scheduled by an admin for a corporate client: no booking, no points.
+      id: 'as-3', type: 'FA', studentId: 58, teacherId: 184, lessonId: null, templateId: 'tpl-fa', templateVersion: 1,
+      status: 'scheduled', scheduledAt: at(2, '14:00'), submittedAt: null, scheduledBy: 'Admin',
+      meetLink: 'https://meet.google.com/fa-daiki-szk',
+      level: null, nfa: '', performance: '', workOn: '', nextCs: '', answers: {},
+    },
+  ];
+};
+
+/**
+ * Level history, oldest first. from / to are ratings (1–15 or 'B0'); the
+ * current one is the last entry's `to`;
+ * a student with no entries is Unassessed. Levels from the legacy system
+ * arrive as "migration" entries, with their old NFA notes kept.
+ */
+export const seedLevelHistory = (anchor) => {
+  const at = (day, time) => manilaAt(anchor, day, time);
+  const mig = (id, studentId, to, nfa) => ({ id, studentId, from: null, to, by: { kind: 'migration', name: 'Migration' }, reason: 'Carried over from the previous system', nfa, at: at(-120, '09:00') });
+  return [
+    mig('lh-1', 21, 8, 'Business vocabulary still thin in meetings.'),
+    { id: 'lh-2', studentId: 21, from: 8, to: 9, by: { kind: 'teacher', id: 184, name: 'Jirvy Dela Torre' }, reason: 'Assessment: Counseling Session', assessmentId: 'as-1', at: at(-30, '21:10') },
+    mig('lh-3', 34, 5, 'Vowel contrasts (/æ/ vs /ʌ/) need steady drilling.'),
+    mig('lh-4', 45, 7, ''),
+    mig('lh-5', 58, 3, 'Shy in group settings; speaks more one to one.'),
+    // Kenji (12) and Yuka (63) have no history: Unassessed.
+  ];
+};
+
+/** A small shared library, each item tagged with the BRELAS level code it suits. */
+export const seedLibrary = () => [
+  { id: 'lib-1', title: 'Self-introduction starter pack', kind: 'pdf', subject: '[DC] Daily Conversation', level: 'B0', url: 'https://example.com/lib/self-intro-starter.pdf' },
+  { id: 'lib-2', title: 'Everyday phrases — shopping and travel', kind: 'doc', subject: '[DC] Daily Conversation', level: 'B1', url: 'https://example.com/lib/everyday-phrases' },
+  { id: 'lib-3', title: 'Short vowels listening set', kind: 'audio', subject: '[PP101] Pronunciation — Vowels', level: 'B1', url: 'https://example.com/lib/short-vowels.mp3' },
+  { id: 'lib-4', title: 'Past tense storytelling', kind: 'slides', subject: '[DC] Daily Conversation', level: 'B2', url: 'https://example.com/lib/past-tense-stories' },
+  { id: 'lib-5', title: 'Opinion phrases for discussion', kind: 'doc', subject: '[SF] Speech Fluency', level: 'I1', url: 'https://example.com/lib/opinion-phrases' },
+  { id: 'lib-6', title: 'Negotiation phrasebook', kind: 'pdf', subject: '[SF] Speech Fluency', level: 'I1', url: 'https://example.com/lib/negotiation-phrasebook.pdf' },
+  { id: 'lib-7', title: 'Presenting data in meetings', kind: 'slides', subject: '[SF] Speech Fluency', level: 'I2', url: 'https://example.com/lib/presenting-data' },
+  { id: 'lib-8', title: 'IELTS Task 2 — advanced cohesion', kind: 'pdf', subject: '[RW] Reading & Writing', level: 'A', url: 'https://example.com/lib/ielts-cohesion.pdf' },
+];
 
 export const buildSeed = (anchor) => ({
   version: SEED_VERSION,
@@ -318,4 +476,10 @@ export const buildSeed = (anchor) => ({
   submissions: seedSubmissions(anchor),
   wallets: seedWallets(),
   availability: seedAvailability(),
+  templates: seedTemplates(anchor),
+  assessments: seedAssessments(anchor),
+  levelHistory: seedLevelHistory(anchor),
+  library: seedLibrary(),
+  outbox: [],
+  levelReminder: null,
 });

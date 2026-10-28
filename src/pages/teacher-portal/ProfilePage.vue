@@ -95,12 +95,12 @@
             :key="code"
             type="button"
             @click="toggleSubject(code)"
-            class="rounded-xl px-3 py-1.5 text-xs font-bold transition active:scale-95"
+            class="inline-flex items-center rounded-xl px-2 py-1.5 text-xs font-bold transition active:scale-95"
             :class="form.subjects.includes(code)
               ? 'bg-brighture-gold text-brighture-ink shadow-sm'
               : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
           >
-            {{ code }}
+            <SubjectCode :subject="code" :show-name="hasSubjectName(code)" size="sm" />
           </button>
         </div>
       </div>
@@ -164,6 +164,8 @@
 <script setup>
 import { reactive, ref, computed } from 'vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
+import SubjectCode from '@/components/SubjectCode.vue';
+import { parseSubject } from '@/pages/student-view-v4/constants';
 
 const teacher = useTeacherStore();
 
@@ -172,6 +174,10 @@ const teacher = useTeacherStore();
 const timezones = ['Asia/Manila (PHT)', 'Asia/Tokyo (JST)'];
 
 const allSubjects = ['SF', 'LS1', 'LS2', 'DC', 'PP101', 'PP201', 'RW', 'EP', 'SC', 'BC', 'FC'];
+
+// Some codes (LS2, BC, FC) have no name in the subject list yet. Those show
+// the box alone rather than the same letters twice.
+const hasSubjectName = (code) => parseSubject(code).name !== code;
 
 const form = reactive({
   firstName: teacher.profile.firstName,

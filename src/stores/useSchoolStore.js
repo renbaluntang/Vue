@@ -2,6 +2,7 @@ import { defineStore } from 'pinia';
 import { ref, computed, watch } from 'vue';
 import { imageForKey } from '@/lib/teacherImages';
 import { buildSeed, SEED_VERSION } from '@/lib/schoolSeed';
+import { ASSESSMENT_TYPES, assessmentTypeOf, levelInfo, isValidRating, LEVEL_CHECK_CANCEL_MINUTES } from '@/lib/brelas';
 import {
   manilaToday, dayDiff, addDays, addMinutes, minutesUntil, manilaSlotOf, weekStartIso, slotKeyFor,
 } from '@/lib/schoolTime';
@@ -49,6 +50,11 @@ const shiftAll = (db, days) => {
   db.exams.forEach((e) => { e.updatedAt = s(e.updatedAt); });
   db.submissions.forEach((x) => { x.submittedAt = s(x.submittedAt); x.gradedAt = s(x.gradedAt); });
   Object.values(db.wallets).forEach((w) => w.entries.forEach((e) => { e.at = s(e.at); }));
+  (db.templates ?? []).forEach((t) => { t.updatedAt = s(t.updatedAt); });
+  (db.assessments ?? []).forEach((x) => { x.scheduledAt = s(x.scheduledAt); x.submittedAt = s(x.submittedAt); });
+  (db.levelHistory ?? []).forEach((h) => { h.at = s(h.at); });
+  (db.outbox ?? []).forEach((m) => { m.at = s(m.at); });
+  if (db.levelReminder) db.levelReminder.at = s(db.levelReminder.at);
   return db;
 };
 
@@ -132,23 +138,51 @@ export const useSchoolStore = defineStore('school', () => {
   };
 
   /**
-   * Whether a student can book this window with this teacher. For a teacher
-   * who publishes hours (Jirvy), every half hour must be open on their board
-   * that week; for the rest, `fallback` (the sample availability) decides.
-   * Past starts and clashes with another booking are always refused;
-   * `ignoreId` lets a lesson being rescheduled overlap its own current time.
+   * Sample bookings by other students, so a teacher's week doesn't look
+   * empty: about one working hour in five, picked by a stable hash of the
+   * teacher, Manila date and hour, so the same hours stay taken on every
+   * render. Demo data only; these are not lessons in the store.
+   */
+  const sampleTaken = (teacherId, startIso) => {
+    const { dateIso, minutes } = manilaSlotOf(startIso);
+    const text = `${teacherId}|${dateIso}|${Math.floor(minutes / 60)}`;
+    let hash = 0;
+    for (let k = 0; k < text.length; k += 1) hash = (hash * 31 + text.charCodeAt(k)) >>> 0;
+    return hash % 100 < 20;
+  };
+
+  /** Whether the teacher's board has this half hour open that week. */
+  const boardOpen = (board, startIso) => {
+    const { dateIso, dayKey, minutes } = manilaSlotOf(startIso);
+    const hours = board.weekOverrides?.[weekStartIso(dateIso)] ?? board.weekPattern;
+    const val = hours?.[`${dayKey}-${slotKeyFor(minutes)}`];
+    return val === true || val === 'open' || val?.status === 'open';
+  };
+
+  /**
+   * One half hour as a student's calendar sees it: 'open', 'booked' (within
+   * the teacher's hours but taken, by a lesson or a sample booking) or
+   * 'closed' (past, or outside the teacher's hours). For a teacher without a
+   * board, `fallback` (the sample availability) decides open or closed.
+   */
+  const teacherSlotState = (teacherId, startIso, fallback = true, ignoreId = null) => {
+    if (minutesUntil(startIso, now.value) < 0) return 'closed';
+    const board = db.value.availability[teacherId];
+    const working = board ? boardOpen(board, startIso) : fallback;
+    if (!working) return 'closed';
+    if (teacherBusy(teacherId, startIso, 30, ignoreId) || sampleTaken(teacherId, startIso)) return 'booked';
+    return 'open';
+  };
+
+  /**
+   * Whether a student can book this window with this teacher: every half
+   * hour in it must be open. Past starts, clashes with another booking and
+   * sample bookings are always refused; `ignoreId` lets a lesson being
+   * rescheduled overlap its own current time.
    */
   const isTeacherSlotOpen = (teacherId, startIso, duration, fallback = true, ignoreId = null) => {
-    if (minutesUntil(startIso, now.value) < 0) return false;
-    if (teacherBusy(teacherId, startIso, duration, ignoreId)) return false;
-    const board = db.value.availability[teacherId];
-    if (!board) return fallback;
     for (let m = 0; m < duration; m += 30) {
-      const { dateIso, dayKey, minutes } = manilaSlotOf(addMinutes(startIso, m));
-      const hours = board.weekOverrides?.[weekStartIso(dateIso)] ?? board.weekPattern;
-      const val = hours?.[`${dayKey}-${slotKeyFor(minutes)}`];
-      const open = val === true || val === 'open' || val?.status === 'open';
-      if (!open) return false;
+      if (teacherSlotState(teacherId, addMinutes(startIso, m), fallback, ignoreId) !== 'open') return false;
     }
     return true;
   };
@@ -169,6 +203,12 @@ export const useSchoolStore = defineStore('school', () => {
   /** Books a lesson and takes the points. Returns the lesson, or null. */
   const bookLesson = ({ studentId, teacherId, start, duration = 30, points = 5, subject, topic = '', note = '', meetLink }) => {
     if (teacherBusy(teacherId, start, duration)) return null;
+    // Level checks: TA is free and only for an eligible new student.
+    const checkType = assessmentTypeOf(subject);
+    if (checkType === 'TA') {
+      if (!taEligible(studentId)) return null;
+      points = 0;
+    }
     if (points && !adjustWallet(studentId, -points, { reason: 'Lesson booked', detail: `${subject} with ${teacher(teacherId).name}`, type: 'debit' })) return null;
     const lesson = {
       id: uid('r'), studentId, teacherId, start, duration, points, subject, topic, note,
@@ -178,6 +218,7 @@ export const useSchoolStore = defineStore('school', () => {
       studentRating: null, studentComment: '', cancelReason: '', refunded: false,
     };
     db.value.lessons.push(lesson);
+    if (checkType) notifyLevelCheck('booked', lesson);
     return lesson;
   };
 
@@ -185,6 +226,17 @@ export const useSchoolStore = defineStore('school', () => {
   const cancelLesson = (id, { reason = '' } = {}) => {
     const l = findLesson(id);
     if (!l || l.status !== 'booked') return null;
+    // CS / TA: cancellable until 50 minutes before; refunds whatever was paid.
+    const checkType = assessmentTypeOf(l.subject);
+    if (checkType) {
+      if (minutesUntil(l.start, Date.now()) < LEVEL_CHECK_CANCEL_MINUTES) return null;
+      l.status = 'cancelled';
+      l.refunded = !!l.points;
+      l.cancelReason = `${ASSESSMENT_TYPES[checkType].label} cancelled.${l.points ? ` ${l.points} points were refunded.` : ''}${reason ? ` Reason: ${reason}` : ''}`;
+      if (l.points) adjustWallet(l.studentId, l.points, { reason: 'Refund', detail: `${l.subject} cancelled`, type: 'refund' });
+      notifyLevelCheck('cancelled', l);
+      return l;
+    }
     const refund = minutesUntil(l.start, Date.now()) > FREE_CANCEL_MINUTES;
     l.status = 'cancelled';
     l.refunded = refund;
@@ -297,6 +349,214 @@ export const useSchoolStore = defineStore('school', () => {
     if (!list) return;
     const i = list.findIndex((m) => m.id === id);
     if (i !== -1) list.splice(i, 1);
+  };
+
+  // ── Level check ───────────────────────────────────────────────────────
+  // BRELAS levels, assessments and their templates. The level is only ever
+  // read by admin and teacher screens; the student portal reads feedback.
+
+  /** True while a student can still take their one free trial (TA). */
+  const taEligible = (studentId) => !!db.value.students[studentId]?.isNew
+    && !db.value.lessons.some((l) => l.studentId === studentId && assessmentTypeOf(l.subject) === 'TA' && l.status !== 'cancelled');
+
+  /** Whether a booked lesson can still be cancelled by the student now. */
+  const canCancel = (lessonId) => {
+    const l = findLesson(lessonId);
+    if (!l || l.status !== 'booked') return false;
+    // Same clock as cancelLesson, so the button and the store never disagree.
+    const left = minutesUntil(l.start, Date.now());
+    return assessmentTypeOf(l.subject) ? left >= LEVEL_CHECK_CANCEL_MINUTES : left > 0;
+  };
+
+  /**
+   * Emails for CS / TA booking and cancellation, to the student, the teacher
+   * and admin. There is no mail server in the prototype, so they are logged
+   * to an outbox an admin can read. They never mention the level.
+   */
+  const notifyLevelCheck = (event, l) => {
+    const type = ASSESSMENT_TYPES[assessmentTypeOf(l.subject)];
+    const who = student(l.studentId).name;
+    const t = teacher(l.teacherId).name;
+    const verb = event === 'booked' ? 'booked' : 'cancelled';
+    const at = new Date().toISOString();
+    if (!db.value.outbox) db.value.outbox = [];
+    [
+      { to: 'student', name: who, subject: `Your ${type.label} is ${verb}` },
+      { to: 'teacher', name: t, subject: `${type.label} ${verb}: ${who}` },
+      { to: 'admin', name: 'Brighture admin', subject: `[${type.code}] ${verb} — ${who} with ${t}` },
+    ].forEach((m) => db.value.outbox.unshift({ id: uid('mail'), at, event, lessonId: l.id, type: type.code, start: l.start, ...m }));
+  };
+
+  // Templates — one active template per type; each save makes a new version.
+  const templates = computed(() => db.value.templates ?? []);
+  const findTemplate = (id) => templates.value.find((t) => t.id === id) ?? null;
+  const activeTemplate = (type) => templates.value.find((t) => t.type === type && t.active) ?? null;
+  /** Saves a template. Editing bumps the version; past assessments keep a snapshot. */
+  const saveTemplate = (template) => {
+    const copy = JSON.parse(JSON.stringify(template));
+    const list = db.value.templates;
+    const i = list.findIndex((t) => t.id === copy.id);
+    copy.updatedAt = new Date().toISOString();
+    if (i === -1) {
+      copy.id = copy.id || uid('tpl');
+      copy.version = 1;
+      if (copy.active) list.forEach((t) => { if (t.type === copy.type) t.active = false; });
+      list.unshift(copy);
+    } else {
+      copy.version = (list[i].version ?? 1) + 1;
+      if (copy.active) list.forEach((t) => { if (t.type === copy.type && t.id !== copy.id) t.active = false; });
+      list.splice(i, 1, copy);
+    }
+    return copy;
+  };
+  const setTemplateActive = (id) => {
+    const t = findTemplate(id);
+    if (!t) return;
+    db.value.templates.forEach((x) => { if (x.type === t.type) x.active = x.id === id; });
+  };
+  const deleteTemplate = (id) => {
+    if ((db.value.assessments ?? []).some((a) => a.templateId === id)) return false; // in use: archive instead
+    db.value.templates = db.value.templates.filter((t) => t.id !== id);
+    return true;
+  };
+
+  // Assessments
+  const assessments = computed(() => db.value.assessments ?? []);
+  const findAssessment = (id) => assessments.value.find((a) => a.id === id) ?? null;
+  const assessmentsForTeacher = (teacherId) => assessments.value.filter((a) => a.teacherId === teacherId);
+  const assessmentsForStudent = (studentId) => assessments.value.filter((a) => a.studentId === studentId);
+
+  /**
+   * The only assessment data the student portal may read: submitted feedback.
+   * Picks fields explicitly so the level, rating and NFA never leave the store.
+   */
+  const feedbackForStudent = (studentId) => assessments.value
+    .filter((a) => a.studentId === studentId && a.status === 'submitted')
+    .map((a) => ({
+      id: a.id, type: a.type, teacherId: a.teacherId, lessonId: a.lessonId,
+      scheduledAt: a.scheduledAt, submittedAt: a.submittedAt,
+      performance: a.performance, workOn: a.workOn, nextCs: a.nextCs,
+    }));
+
+  /**
+   * The assessment for a TA / CS lesson, created as a draft from the type's
+   * active template the first time anyone asks for it (once the lesson has
+   * started). The template is snapshotted so later edits do not change it.
+   */
+  const assessmentForLesson = (lessonId) => {
+    const existing = assessments.value.find((a) => a.lessonId === lessonId);
+    if (existing) return existing;
+    const l = findLesson(lessonId);
+    const type = l && assessmentTypeOf(l.subject);
+    if (!type || l.status === 'cancelled' || minutesUntil(l.start, now.value) > 0) return null;
+    const tpl = activeTemplate(type);
+    const record = {
+      id: uid('as'), type, studentId: l.studentId, teacherId: l.teacherId, lessonId: l.id,
+      templateId: tpl?.id ?? null, templateVersion: tpl?.version ?? null, templateSnapshot: tpl ? JSON.parse(JSON.stringify(tpl)) : null,
+      status: 'draft', scheduledAt: l.start, submittedAt: null,
+      level: null, nfa: '', performance: '', workOn: '', nextCs: '', answers: {},
+    };
+    db.value.assessments.push(record);
+    return db.value.assessments[db.value.assessments.length - 1];
+  };
+
+  /** Makes sure every started TA / CS lesson has its assessment record. */
+  const syncLessonAssessments = () => {
+    db.value.lessons
+      .filter((l) => assessmentTypeOf(l.subject) && l.status !== 'cancelled' && minutesUntil(l.start, now.value) <= 0)
+      .forEach((l) => assessmentForLesson(l.id));
+  };
+
+  /** The template an assessment was written against (its snapshot, else the current one). */
+  const templateFor = (assessment) => assessment?.templateSnapshot ?? findTemplate(assessment?.templateId) ?? activeTemplate(assessment?.type);
+
+  /** Admin: schedule a fixed-class assessment. No booking, no points. */
+  const scheduleFixedAssessment = ({ studentId, teacherId, start, by = 'Admin' }) => {
+    const tpl = activeTemplate('FA');
+    const record = {
+      id: uid('as'), type: 'FA', studentId, teacherId, lessonId: null,
+      templateId: tpl?.id ?? null, templateVersion: tpl?.version ?? null, templateSnapshot: tpl ? JSON.parse(JSON.stringify(tpl)) : null,
+      status: 'scheduled', scheduledAt: start, submittedAt: null, scheduledBy: by,
+      meetLink: `https://meet.google.com/fa-${Math.random().toString(36).slice(2, 6)}-${Math.random().toString(36).slice(2, 5)}`,
+      level: null, nfa: '', performance: '', workOn: '', nextCs: '', answers: {},
+    };
+    db.value.assessments.push(record);
+    return record;
+  };
+  const cancelFixedAssessment = (id) => {
+    const a = findAssessment(id);
+    if (a && a.type === 'FA' && a.status !== 'submitted') db.value.assessments = db.value.assessments.filter((x) => x.id !== id);
+  };
+
+  /** Saves work in progress without submitting. */
+  const saveAssessmentDraft = (id, patch) => {
+    const a = findAssessment(id);
+    if (!a || a.status === 'submitted') return null;
+    ['answers', 'level', 'nfa', 'performance', 'workOn', 'nextCs'].forEach((k) => { if (patch[k] !== undefined) a[k] = patch[k]; });
+    if (a.status === 'scheduled') a.status = 'draft';
+    return a;
+  };
+
+  /**
+   * Submits an assessment. If its level differs from the student's current
+   * one, the change is recorded in the history with the assessment as reason.
+   */
+  const submitAssessment = (id, patch, by) => {
+    const a = saveAssessmentDraft(id, patch);
+    if (!a || !isValidRating(a.level)) return null;
+    a.status = 'submitted';
+    a.submittedAt = new Date().toISOString();
+    const current = currentLevel(a.studentId);
+    if (current !== a.level) {
+      recordLevel(a.studentId, a.level, { by, reason: `Assessment: ${ASSESSMENT_TYPES[a.type].label}`, assessmentId: a.id, nfa: a.nfa });
+    }
+    return a;
+  };
+
+  // Levels
+  const levelHistoryFor = (studentId) => (db.value.levelHistory ?? []).filter((h) => h.studentId === studentId).sort((x, y) => x.at.localeCompare(y.at));
+  /** Current BRELAS rating (1–15 or 'B0'), or null for Unassessed. */
+  const currentLevel = (studentId) => levelHistoryFor(studentId).at(-1)?.to ?? null;
+  /** The latest NFA note: from the newest submitted assessment, else migration. */
+  const currentNfa = (studentId) => {
+    const latest = assessments.value
+      .filter((a) => a.studentId === studentId && a.status === 'submitted' && a.nfa)
+      .sort((x, y) => (y.submittedAt ?? '').localeCompare(x.submittedAt ?? ''))[0];
+    return latest?.nfa ?? [...levelHistoryFor(studentId)].reverse().find((h) => h.nfa)?.nfa ?? '';
+  };
+  /** Everything admin and teacher screens show about a student's level. */
+  const levelSummary = (studentId) => {
+    const code = currentLevel(studentId);
+    const info = levelInfo(code);
+    const history = levelHistoryFor(studentId);
+    return { code, ...info, nfa: currentNfa(studentId), history, lastChanged: history.at(-1)?.at ?? null };
+  };
+
+  const recordLevel = (studentId, to, { by, reason, assessmentId = null, nfa = '' }) => {
+    if (!db.value.levelHistory) db.value.levelHistory = [];
+    const entry = { id: uid('lh'), studentId, from: currentLevel(studentId), to, by, reason, assessmentId, nfa, at: new Date().toISOString() };
+    db.value.levelHistory.push(entry);
+    return entry;
+  };
+
+  /** Admin / teacher: set or change the rating any time. A reason is required. */
+  const setLevel = (studentId, to, { by, reason }) => {
+    if (!isValidRating(to) || !(reason ?? '').trim()) return null;
+    if (currentLevel(studentId) === to) return null;
+    return recordLevel(studentId, to, { by, reason: reason.trim() });
+  };
+
+  /** Shared library items tagged with a BRELAS level code (B0, B1 … A). */
+  const library = computed(() => db.value.library ?? []);
+  /** Items for a student's level; accepts a rating or a level code. */
+  const libraryForLevel = (value) => {
+    const code = typeof value === 'string' && !isValidRating(value) ? value : levelInfo(value).code;
+    return code ? library.value.filter((m) => m.level === code) : [];
+  };
+
+  /** Admin's standing reminder to teachers: never mention the level in feedback. */
+  const sendLevelReminder = (by = 'Admin') => {
+    db.value.levelReminder = { at: new Date().toISOString(), by };
   };
 
   // ── Pre-class preparation ─────────────────────────────────────────────
@@ -459,7 +719,7 @@ export const useSchoolStore = defineStore('school', () => {
   return {
     db, now, resetDemo,
     student, teacher,
-    lessons, lessonsForTeacher, lessonsForStudent, findLesson, teacherBusy, isTeacherSlotOpen,
+    lessons, lessonsForTeacher, lessonsForStudent, findLesson, teacherBusy, isTeacherSlotOpen, teacherSlotState,
     bookLesson, cancelLesson, undoBooking, rescheduleLesson, updateLesson, submitFeedback, rateLesson,
     walletFor, adjustWallet,
     writing, writingForStudent, writingForTeacher, findTicket, submitWriting, replyWriting, completeWriting, WRITING_COST,
@@ -469,5 +729,12 @@ export const useSchoolStore = defineStore('school', () => {
     exams, examsForTeacher, examsForStudent, findExam, saveExam, deleteExam,
     submissionsForExam, submissionFor, examMaxScore, submissionScore, submitExam, gradeSubmission,
     availabilityFor, setAvailability,
+    // Level check
+    taEligible, canCancel,
+    templates, findTemplate, activeTemplate, saveTemplate, setTemplateActive, deleteTemplate,
+    assessments, findAssessment, assessmentsForTeacher, assessmentsForStudent, feedbackForStudent, assessmentForLesson, syncLessonAssessments,
+    templateFor, scheduleFixedAssessment, cancelFixedAssessment, saveAssessmentDraft, submitAssessment,
+    levelHistoryFor, currentLevel, currentNfa, levelSummary, setLevel,
+    library, libraryForLevel, sendLevelReminder,
   };
 });

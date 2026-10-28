@@ -40,9 +40,6 @@
 
         <!-- Badges Pill -->
         <div class="mt-2.5 flex items-center justify-center gap-2 w-full">
-          <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-zinc-100 text-zinc-700 text-[11px] font-medium rounded-md border border-zinc-200/60">
-            🎯 {{ user.profile.level.split(' ')[0] }}
-          </span>
           <span class="inline-flex items-center gap-1 px-2.5 py-0.5 bg-amber-50/80 text-amber-800 text-[11px] font-medium rounded-md border border-amber-200/60">
             🔥 {{ user.stats.currentStreak }}d streak
           </span>
@@ -120,7 +117,6 @@
           class="w-16 h-16 rounded-full shadow-sm border-2 border-white ring-2 ring-zinc-200/80 object-cover mb-2"
         />
         <h2 class="text-base font-bold text-zinc-900">{{ user.fullName }}</h2>
-        <p class="text-xs text-zinc-400">{{ user.profile.level.split(' ')[0] }}</p>
 
         <RouterLink
           to="/points"

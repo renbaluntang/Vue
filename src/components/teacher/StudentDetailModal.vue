@@ -117,8 +117,8 @@
               <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                 SUBJECT
               </p>
-              <p class="m-0 text-sm sm:text-base font-extrabold text-slate-900 mt-1" :title="student.subject">
-                {{ student.subject }}
+              <p class="m-0 mt-1 flex min-w-0 text-sm sm:text-base font-extrabold text-slate-900" :title="student.subject">
+                <SubjectCode :subject="student.subject" />
               </p>
             </div>
 
@@ -207,7 +207,7 @@
                 />
                 <i :class="materialKind(item.kind).icon" class="w-4 text-center text-slate-400" aria-hidden="true"></i>
                 <span class="min-w-0 flex-1 truncate font-semibold text-slate-800">{{ item.title }}</span>
-                <span class="shrink-0 text-[10px] text-slate-400">{{ item.subject }}</span>
+                <SubjectCode v-if="item.subject" :subject="item.subject" size="sm" class="shrink-0 text-[10px] text-slate-400" />
               </label>
               <p v-if="!materials.length" class="m-0 px-2 py-1.5 text-xs text-slate-500">No materials on {{ firstName }}'s shelf yet.</p>
             </div>
@@ -324,11 +324,6 @@
                   </div>
 
                   <div class="flex justify-between py-1 border-b border-slate-100">
-                    <span class="font-medium text-slate-500">Level</span>
-                    <span class="font-semibold text-slate-900">{{ studentProfile.level }}</span>
-                  </div>
-
-                  <div class="flex justify-between py-1 border-b border-slate-100">
                     <span class="font-medium text-slate-500">Student Timezone</span>
                     <span class="font-semibold text-slate-900">{{ studentProfile.timezone }}</span>
                   </div>
@@ -351,6 +346,10 @@
                   </div>
                 </div>
               </div>
+
+              <!-- The BRELAS level replaces the old free-text CEFR label: one
+                   level per student, kept with its history in the shared store. -->
+              <LevelSummaryPanel :student-id="studentId" @change="levelModalFor = studentId" />
             </div>
 
             <!-- TAB 2: LESSON LOGS -->
@@ -403,7 +402,7 @@
                         {{ log.instructorName }}
                       </td>
                       <td class="py-3 px-3 font-semibold text-slate-900">
-                        {{ log.subject }}
+                        <SubjectCode :subject="log.subject" size="sm" />
                       </td>
                       <td class="py-3 px-3 text-slate-600 leading-relaxed whitespace-pre-line max-w-xs">
                         <span v-if="log.feedback">{{ log.feedback }}</span>
@@ -445,7 +444,7 @@
                         {{ res.instructorName }}
                       </td>
                       <td class="py-3 px-3 font-semibold text-slate-900">
-                        {{ res.subject }}
+                        <SubjectCode :subject="res.subject" size="sm" />
                       </td>
                       <td class="py-3 px-3 text-slate-600">
                         <p class="m-0 font-semibold text-slate-900">{{ res.topic || 'General curriculum discussion' }}</p>
@@ -508,7 +507,7 @@
                     <p class="m-0 text-sm font-bold text-slate-900">{{ item.title }}</p>
                     <p class="m-0 mt-0.5 text-[11px] font-semibold text-slate-500">
                       {{ materialKind(item.kind).label }}
-                      <template v-if="item.subject"> · {{ item.subject }}</template>
+                      <template v-if="item.subject"> · <SubjectCode :subject="item.subject" size="sm" /></template>
                       · {{ item.addedOn }}
                       <template v-if="item.addedBy"> · {{ item.addedBy }}</template>
                     </p>
@@ -554,6 +553,39 @@
               </ul>
               <p v-else class="m-0 rounded-2xl border border-dashed border-slate-300 p-6 text-center text-sm text-slate-500">
                 Nothing shared with {{ firstName }} yet.
+              </p>
+
+              <!-- Level-matched picks from the shared library. Only teachers see
+                   the level; the student just sees a new item on their shelf. -->
+              <div v-if="levelCode" class="rounded-2xl border border-violet-200/70 bg-violet-50/40 p-3">
+                <p class="m-0 text-[10px] font-black uppercase tracking-wider text-violet-700">
+                  <i class="fa-solid fa-layer-group mr-1" aria-hidden="true"></i>Suggested for {{ levelLabel }}
+                </p>
+                <ul v-if="suggested.length" class="m-0 mt-2 list-none space-y-1.5 p-0">
+                  <li v-for="item in suggested" :key="item.id" class="flex items-center gap-2.5 rounded-xl bg-white px-2.5 py-2 text-xs ring-1 ring-violet-100">
+                    <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1" :class="materialKind(item.kind).chip">
+                      <i :class="materialKind(item.kind).icon" class="text-[11px]" aria-hidden="true"></i>
+                    </span>
+                    <div class="min-w-0 flex-1">
+                      <p class="m-0 truncate font-bold text-slate-800">{{ item.title }}</p>
+                      <p class="m-0 truncate text-[11px] text-slate-500">{{ materialKind(item.kind).label }}<template v-if="item.subject"> · <SubjectCode :subject="item.subject" size="sm" /></template></p>
+                    </div>
+                    <span v-if="onShelf(item)" class="shrink-0 text-[11px] font-bold text-emerald-700">
+                      <i class="fa-solid fa-check mr-0.5" aria-hidden="true"></i>On the shelf
+                    </span>
+                    <button
+                      v-else
+                      type="button"
+                      @click="giveFromLibrary(item)"
+                      class="shrink-0 rounded-lg bg-brighture-gold px-2.5 py-1.5 text-[11px] font-extrabold text-brighture-ink transition hover:bg-brighture-gold-deep active:scale-95"
+                    >Give to student</button>
+                  </li>
+                </ul>
+                <p v-else class="m-0 mt-1.5 text-xs text-slate-500">The library has nothing for this level yet.</p>
+              </div>
+              <p v-else class="m-0 rounded-2xl border border-dashed border-slate-300 px-3 py-2.5 text-xs text-slate-500">
+                <i class="fa-regular fa-circle-question mr-1 text-slate-400" aria-hidden="true"></i>
+                Assess the student to see level-matched materials.
               </p>
 
               <div class="rounded-2xl border border-slate-200/80 bg-slate-50/70 p-3">
@@ -607,12 +639,46 @@
       </div>
     </div>
   </Transition>
+
+  <ChangeLevelModal :student-id="levelModalFor" @close="levelModalFor = null" @saved="onLevelSaved" />
+
+  <!-- Brief confirmation, top-right, above the panel. -->
+  <Teleport to="body">
+    <Transition
+      enter-active-class="transition duration-300 ease-out" enter-from-class="opacity-0 translate-x-6"
+      leave-active-class="transition duration-200 ease-in" leave-to-class="opacity-0 translate-x-6"
+    >
+      <div
+        v-if="toast"
+        role="status"
+        aria-live="polite"
+        class="fixed right-4 top-4 z-[90] flex w-[calc(100vw-2rem)] max-w-sm items-start gap-3 rounded-2xl border border-emerald-200 bg-white p-4 shadow-xl"
+      >
+        <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm text-emerald-700">
+          <i class="fa-solid fa-check" aria-hidden="true"></i>
+        </span>
+        <p class="m-0 min-w-0 flex-1 pt-1.5 text-xs font-semibold text-slate-700">{{ toast }}</p>
+        <button
+          type="button"
+          @click="toast = ''"
+          class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+          aria-label="Dismiss notification"
+        >
+          <i class="fa-solid fa-xmark text-sm"></i>
+        </button>
+      </div>
+    </Transition>
+  </Teleport>
 </template>
 
 <script setup>
 import GoogleMeetIcon from '../GoogleMeetIcon.vue';
 import { ref, computed, watch } from 'vue';
 import AppImage from '../AppImage.vue';
+import LevelSummaryPanel from './LevelSummaryPanel.vue';
+import ChangeLevelModal from './ChangeLevelModal.vue';
+import SubjectCode from '@/components/SubjectCode.vue';
+import { levelInfo } from '@/lib/brelas';
 import studentImage from '@/assets/student-1.svg';
 import { MATERIAL_KIND_OPTIONS, materialKind } from '@/lib/lessonMaterials';
 import { MANILA, stampIn, utcLabel, minutesUntil, dateIn, clockIn } from '@/lib/schoolTime';
@@ -735,6 +801,37 @@ const addMaterial = () => {
   draft.value = blankDraft();
 };
 
+// BRELAS level: read from the shared store, never the hard-coded profile map.
+const levelCode = computed(() => (props.student ? school.levelSummary(studentId.value).code : null));
+const levelLabel = computed(() => levelInfo(levelCode.value).label);
+const suggested = computed(() => (levelCode.value ? school.libraryForLevel(levelCode.value) : []));
+/** Already given: the same title and link are on the student's shelf. */
+const onShelf = (item) => materials.value.some((m) => m.title === item.title && (m.url || '') === (item.url || ''));
+
+const toast = ref('');
+let toastTimer;
+const showToast = (text) => {
+  toast.value = text;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => { toast.value = ''; }, 3500);
+};
+
+const giveFromLibrary = (item) => {
+  const entry = teacher.addMaterial(studentId.value, {
+    title: item.title,
+    kind: item.kind,
+    subject: item.subject,
+    url: item.url,
+    // The note shows on the student's shelf, and students never see their
+    // level, so it names the library without the level it was matched to.
+    note: 'From the Brighture library',
+  });
+  if (entry) showToast(`“${item.title}” is on ${firstName.value}'s shelf.`);
+};
+
+const levelModalFor = ref(null);
+const onLevelSaved = (entry) => showToast(`${firstName.value}'s level is now ${levelInfo(entry.to).display}.`);
+
 /* The upcoming lesson this panel was opened for (a reservation row), if any. */
 const lessonRecord = computed(() => {
   const l = props.student?.id ? school.findLesson(props.student.id) : null;
@@ -784,7 +881,6 @@ const studentProfilesMap = {
     timezone: 'Asia/Tokyo (JST)',
     learningObjective: 'Business English & Negotiations',
     targetGoal: 'Business Negotiations & IELTS 7.5',
-    level: 'B2 Upper-Intermediate',
     memberSince: 'March 2025',
   },
   'Aiko Tanaka': {
@@ -798,7 +894,6 @@ const studentProfilesMap = {
     timezone: 'Asia/Tokyo (JST)',
     learningObjective: 'Pronunciation & Speaking',
     targetGoal: 'Accent Neutralization & Speech Fluency',
-    level: 'B1 Intermediate',
     memberSince: 'January 2025',
   },
   'Kenji Sato': {
@@ -812,7 +907,6 @@ const studentProfilesMap = {
     timezone: 'Asia/Tokyo (JST)',
     learningObjective: 'Daily Conversation',
     targetGoal: 'Travel and Overseas Everyday Communication',
-    level: 'A2 Pre-Intermediate',
     memberSince: 'September 2025',
   },
   'Mika Kobayashi': {
@@ -826,7 +920,6 @@ const studentProfilesMap = {
     timezone: 'Europe/London (GMT)',
     learningObjective: 'Exam Preparation',
     targetGoal: 'IELTS Academic Target Band 7.5',
-    level: 'B2 Upper-Intermediate',
     memberSince: 'November 2024',
   },
   'Shigeko Kimura': {
@@ -840,7 +933,6 @@ const studentProfilesMap = {
     timezone: 'Asia/Tokyo (JST)',
     learningObjective: 'Personal / Travel',
     targetGoal: 'Everyday Travel Fluency',
-    level: 'B1 Intermediate',
     memberSince: 'June 2024',
   },
   'Mina Mori': {
@@ -854,7 +946,6 @@ const studentProfilesMap = {
     timezone: 'Asia/Tokyo (JST)',
     learningObjective: 'Business English',
     targetGoal: 'Presentations & Executive Meetings',
-    level: 'B2 Upper-Intermediate',
     memberSince: 'April 2024',
   },
 };
@@ -868,12 +959,11 @@ const fallbackProfile = {
   timezone: 'Asia/Tokyo (JST)',
   learningObjective: 'General Conversation',
   targetGoal: 'Improve Speaking & Vocabulary',
-  level: 'B1 Intermediate',
   memberSince: 'January 2025',
 };
 
 /** Profile details: the map above for what the school record lacks, the
- *  record itself for name, level and timezone. */
+ *  record itself for name and timezone. The level comes from BRELAS. */
 const studentProfile = computed(() => {
   if (!props.student) return {};
   const name = studentName.value || 'Student Name';
@@ -885,7 +975,6 @@ const studentProfile = computed(() => {
     lastName: parts.slice(1).join(' '),
     romaji: name,
     ...(record.value.timezone ? { timezone: record.value.timezone } : {}),
-    ...(record.value.level ? { level: record.value.level } : {}),
   };
 });
 

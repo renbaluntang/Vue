@@ -3,8 +3,9 @@ import { ref, computed, watch } from 'vue';
 import { imageForKey } from '@/lib/teacherImages';
 import { convertSlotTime, getTimeZoneInfo, normalizeTimeZone } from '@/lib/timezoneUtils';
 import { CURRENT_TEACHER_ID } from '@/lib/schoolSeed';
+import { ASSESSMENT_TYPES } from '@/lib/brelas';
 import {
-  MANILA, TOKYO, stampIn, rangeIn, utcLabel, minutesUntil, manilaSlotOf, weekStartIso,
+  MANILA, TOKYO, stampIn, rangeIn, utcLabel, minutesUntil, manilaSlotOf, weekStartIso, countdownLabel,
 } from '@/lib/schoolTime';
 import { useSchoolStore } from './useSchoolStore';
 
@@ -1320,6 +1321,22 @@ export const useTeacherStore = defineStore('teacher', () => {
       meta: lesson.dateManila,
       to: '/lessons',
     })),
+    // Level checks still to write up. A draft is urgent once its lesson is a
+    // day old, because the student is waiting on their feedback.
+    ...school.assessmentsForTeacher(TEACHER_ID)
+      .filter((a) => a.status === 'draft' || a.status === 'scheduled')
+      .map((a) => {
+        const mins = minutesUntil(a.scheduledAt, school.now);
+        return {
+          id: `a-${a.id}`,
+          kind: 'assessment',
+          title: `${ASSESSMENT_TYPES[a.type]?.short ?? 'Assessment'}: ${school.student(a.studentId).name}`,
+          subtitle: a.status === 'scheduled' ? 'Scheduled by admin' : 'Assessment to submit',
+          urgent: a.status === 'draft' && mins < -24 * 60,
+          meta: mins > 0 ? `starts in ${countdownLabel(mins)}` : manilaDate(a.scheduledAt),
+          to: { path: '/assessments', query: { id: a.id } },
+        };
+      }),
   ]);
 
   const recentRatings = computed(() =>

@@ -74,15 +74,15 @@
 
       <div class="bg-white border border-slate-200/80 rounded-3xl p-5 shadow-xs flex flex-col justify-between hover:shadow-md transition">
         <div class="flex items-center justify-between mb-3">
-          <span class="text-xs font-bold text-slate-500">Current Level</span>
+          <span class="text-xs font-bold text-slate-500">Assessments Taken</span>
           <div class="w-10 h-10 rounded-xl bg-slate-50 text-slate-600 flex items-center justify-center text-lg">
-            <i class="fa-solid fa-trophy text-amber-500" aria-hidden="true"></i>
+            <i class="fa-solid fa-clipboard-list text-indigo-500" aria-hidden="true"></i>
           </div>
         </div>
         <div>
-          <div class="text-xl sm:text-2xl font-black text-slate-900">{{ user.profile.level.split(' ')[0] }}</div>
+          <div class="text-2xl sm:text-3xl font-black text-slate-900">{{ user.assessmentFeedback.length }}</div>
           <div class="text-[11px] font-semibold text-slate-700 mt-1 truncate">
-            {{ user.profile.level }}
+            <RouterLink to="/feedback" class="text-brighture-bronze hover:underline">Read your feedback</RouterLink>
           </div>
         </div>
       </div>
@@ -99,7 +99,6 @@
             </h2>
             <p class="text-xs text-slate-500 mt-0.5">Evaluated continuously by teachers across your online lessons</p>
           </div>
-          <span class="text-xs font-extrabold px-3 py-1 rounded-full bg-slate-100 text-slate-700">CEFR B2+</span>
         </div>
 
         <div class="space-y-4">

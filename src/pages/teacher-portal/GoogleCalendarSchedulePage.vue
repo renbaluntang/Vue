@@ -1012,7 +1012,7 @@
                               <span class="text-xs font-semibold text-slate-900 group-hover:text-rose-700">
                                 {{ selectionRepeats ? `This date only (${selectionDateShort})` : 'Clear this time slot' }}
                               </span>
-                              <span v-if="selectionRepeats" class="text-[10px] font-medium text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded">
+                              <span v-if="selectionRepeats" class="text-[10px] font-semibold text-sky-700 bg-sky-50 border border-sky-200/60 px-1.5 py-0.5 rounded">
                                 One-time
                               </span>
                             </div>
@@ -1121,7 +1121,10 @@
               <i class="fa-solid fa-user-graduate w-4 text-center text-blue-500 text-sm"></i>
               <div>
                 <p class="font-bold text-slate-900">{{ selectedEvent.studentName }}</p>
-                <p class="text-slate-500 text-[11px]">Subject: {{ selectedEvent.subject || 'Speech Fluency' }}</p>
+                <p class="mt-0.5 flex min-w-0 items-center gap-1 text-slate-500 text-[11px]">
+                  <span class="shrink-0">Subject:</span>
+                  <SubjectCode :subject="selectedEvent.subject || 'Speech Fluency'" size="sm" />
+                </p>
               </div>
             </div>
 
@@ -1193,6 +1196,7 @@ import { useTeacherStore } from '@/stores/useTeacherStore';
 import { getTimeZoneInfo, normalizeTimeZone } from '@/lib/timezoneUtils';
 import ReserveModal from '@/components/teacher/ReserveModal.vue';
 import ScheduleTemplateModal from '@/components/teacher/ScheduleTemplateModal.vue';
+import SubjectCode from '@/components/SubjectCode.vue';
 
 const teacher = useTeacherStore();
 

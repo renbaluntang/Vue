@@ -36,7 +36,7 @@
                 class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
                 :class="duration === d.minutes ? 'bg-brighture-ink/10 text-brighture-ink' : 'bg-white/10 text-slate-200'"
               >
-                {{ pointsForDuration(teacher, d.minutes) }} pt{{ pointsForDuration(teacher, d.minutes) === 1 ? '' : 's' }}
+                {{ priceLabel(d.minutes) }}
               </span>
             </span>
             <i
@@ -150,11 +150,11 @@
                   class="flex h-7 w-7 items-center justify-center rounded-full"
                   :class="cell.iso === today ? 'bg-slate-900 font-black text-white' : (viewMode === 'day' && cell.inRange ? 'hover:bg-slate-100' : '')"
                 >{{ cell.day }}</span>
-                <span v-if="cell.hasOpen" class="absolute bottom-0.5 h-1 w-1 rounded-full bg-emerald-500"></span>
+                <span v-if="cell.hasOpen" class="absolute bottom-0.5 h-1 w-1 rounded-full bg-emerald-600"></span>
               </button>
             </div>
             <p class="m-0 mt-2 flex items-center gap-1.5 text-[11px] text-slate-500">
-              <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span> Days {{ firstName }} has open time
+              <span class="h-1.5 w-1.5 rounded-full bg-emerald-600"></span> Days {{ firstName }} has open time
             </p>
           </div>
         </div>
@@ -186,8 +186,21 @@
       </div>
     </div>
 
+    <p
+      v-if="!hasVisibleAvailability"
+      class="m-0 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-medium text-slate-700"
+      role="status"
+    >
+      No available lesson times in this {{ viewMode }}. Try another {{ viewMode === 'week' ? 'week' : 'day' }} or choose the next opening above.
+    </p>
+
     <!-- 3. The calendar, with the confirmation card beside the chosen slot -->
-    <div class="overflow-x-auto rounded-2xl border border-slate-200 bg-white">
+    <div
+      class="overflow-x-auto rounded-2xl border border-slate-200 bg-white"
+      role="region"
+      :aria-label="`${rangeLabel} availability calendar`"
+      tabindex="0"
+    >
       <div :style="{ minWidth: (viewMode === 'week' ? 560 : 260) + 'px' }">
         <div
           class="grid border-b border-slate-200 bg-slate-50/80"
@@ -218,9 +231,9 @@
               v-for="(slot, i) in BOOKING_TIME_SLOTS"
               v-show="i % 2 === 0"
               :key="`h-${slot}`"
-              class="absolute right-2 -translate-y-1/2 text-[10px] font-semibold text-slate-400 tabular-nums"
+              class="absolute right-2 -translate-y-1/2 whitespace-nowrap text-[11px] font-semibold text-slate-600 tabular-nums"
               :style="{ top: (i * CALENDAR_ROW_HEIGHT) + 'px' }"
-            >{{ i === 0 ? '' : formatSlotTo12Hour(slot) }}</div>
+            >{{ i === 0 ? '' : hourLabel(slot) }}</div>
           </div>
 
           <div
@@ -235,7 +248,7 @@
               v-for="(slot, i) in BOOKING_TIME_SLOTS"
               :key="`g-${slot}`"
               class="absolute inset-x-0 border-t"
-              :class="i % 2 === 0 ? 'border-slate-200' : 'border-dashed border-slate-100'"
+              :class="i % 2 === 0 ? 'border-slate-100' : 'border-dashed border-slate-100/70'"
               :style="{ top: (i * CALENDAR_ROW_HEIGHT) + 'px' }"
             ></div>
 
@@ -246,14 +259,35 @@
               :style="{ height: pastHeight + 'px' }"
             ></div>
 
-            <!-- Open time: one solid block per unbroken stretch -->
+            <!-- Open time: one green card per unbroken stretch, title over time,
+                 in the same card style as the student's own lessons. -->
             <div
               v-for="run in col.runs"
               :key="`r-${run.start}`"
-              class="pointer-events-none absolute left-1 right-1 overflow-hidden rounded-lg border-l-[3px] border-emerald-500 bg-emerald-50 px-1.5 py-1 text-[10px] font-semibold leading-tight text-emerald-800"
-              :style="{ top: (run.start * CALENDAR_ROW_HEIGHT + 1) + 'px', height: (run.span * CALENDAR_ROW_HEIGHT - 2) + 'px' }"
+              aria-hidden="true"
+              class="pointer-events-none absolute left-1 right-1 overflow-hidden rounded-xl bg-gradient-to-b from-emerald-200 to-emerald-400/90 px-2 py-1 leading-tight ring-1 ring-inset ring-white/70"
+              :style="{ top: (run.start * CALENDAR_ROW_HEIGHT + 2) + 'px', height: (run.span * CALENDAR_ROW_HEIGHT - 4) + 'px' }"
             >
-              Open<span v-if="run.span > 1" class="font-normal opacity-75"> · {{ formatSlotTo12Hour(BOOKING_TIME_SLOTS[run.start]) }}–{{ endLabel(run.start, run.span * 30) }}</span>
+              <p class="m-0 truncate text-[11px] font-bold text-emerald-950">Available</p>
+              <p v-if="run.span > 1" class="m-0 mt-0.5 truncate text-[10px] font-semibold text-emerald-900 tabular-nums">
+                {{ formatSlotTo12Hour(BOOKING_TIME_SLOTS[run.start]) }} – {{ endLabel(run.start, run.span * 30) }}
+              </p>
+            </div>
+
+            <!-- Hours another student has already booked -->
+            <div
+              v-for="run in col.booked"
+              :key="`k-${run.start}`"
+              aria-hidden="true"
+              class="pointer-events-none absolute left-1 right-1 overflow-hidden rounded-xl bg-gradient-to-b from-slate-100 to-slate-200 px-2 py-1 leading-tight ring-1 ring-inset ring-white/70"
+              :style="{ top: (run.start * CALENDAR_ROW_HEIGHT + 2) + 'px', height: (run.span * CALENDAR_ROW_HEIGHT - 4) + 'px' }"
+            >
+              <p class="m-0 truncate text-[11px] font-bold text-slate-500">
+                <i class="fa-solid fa-lock mr-0.5 text-[9px]" aria-hidden="true"></i>Booked
+              </p>
+              <p v-if="run.span > 1" class="m-0 mt-0.5 truncate text-[10px] font-medium text-slate-400 tabular-nums">
+                {{ formatSlotTo12Hour(BOOKING_TIME_SLOTS[run.start]) }} – {{ endLabel(run.start, run.span * 30) }}
+              </p>
             </div>
 
             <!-- One click target per open half-hour -->
@@ -274,21 +308,30 @@
                  open block's label underneath never shows through it. -->
             <div
               v-if="hovered && hovered.iso === col.iso && !isSelected(col.iso, hovered.i)"
-              class="pointer-events-none absolute left-1 right-1 z-10 flex items-start rounded-lg border-2 border-dashed px-1.5 py-0.5 text-[10px] font-bold"
-              :class="fits(col, hovered.i) ? 'border-amber-400 bg-amber-50 text-amber-900 shadow-sm' : 'border-rose-300 bg-rose-50 text-rose-700 shadow-sm'"
-              :style="{ top: (hovered.i * CALENDAR_ROW_HEIGHT + 1) + 'px', height: (span * CALENDAR_ROW_HEIGHT - 2) + 'px' }"
+              class="pointer-events-none absolute left-1 right-1 z-10 flex items-center justify-center gap-1.5 rounded-xl border-2 border-dashed px-1.5 text-[10px] font-bold"
+              :class="fits(col, hovered.i) ? 'border-slate-300 bg-white text-slate-500' : 'border-rose-300 bg-gradient-to-b from-rose-50 to-rose-100 text-rose-700'"
+              :style="{ top: (hovered.i * CALENDAR_ROW_HEIGHT + 2) + 'px', height: (span * CALENDAR_ROW_HEIGHT - 4) + 'px' }"
             >
-              {{ fits(col, hovered.i) ? `${formatSlotTo12Hour(BOOKING_TIME_SLOTS[hovered.i])} · ${durationLabel}` : 'Only 30 min free here' }}
+              <template v-if="fits(col, hovered.i)">
+                <i class="fa-solid fa-plus text-sm font-light text-slate-400" aria-hidden="true"></i>
+                <span class="truncate">{{ formatSlotTo12Hour(BOOKING_TIME_SLOTS[hovered.i]) }} · {{ durationLabel }}</span>
+              </template>
+              <span v-else class="truncate">Only 30 min free here</span>
             </div>
 
             <!-- The student's own lessons with this teacher -->
             <div
               v-for="own in col.own"
               :key="`o-${own.id}`"
-              class="pointer-events-none absolute left-1 right-1 overflow-hidden rounded-lg border-l-[3px] border-indigo-500 bg-indigo-50 px-1.5 py-1 text-[10px] font-semibold leading-tight text-indigo-900"
-              :style="{ top: (own.start * CALENDAR_ROW_HEIGHT + 1) + 'px', height: (own.span * CALENDAR_ROW_HEIGHT - 2) + 'px' }"
+              class="pointer-events-none absolute left-1 right-1 overflow-hidden rounded-xl bg-gradient-to-b from-violet-100 to-violet-300/70 px-2 py-1 leading-tight shadow-sm ring-1 ring-inset ring-white/70"
+              :style="{ top: (own.start * CALENDAR_ROW_HEIGHT + 2) + 'px', height: (own.span * CALENDAR_ROW_HEIGHT - 4) + 'px' }"
             >
-              <i class="fa-solid fa-circle-check mr-0.5 text-[9px] text-indigo-500" aria-hidden="true"></i>Your lesson
+              <p class="m-0 truncate text-[11px] font-bold text-slate-900">
+                <i class="fa-solid fa-circle-check mr-0.5 text-[9px] text-violet-600" aria-hidden="true"></i>Your lesson
+              </p>
+              <p v-if="own.span > 1" class="m-0 mt-0.5 truncate text-[10px] font-medium text-slate-600 tabular-nums">
+                {{ formatSlotTo12Hour(BOOKING_TIME_SLOTS[own.start]) }} – {{ endLabel(own.start, own.span * 30) }}
+              </p>
             </div>
 
             <!-- The chosen slot -->
@@ -296,11 +339,14 @@
               v-if="selection && selection.iso === col.iso"
               type="button"
               @click="selection = null"
-              class="absolute left-1 right-1 z-20 overflow-hidden rounded-lg border-2 border-amber-500 bg-amber-100 px-1.5 py-1 text-left text-[10px] font-black leading-tight text-amber-950 shadow-md"
-              :style="{ top: (selection.i * CALENDAR_ROW_HEIGHT + 1) + 'px', height: (span * CALENDAR_ROW_HEIGHT - 2) + 'px' }"
+              class="absolute left-1 right-1 z-20 overflow-hidden rounded-xl bg-gradient-to-b from-amber-100 to-brighture-gold/60 px-2 py-1 text-left leading-tight shadow-md ring-2 ring-inset ring-amber-400"
+              :style="{ top: (selection.i * CALENDAR_ROW_HEIGHT + 2) + 'px', height: (span * CALENDAR_ROW_HEIGHT - 4) + 'px' }"
               title="Click to deselect"
             >
-              {{ formatSlotTo12Hour(BOOKING_TIME_SLOTS[selection.i]) }}–{{ endLabel(selection.i, duration) }}
+              <span class="block truncate text-[11px] font-bold text-slate-900">Your pick</span>
+              <span v-if="span > 1" class="mt-0.5 block truncate text-[10px] font-medium text-slate-700 tabular-nums">
+                {{ formatSlotTo12Hour(BOOKING_TIME_SLOTS[selection.i]) }} – {{ endLabel(selection.i, duration) }}
+              </span>
             </button>
 
             <!-- Now line -->
@@ -311,6 +357,7 @@
             >
               <div class="-ml-1 h-2 w-2 rounded-full bg-rose-500"></div>
               <div class="h-px flex-1 bg-rose-500"></div>
+              <span class="absolute right-1 -top-4 rounded bg-white px-1 text-[9px] font-bold leading-4 text-rose-700 shadow-sm">Now</span>
             </div>
           </div>
 
@@ -334,9 +381,11 @@
     </div>
 
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 px-1 text-[11px] font-medium text-slate-500">
-      <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm border-l-2 border-emerald-500 bg-emerald-50"></span> Open</span>
-      <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm border-2 border-amber-500 bg-amber-100"></span> Your pick</span>
-      <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-sm border-l-2 border-indigo-500 bg-indigo-50"></span> Already booked by you</span>
+      <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-[3px] bg-gradient-to-b from-emerald-200 to-emerald-400"></span> Available · select a time to book</span>
+      <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-[3px] bg-gradient-to-b from-amber-100 to-brighture-gold/60 ring-1 ring-amber-400"></span> Your pick</span>
+      <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-[3px] bg-gradient-to-b from-violet-100 to-violet-300"></span> Already booked by you</span>
+      <span class="flex items-center gap-1.5"><span class="h-2.5 w-2.5 rounded-[3px] bg-gradient-to-b from-slate-100 to-slate-200"></span> Booked by another student</span>
+      <span class="flex items-center gap-1.5"><span class="h-px w-3 bg-rose-500"></span> Current time</span>
       <span class="ml-auto">All times JST · bookable up to {{ MAX_DAYS_AHEAD / 30 }} months ahead</span>
     </div>
   </div>
@@ -359,6 +408,12 @@ const props = defineProps({
   initialDate: { type: String, default: '' },
   initialTime: { type: String, default: '' },
   initialDuration: { type: Number, default: 30 },
+  /**
+   * The free trial lesson & assessment (TA) is being booked: it costs nothing,
+   * so the card says "Free" and no balance check applies. The shared store
+   * forces 0 points for TA as well; this only keeps the screen honest.
+   */
+  free: { type: Boolean, default: false },
 });
 const emit = defineEmits(['review']);
 
@@ -425,12 +480,13 @@ const gridHeight = SLOTS * CALENDAR_ROW_HEIGHT;
 
 /** Whether one half-hour is open: the teacher's real board where there is
  *  one, the sample pattern otherwise, never in the past or over a booking. */
-const isOpen = (iso, i) => {
+const slotState = (iso, i) => {
   const offset = dayDiff(today.value, iso);
-  if (offset < 0 || offset > MAX_DAYS_AHEAD) return false;
+  if (offset < 0 || offset > MAX_DAYS_AHEAD) return 'closed';
   const mock = getSlotStatus(props.teacher.id, offset, i) === 'Available';
-  return school.isTeacherSlotOpen(props.teacher.imageKey, tokyoAt(iso, BOOKING_TIME_SLOTS[i]), 30, mock);
+  return school.teacherSlotState(props.teacher.imageKey, tokyoAt(iso, BOOKING_TIME_SLOTS[i]), mock);
 };
+const isOpen = (iso, i) => slotState(iso, i) === 'open';
 
 /** This student's lessons with this teacher on a date, as grid rows. */
 const ownOn = (iso) => user.upcomingLessons
@@ -455,7 +511,12 @@ const runsOf = (open) => {
 };
 
 const columns = computed(() => visibleDates.value.map((iso) => {
-  const open = BOOKING_TIME_SLOTS.map((_, i) => isOpen(iso, i));
+  const states = BOOKING_TIME_SLOTS.map((_, i) => slotState(iso, i));
+  const open = states.map((st) => st === 'open');
+  const own = ownOn(iso);
+  // Taken by someone else: the student's own lessons draw separately.
+  const mine = new Set(own.flatMap((o) => Array.from({ length: o.span }, (_, k) => o.start + k)));
+  const booked = states.map((st, i) => st === 'booked' && !mine.has(i));
   return {
     iso,
     dow: DOW[dowOf(iso)],
@@ -464,11 +525,15 @@ const columns = computed(() => visibleDates.value.map((iso) => {
     past: iso < today.value,
     open,
     runs: runsOf(open),
-    own: ownOn(iso),
+    booked: runsOf(booked),
+    own,
   };
 }));
+const hasVisibleAvailability = computed(() => columns.value.some((col) => col.open.some(Boolean)));
 
 const fits = (col, i) => i + span.value <= SLOTS && Array.from({ length: span.value }, (_, k) => col.open[i + k]).every(Boolean);
+/** Hour rows only ever fall on the hour, so "10 AM" says it in less room than "10:00 AM". */
+const hourLabel = (slot) => formatSlotTo12Hour(slot).replace(':00', '');
 const endLabel = (i, minutes) => formatSlotTo12Hour(addMinutesToSlotLabel(BOOKING_TIME_SLOTS, i, minutes));
 
 /** Soonest open half-hour from today, for the "next opening" shortcut. */
@@ -553,6 +618,13 @@ const selectionFits = computed(() => !!selectedCol.value && fits(selectedCol.val
 const setDuration = (minutes) => { duration.value = minutes; error.value = ''; };
 
 const points = computed(() => pointsForDuration(props.teacher, duration.value));
+/** What this booking actually takes from the wallet. */
+const cost = computed(() => (props.free ? 0 : points.value));
+const priceLabel = (minutes) => {
+  if (props.free) return 'Free';
+  const n = pointsForDuration(props.teacher, minutes);
+  return `${n} pt${n === 1 ? '' : 's'}`;
+};
 const balance = computed(() => user.profile.pointsBalance);
 
 /** Beside the chosen column: to its right in the left half of the week, to its left otherwise. */
@@ -578,7 +650,7 @@ const review = () => {
     error.value = 'That time no longer fits this lesson length. Pick another start time.';
     return;
   }
-  if (balance.value < points.value) {
+  if (balance.value < cost.value) {
     error.value = `This lesson costs ${points.value} pts and you have ${balance.value}. Top up points to book it.`;
     return;
   }
@@ -588,7 +660,10 @@ const review = () => {
     time: BOOKING_TIME_SLOTS[i],
     start: tokyoAt(iso, BOOKING_TIME_SLOTS[i]),
     minutes: duration.value,
+    // The regular price. The confirmation step settles the real cost once the
+    // subject is final (a free trial costs nothing).
     points: points.value,
+    free: props.free,
     dayLabel: `${['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][dowOf(iso)]}, ${shortDate(iso)}`,
     startLabel: formatSlotTo12Hour(BOOKING_TIME_SLOTS[i]),
     endLabel: endLabel(i, duration.value),
@@ -623,16 +698,21 @@ const ConfirmCard = () => {
         type: 'button',
         class: `rounded-lg px-2 py-1.5 text-xs font-bold transition ${duration.value === d.minutes ? 'bg-white text-slate-900 shadow-2xs' : 'text-slate-500 hover:text-slate-800'}`,
         onClick: () => setDuration(d.minutes),
-      }, `${d.label} · ${pointsForDuration(props.teacher, d.minutes)} pt${pointsForDuration(props.teacher, d.minutes) === 1 ? '' : 's'}`))),
+      }, `${d.label} · ${priceLabel(d.minutes)}`))),
     !fitsNow ? h('p', { class: 'm-0 mt-2 rounded-lg bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700' },
       'Only 30 minutes are free from this start. Choose 30 min or another time.') : null,
 
     h('div', { class: 'mt-3 flex items-center justify-between rounded-xl bg-brighture-cream/60 px-3 py-2 text-xs' }, [
       h('span', { class: 'font-semibold text-slate-600' }, 'Cost'),
-      h('span', { class: 'font-black text-slate-900 tabular-nums' }, [
-        `${points.value} pts `,
-        h('span', { class: 'font-semibold text-slate-500' }, `· ${balance.value} → ${Math.max(0, balance.value - points.value)} left`),
-      ]),
+      props.free
+        ? h('span', { class: 'font-black text-emerald-700' }, [
+          'Free ',
+          h('span', { class: 'font-semibold text-slate-500' }, '· your trial lesson'),
+        ])
+        : h('span', { class: 'font-black text-slate-900 tabular-nums' }, [
+          `${points.value} pts `,
+          h('span', { class: 'font-semibold text-slate-500' }, `· ${balance.value} → ${Math.max(0, balance.value - points.value)} left`),
+        ]),
     ]),
     error.value ? h('p', { class: 'm-0 mt-2 rounded-lg bg-rose-50 px-2.5 py-1.5 text-[11px] font-semibold text-rose-700' }, error.value) : null,
 

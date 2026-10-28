@@ -116,9 +116,6 @@
         <div class="text-center sm:text-left space-y-2 flex-1">
           <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <h2 class="text-2xl font-extrabold text-slate-900">{{ form.firstName }} {{ form.lastName }}</h2>
-            <span class="px-2.5 py-0.5 rounded-full bg-brighture-cream text-brighture-bronze text-xs font-extrabold border border-brighture-gold/30">
-              {{ user.profile.level }}
-            </span>
           </div>
           <p class="text-sm text-slate-400 font-semibold">
             {{ form.romaji || `${form.lastName} ${form.firstName}` }} • Member since {{ user.profile.memberSince }}

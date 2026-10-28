@@ -49,11 +49,9 @@
 
         <h2 class="text-lg font-black text-slate-900 tracking-tight">{{ user.fullName }}</h2>
 
-        <!-- Level & Streak Badges -->
+        <!-- Streak badge. There is no level badge on purpose: students never
+             see their level, only their instructor's feedback. -->
         <div class="sidebar-badges mt-3 flex flex-wrap items-center justify-center gap-1.5 w-full">
-          <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-brighture-cream text-brighture-bronze text-xs font-extrabold rounded-xl border border-brighture-gold/20 shadow-2xs">
-            <i class="fa-solid fa-bullseye" aria-hidden="true"></i> {{ user.profile.level.split(' ')[0] }}
-          </span>
           <span class="inline-flex items-center gap-1 px-2.5 py-1 bg-brighture-cream text-brighture-bronze text-xs font-black rounded-xl border border-brighture-gold/30 shadow-2xs">
             <i class="fa-solid fa-fire text-orange-500" aria-hidden="true"></i> {{ user.stats.currentStreak }}d streak
           </span>
@@ -242,7 +240,7 @@
             />
             <div class="min-w-0 flex-1">
               <p class="text-xs font-black text-slate-900 truncate">{{ user.fullName }}</p>
-              <p class="text-[11px] text-slate-500 font-medium truncate">{{ user.profile.level.split(' ')[0] }} &bull; {{ user.stats.rank }}</p>
+              <p class="text-[11px] text-slate-500 font-medium truncate">{{ user.stats.rank }}</p>
             </div>
           </div>
 
@@ -632,6 +630,7 @@
             </svg>
           </button>
 
+
           <!-- Desktop Sidebar Collapse/Expand Toggle -->
           <button
             type="button"
@@ -997,6 +996,7 @@ const navItems = [
   { path: '/messages', label: 'nav.messages', icon: 'fa-solid fa-comments text-sky-500', badge: 'messages', badgeLabel: 'unread' },
   { path: '/exams', label: 'nav.exams', icon: 'fa-solid fa-file-pen text-orange-500', badge: 'exams', badgeLabel: 'to do' },
   { path: '/materials', label: 'nav.materials', icon: 'fa-solid fa-folder-open text-teal-500' },
+  { path: '/feedback', label: 'nav.feedback', icon: 'fa-solid fa-clipboard-list text-indigo-500' },
   { path: '/analytics', label: 'nav.analytics', icon: 'fa-solid fa-chart-line text-emerald-500' },
   // The ledger and the top-up are two views of the same balance, so they sit
   // together behind one expandable row rather than as two peers.

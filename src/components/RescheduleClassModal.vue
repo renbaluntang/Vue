@@ -13,12 +13,12 @@
       <!-- Header -->
       <div class="shrink-0 flex items-start justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-4 text-white sm:px-6 sm:py-5">
         <div class="min-w-0">
-          <div class="flex items-center gap-2">
-            <span class="inline-flex items-center gap-1 rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-300 ring-1 ring-amber-400/30">
+          <div class="flex min-w-0 items-center gap-2">
+            <span class="inline-flex shrink-0 items-center gap-1 rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-bold text-amber-300 ring-1 ring-amber-400/30">
               <i class="fa-regular fa-calendar-days text-[9px]"></i> Reschedule
             </span>
-            <span class="text-xs text-slate-400 font-medium truncate">
-              {{ lesson.subject }}
+            <span class="flex min-w-0 text-xs text-slate-400 font-medium">
+              <SubjectCode :subject="lesson.subject" size="sm" />
             </span>
           </div>
           <h2 id="reschedule-modal-title" class="mt-1 text-lg font-extrabold sm:text-xl text-white">
@@ -306,6 +306,7 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
 import AppImage from './AppImage.vue';
+import SubjectCode from './SubjectCode.vue';
 import {
   INSTRUCTORS,
   BOOKING_TIME_SLOTS,

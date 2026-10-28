@@ -24,7 +24,7 @@
     >
       <div class="flex items-center gap-2 border-b border-slate-100 bg-slate-50/70 px-4 py-3 sm:px-5">
         <span class="h-4 w-1.5 shrink-0 rounded-full bg-brighture-gold"></span>
-        <h2 class="min-w-0 truncate text-sm font-extrabold text-slate-800">{{ group.subject }}</h2>
+        <h2 class="flex min-w-0 text-sm font-extrabold text-slate-800"><SubjectCode :subject="group.subject" size="sm" /></h2>
         <span class="ml-auto shrink-0 text-[11px] font-bold text-slate-400 tabular-nums">
           {{ group.items.length }}
         </span>
@@ -81,6 +81,7 @@
 import { useI18n } from 'vue-i18n';
 import { materialKind } from '../../lib/lessonMaterials';
 import { useUserStore } from '../../stores/useUserStore';
+import SubjectCode from '../../components/SubjectCode.vue';
 
 const { t } = useI18n();
 const user = useUserStore();

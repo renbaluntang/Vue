@@ -7,7 +7,6 @@
           <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] font-extrabold uppercase tracking-wider flex items-center gap-1">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Online English Portal
           </span>
-          <span class="text-xs text-slate-400 font-semibold">• {{ user.profile.level }}</span>
         </div>
         <h1 class="text-2xl sm:text-3xl lg:text-4xl font-extrabold text-slate-900 tracking-tight">
           Welcome back, <span class="text-indigo-600">{{ user.profile.firstName }}</span> 👋
@@ -765,7 +764,7 @@ const upcomingLessons = ref([
     isSubstitute: false,
     isNext: true,
     subject: '[SF] Speech Fluency & Discussion',
-    classType: 'Level 4 / Material B',
+    classType: 'Material B',
     meetLink: 'https://meet.google.com/abc-defg-hij',
   },
   {

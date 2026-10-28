@@ -1,6 +1,6 @@
 # Brighture portals (Vue 3 prototype)
 
-One Vite app that serves several front-end prototypes for Brighture, an online English school. The two that matter are the **student portal** (`/student-portal`) and the **teacher portal** (`/teacher-portal`). There is no backend: everything runs on seeded data in Pinia stores.
+One Vite app that serves several front-end prototypes for Brighture, an online English school. The ones that matter are the **student portal** (`/student-portal`), the **teacher portal** (`/teacher-portal`) and the **admin portal** (`/admin-portal`). There is no backend: everything runs on seeded data in Pinia stores.
 
 ## Commands
 
@@ -16,6 +16,7 @@ One Vite app that serves several front-end prototypes for Brighture, an online E
 |---|---|---|---|
 | `/student-portal` | `router/index.js` | `pages/portal/` | `components/layout/PortalLayout.vue` |
 | `/teacher-portal` | `router/teacher.js` | `pages/teacher-portal/` | `components/layout/TeacherPortalLayout.vue` |
+| `/admin-portal` | `router/admin.js` | `pages/admin-portal/` | `components/layout/AdminPortalLayout.vue` |
 | `/student-portal-classic` | `router/classic.js` | `pages/portal-classic/` | `PortalLayoutClassic.vue` |
 | `/student-portal-v2`, `/student-5` | `router/minimal.js` | `pages/portal-minimal/` | `PortalMinimalLayout.vue` |
 
@@ -31,6 +32,7 @@ Other paths (`/login`, `/points-purchase`, `/student-2..4`, the legacy `/teacher
   - exams and submissions
   - points wallets
   - the teacher's weekly availability
+  - level check: assessment templates, assessments, BRELAS level history, the level-matched library and the email outbox
 - It persists to `localStorage` (`brighture:school:v1`) and listens for `storage` events, so the two portals stay in sync across tabs in the same browser.
 - **Settings → Reset demo data** in both portals calls `resetDemo()`.
 - **`useUserStore` (student) and `useTeacherStore` (teacher) are views over it.** They keep their older public shapes (`nextUpcomingClass`, `pastLessons`, `reservations`, `lessonLog`, `writingTasks`, and so on) because many pages and the classic/minimal variants read them. Change data through the shared store's actions, not by mutating derived rows.
@@ -48,6 +50,15 @@ Other paths (`/login`, `/points-purchase`, `/student-2..4`, the legacy `/teacher
   - The student sees Tokyo (JST).
   - Use `countdownLabel()` for "in 2h 15m" countdowns.
 - **Teacher availability:** keyed `${day}-t${HHMM}` in 30-minute Manila slots. `isTeacherSlotOpen()` is what student booking and rescheduling check.
+
+## Level check (BRELAS)
+
+- **Scale:** `src/lib/brelas.js`. What is stored is a **rating from 1 to 15, or B0**. The level is derived from it (1–3 B1, 4–6 B2, 7–9 I1, 10–12 I2, 13–15 A), and so is the band, the rating's place inside its level (Needs improvement, Satisfactory, Very satisfactory). CEFR is shown for reference only. A student with no level history is **Unassessed**, which is not the same as B0. Legacy `a_level` values map to ratings with `ratingFromLegacy` (to confirm with the academic team).
+- **Types:** TA (free trial lesson and assessment, once, new students only) and CS (counseling session, anytime) are booked by students. FA (fixed-class or corporate assessment) is scheduled by an admin. CS and TA can be cancelled until 50 minutes before the start.
+- **One level per student.** The current level is the last entry in `levelHistory`. Every change needs a reason and records old level, new level, who and when; legacy levels arrive as "Set by: migration".
+- **Templates** (admin) hold the internal questions per type, and saving one makes a new version. Level, NFA and the two feedback boxes ("current performance", "what to work on") are fixed fields outside any template.
+- **Students never see the level.** No student screen, email, recap or certificate shows the level, band, rating or NFA. Student files must not import `levelInfo`, `BRELAS_LEVELS` or the store's level getters; they read only the feedback fields of submitted assessments.
+- **Emails** for CS/TA booking and cancellation go to the student, the teacher and admin, and never mention the level. With no mail server they are logged to `db.outbox`.
 
 ## Conventions
 

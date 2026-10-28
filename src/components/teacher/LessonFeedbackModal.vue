@@ -15,7 +15,10 @@
         <div class="sticky top-0 z-10 flex items-start justify-between gap-3 border-b border-slate-100 bg-white/95 px-5 py-4 backdrop-blur">
           <div class="min-w-0">
             <h3 class="truncate text-lg font-extrabold text-slate-900">Lesson feedback</h3>
-            <p class="truncate text-xs text-slate-500">{{ lesson.studentName }} · {{ lesson.subject }}</p>
+            <p class="flex min-w-0 items-center gap-1 text-xs text-slate-500">
+              <span class="max-w-[50%] shrink-0 truncate">{{ lesson.studentName }} ·</span>
+              <SubjectCode :subject="lesson.subject" size="sm" />
+            </p>
           </div>
           <button
             type="button"
@@ -97,6 +100,7 @@
 
 <script setup>
 import { ref, watch } from 'vue';
+import SubjectCode from '@/components/SubjectCode.vue';
 
 const props = defineProps({
   lesson: { type: Object, default: null },

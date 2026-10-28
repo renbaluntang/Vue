@@ -7,7 +7,6 @@
           <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 text-[11px] font-semibold border border-emerald-200/60">
             <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active Learner
           </span>
-          <span class="text-xs text-zinc-400 font-medium">• {{ user.profile.level }}</span>
         </div>
         <h1 class="text-xl sm:text-2xl lg:text-3xl font-extrabold text-zinc-900 tracking-tight mt-1">
           Welcome back, {{ user.profile.firstName }} 👋
@@ -542,7 +541,7 @@ const upcomingLessons = ref([
     isSubstitute: false,
     isNext: true,
     subject: '[SF] Speech Fluency & Discussion',
-    classType: 'Level 4 / Material B',
+    classType: 'Material B',
     meetLink: 'https://meet.google.com/abc-defg-hij',
   },
   {

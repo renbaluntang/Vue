@@ -123,7 +123,7 @@
 </template>
 
 <script setup>
-import { imageForKey } from '@/lib/teacherImages';
+import { imageForKey, teacherImage } from '@/lib/teacherImages';
 import { ref } from 'vue';
 
 defineProps({
@@ -136,6 +136,8 @@ const isPlayingVoice = ref(false);
 
 const getTeacherModalImage = (teacher) => {
   if (teacher?.photo) return teacher.photo;
-  return imageForKey(184);
+  // Booking-list teachers carry their own portrait key rather than a photo URL.
+  if (teacher?.imageKey) return imageForKey(teacher.imageKey);
+  return teacherImage(teacher?.name);
 };
 </script>

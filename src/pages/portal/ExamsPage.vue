@@ -46,7 +46,7 @@
               </span>
               <div class="min-w-0 flex-1">
                 <div class="flex flex-wrap items-center gap-2">
-                  <span class="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-600">{{ row.exam.subject }}</span>
+                  <span class="inline-flex min-w-0 text-xs font-bold text-slate-600"><SubjectCode :subject="row.exam.subject" size="sm" /></span>
                   <span class="rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide" :class="row.status.cls">
                     {{ row.status.label }}
                   </span>
@@ -110,7 +110,7 @@
 
       <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div class="border-b border-slate-100 bg-gradient-to-b from-brighture-cream to-white p-6 sm:p-8">
-          <span class="rounded-md bg-white px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-brighture-bronze ring-1 ring-brighture-gold/30">{{ activeExam.subject }}</span>
+          <span class="inline-flex min-w-0 text-xs font-bold text-brighture-bronze"><SubjectCode :subject="activeExam.subject" size="sm" /></span>
           <h1 class="mt-3 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">{{ activeExam.title }}</h1>
           <p class="mt-2 text-sm font-medium leading-relaxed text-slate-600">{{ activeExam.description }}</p>
           <p class="mt-3 flex items-center gap-2 text-xs font-semibold text-slate-500">
@@ -313,7 +313,7 @@
       <div class="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
         <div class="flex flex-col gap-5 p-6 sm:flex-row sm:items-center sm:p-8">
           <div class="min-w-0 flex-1">
-            <span class="rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-black uppercase tracking-wide text-slate-600">{{ activeExam.subject }}</span>
+            <span class="inline-flex min-w-0 text-xs font-bold text-slate-600"><SubjectCode :subject="activeExam.subject" size="sm" /></span>
             <h1 class="mt-2 text-xl sm:text-2xl font-extrabold tracking-tight text-slate-900">{{ activeExam.title }}</h1>
             <p class="mt-1 text-xs font-medium text-slate-500">
               Submitted {{ dateIn(activeSub.submittedAt, TOKYO) }} at {{ clockIn(activeSub.submittedAt, TOKYO) }} JST · {{ activeTeacher.name }}
@@ -390,6 +390,7 @@
 import { ref, reactive, computed, watch, onBeforeUnmount } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import AppImage from '../../components/AppImage.vue';
+import SubjectCode from '../../components/SubjectCode.vue';
 import { useSchoolStore } from '../../stores/useSchoolStore';
 import { CURRENT_STUDENT_ID } from '../../lib/schoolSeed';
 import { TOKYO, clockIn, dateIn } from '../../lib/schoolTime';

@@ -50,7 +50,7 @@
                 <p class="text-sm font-bold text-slate-900">{{ item.title }}</p>
                 <p class="mt-0.5 text-[11px] font-semibold text-slate-500">
                   {{ materialKind(item.kind).label }}
-                  <template v-if="item.subject"> · {{ item.subject }}</template>
+                  <template v-if="item.subject"> · <SubjectCode :subject="item.subject" size="sm" /></template>
                   · {{ item.addedOn }}
                 </p>
                 <p v-if="item.note" class="mt-1 text-xs italic text-slate-600">{{ item.note }}</p>
@@ -190,6 +190,7 @@
 import { ref, computed, watch, nextTick } from 'vue';
 import { MATERIAL_KIND_OPTIONS, materialKind } from '../../lib/lessonMaterials';
 import { useTeacherStore } from '../../stores/useTeacherStore';
+import SubjectCode from '@/components/SubjectCode.vue';
 
 const props = defineProps({
   /** A lesson row — it carries the studentId the shelf hangs off. */

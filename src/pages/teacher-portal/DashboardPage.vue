@@ -108,9 +108,7 @@
         <!-- Subject & Topic Focus Column -->
         <div class="min-w-0 space-y-2 border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6">
           <div class="flex items-center gap-2">
-            <span class="px-2.5 py-0.5 rounded-md bg-amber-400/20 text-amber-300 text-xs font-black">
-              {{ next.subject }}
-            </span>
+            <SubjectCode :subject="next.subject" class="text-xs font-black text-amber-300" />
             <span class="text-xs text-slate-400">Lesson Curriculum</span>
           </div>
 
@@ -386,10 +384,10 @@
                     </span>
                   </div>
 
-                  <p class="text-xs font-bold text-slate-700 truncate mt-0.5">
-                    <span class="text-amber-700 font-extrabold mr-1">{{ row.subject }}</span>
-                    <span class="text-slate-400 font-normal">&bull; {{ row.topic }}</span>
-                  </p>
+                  <div class="flex min-w-0 items-center gap-1 text-xs font-bold text-slate-700 mt-0.5">
+                    <SubjectCode :subject="row.subject" size="sm" class="shrink-0 max-w-[60%] text-amber-700 font-extrabold" />
+                    <span class="min-w-0 truncate text-slate-400 font-normal">&bull; {{ row.topic }}</span>
+                  </div>
 
                   <p v-if="row.note" class="text-[11px] text-slate-500 italic truncate mt-0.5">
                     "{{ row.note }}"
@@ -578,10 +576,7 @@
                 class="p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3 text-xs"
               >
                 <div class="flex items-center gap-2 min-w-0">
-                  <span class="px-1.5 py-0.5 rounded-md bg-white border border-slate-200 text-[10px] font-black text-slate-700">
-                    {{ sub.code }}
-                  </span>
-                  <span class="font-bold text-slate-800 truncate">{{ sub.label }}</span>
+                  <SubjectCode :subject="`[${sub.code}] ${sub.label}`" size="sm" class="font-bold text-slate-800" />
                 </div>
                 <span class="text-xs font-black text-slate-900 tabular-nums shrink-0">
                   {{ sub.lessons }} <span class="font-semibold text-slate-400 text-[11px]">lessons</span>
@@ -626,7 +621,7 @@
                 class="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 text-xs font-bold"
                 :class="item.urgent ? 'bg-rose-500 text-white' : 'bg-slate-100 text-slate-600'"
               >
-                <i :class="item.kind === 'writing' ? 'fa-solid fa-pen-nib' : 'fa-solid fa-comment-dots'"></i>
+                <i :class="{ writing: 'fa-solid fa-pen-nib', assessment: 'fa-solid fa-clipboard-check' }[item.kind] ?? 'fa-solid fa-comment-dots'"></i>
               </div>
 
               <div class="min-w-0 flex-1">
@@ -699,9 +694,9 @@
                 </div>
               </div>
 
-              <p class="text-[10px] font-bold text-slate-500 uppercase tracking-wider">
-                {{ lesson.subject }}
-              </p>
+              <div class="flex min-w-0 text-[10px] font-bold text-slate-500 uppercase tracking-wider">
+                <SubjectCode :subject="lesson.subject" size="sm" />
+              </div>
 
               <p class="text-xs text-slate-700 italic leading-relaxed pt-0.5">
                 "{{ lesson.comment }}"
@@ -770,6 +765,7 @@ import GoogleMeetIcon from '../../components/GoogleMeetIcon.vue';
 import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import AppImage from '../../components/AppImage.vue';
 import StudentDetailModal from '../../components/teacher/StudentDetailModal.vue';
+import SubjectCode from '@/components/SubjectCode.vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
 import { getTimeZoneInfo, getUtcOffsetMinutes } from '../../lib/timezoneUtils';
 

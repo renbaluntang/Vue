@@ -7,6 +7,7 @@ import {
   getSubjectInstructorCount,
   INSTRUCTORS,
 } from "./constants";
+import SubjectCode from "@/components/SubjectCode.vue";
 
 const props = defineProps({
   modelValue: {
@@ -29,9 +30,26 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+  // Subject codes this student may not book (e.g. the one-off free trial
+  // once it has been used), so they are never offered as a filter.
+  excludeCodes: {
+    type: Array,
+    default: () => [],
+  },
 });
 
 const emit = defineEmits(["update:modelValue", "update:favoritesOnly"]);
+
+/** The categories with any excluded subject taken out. */
+const categories = computed(() =>
+  props.excludeCodes.length
+    ? SUBJECT_CATEGORIES.map((cat) => ({
+        ...cat,
+        codes: cat.codes.filter((c) => !props.excludeCodes.includes(c)),
+        subjects: cat.subjects.filter((sub) => !props.excludeCodes.includes(sub.code)),
+      }))
+    : SUBJECT_CATEGORIES
+);
 
 const isDropdownOpen = ref(false);
 const searchQuery = ref("");
@@ -65,13 +83,14 @@ const selectedSubjectObject = computed(() => {
 
 const currentSubChips = computed(() => {
   if (activeCategory.value === "ALL") return [];
-  const cat = SUBJECT_CATEGORIES.find((c) => c.id === activeCategory.value);
+  const cat = categories.value.find((c) => c.id === activeCategory.value);
   if (!cat) return [];
   return [
     { code: `CAT_${cat.id}`, label: `All ${cat.shortName}`, isCategory: true, count: getSubjectInstructorCount(`CAT_${cat.id}`) },
     ...cat.subjects.map((s) => ({
       code: s.code,
-      label: s.short || s.name,
+      // The box already shows the code, so "PP101 Vowels" reads as "Vowels".
+      label: (s.short || s.name).replace(new RegExp(`^${s.badge}\\s+`), ""),
       badge: s.badge,
       name: s.name,
       count: getSubjectInstructorCount(s.code),
@@ -81,9 +100,9 @@ const currentSubChips = computed(() => {
 
 const filteredCategoriesForDropdown = computed(() => {
   const query = searchQuery.value.toLowerCase().trim();
-  if (!query) return SUBJECT_CATEGORIES;
+  if (!query) return categories.value;
 
-  return SUBJECT_CATEGORIES.map((cat) => {
+  return categories.value.map((cat) => {
     const matchingSubjects = cat.subjects.filter(
       (s) =>
         s.name.toLowerCase().includes(query) ||
@@ -154,7 +173,7 @@ onUnmounted(() => {
           </button>
           
           <button
-            v-for="cat in SUBJECT_CATEGORIES"
+            v-for="cat in categories"
             :key="cat.id"
             type="button"
             @click="selectCategoryTab(cat.id)"
@@ -184,8 +203,13 @@ onUnmounted(() => {
             title="Browse all specific subjects"
           >
             <i class="fa-solid fa-book-open text-xs text-indigo-500" aria-hidden="true"></i>
-            <span class="max-w-[160px] truncate sm:max-w-[200px]">
-              {{ selectedSubjectObject && !selectedSubjectObject.isCategory ? selectedSubjectObject.name : 'Select Subject…' }}
+            <span class="flex min-w-0 max-w-[160px] sm:max-w-[200px]">
+              <SubjectCode
+                v-if="selectedSubjectObject && !selectedSubjectObject.isCategory"
+                :subject="selectedSubjectObject.code"
+                size="sm"
+              />
+              <span v-else class="truncate">Select Subject…</span>
             </span>
             <svg
               class="h-3 w-3 transition-transform duration-200"
@@ -260,17 +284,8 @@ onUnmounted(() => {
                         : 'text-slate-700 hover:bg-slate-100 font-medium'
                     }`"
                   >
-                    <div class="flex items-center gap-2 min-w-0 pr-2">
-                      <span
-                        :class="`rounded px-1.5 py-0.5 text-[10px] font-mono font-bold shrink-0 ${
-                          modelValue === sub.code
-                            ? 'bg-white/20 text-white'
-                            : 'bg-slate-100 text-slate-600'
-                        }`"
-                      >
-                        {{ sub.badge }}
-                      </span>
-                      <span class="truncate">{{ sub.name }}</span>
+                    <div class="flex items-center min-w-0 pr-2">
+                      <SubjectCode :subject="sub.code" size="sm" />
                     </div>
                     <span :class="modelValue === sub.code ? 'text-slate-300' : 'text-slate-400'" class="text-[10px] shrink-0">
                       {{ getSubjectInstructorCount(sub.code) }}
@@ -345,14 +360,7 @@ onUnmounted(() => {
             : 'border border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
         }`"
       >
-        <span
-          v-if="chip.badge"
-          :class="`rounded px-1 text-[9px] font-mono font-bold ${
-            modelValue === chip.code ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-500'
-          }`"
-        >
-          {{ chip.badge }}
-        </span>
+        <SubjectCode v-if="chip.badge" :subject="chip.code" :show-name="false" size="sm" />
         <span>{{ chip.label }}</span>
         <span :class="modelValue === chip.code ? 'text-slate-300' : 'text-slate-400'" class="text-[10px]">
           ({{ chip.count }})

@@ -76,6 +76,13 @@
         >
           Points Purchase
         </a>
+        <a
+          :href="withBase('/admin-portal')"
+          class="inline-flex items-center justify-center gap-2 rounded-2xl border border-violet-300 bg-violet-50 px-5 py-4 text-center text-sm font-semibold text-violet-950 transition hover:bg-violet-100"
+        >
+          <i class="fa-solid fa-user-shield text-violet-600" aria-hidden="true"></i>
+          Admin Panel
+        </a>
       </div>
     </div>
   </div>

@@ -41,17 +41,28 @@
               </div>
             </div>
 
-            <div class="flex shrink-0 items-center gap-2">
-              <RouterLink
-                v-if="lesson.teacherId"
-                :to="{ path: '/messages', query: { teacher: lesson.teacherId } }"
-                @click="$emit('close')"
-                class="flex items-center gap-1.5 rounded-full border border-amber-400/30 bg-brighture-gold/20 px-3 py-1.5 text-xs font-black text-amber-300 transition hover:bg-brighture-gold/30 hover:text-amber-200"
-                title="Message your instructor"
-              >
-                <i class="fa-solid fa-comments text-xs" aria-hidden="true"></i>
-                <span class="hidden sm:inline">Message</span>
-              </RouterLink>
+            <div class="flex shrink-0 items-start gap-2">
+              <!-- Book a class sits above Message: both lead to this instructor. -->
+              <div v-if="lesson.teacherId" class="flex flex-col items-stretch gap-1.5">
+                <RouterLink
+                  :to="{ path: '/booking', query: { teacher: lesson.teacherId } }"
+                  @click="$emit('close')"
+                  class="flex items-center justify-center gap-1.5 rounded-full bg-brighture-gold px-3 py-1.5 text-xs font-black text-brighture-ink transition hover:bg-amber-300"
+                  title="Book another class with your instructor"
+                >
+                  <i class="fa-solid fa-calendar-plus text-xs" aria-hidden="true"></i>
+                  <span class="hidden sm:inline">Book a class</span>
+                </RouterLink>
+                <RouterLink
+                  :to="{ path: '/messages', query: { teacher: lesson.teacherId } }"
+                  @click="$emit('close')"
+                  class="flex items-center justify-center gap-1.5 rounded-full border border-amber-400/30 bg-brighture-gold/20 px-3 py-1.5 text-xs font-black text-amber-300 transition hover:bg-brighture-gold/30 hover:text-amber-200"
+                  title="Message your instructor"
+                >
+                  <i class="fa-solid fa-comments text-xs" aria-hidden="true"></i>
+                  <span class="hidden sm:inline">Message</span>
+                </RouterLink>
+              </div>
               <button
                 type="button"
                 @click="$emit('close')"
@@ -100,7 +111,9 @@
           <div class="grid grid-cols-12 items-stretch gap-3 sm:gap-4">
             <div class="col-span-12 flex flex-col justify-center rounded-2xl border border-slate-100 bg-[#f8fafc] p-4 sm:col-span-5">
               <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Subject</p>
-              <p class="m-0 mt-1 text-sm font-extrabold text-slate-900 sm:text-base">{{ lesson.subject }}</p>
+              <p class="m-0 mt-1 flex min-w-0 text-sm font-extrabold text-slate-900 sm:text-base">
+                <SubjectCode :subject="lesson.subject" />
+              </p>
               <p v-if="lesson.topic || lesson.classType" class="m-0 mt-1 text-xs font-semibold text-slate-500">
                 {{ lesson.topic || lesson.classType }}
               </p>
@@ -123,7 +136,17 @@
 
           <!-- The message the instructor reads before the lesson -->
           <div v-if="lesson.note" class="rounded-2xl border border-[#faecd2] bg-[#fdfbf6] p-4">
-            <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-[#996b27]">Your message to the instructor</p>
+            <div class="flex items-center justify-between gap-2">
+              <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-[#996b27]">Your message to the instructor</p>
+              <button
+                type="button"
+                @click="$emit('edit', lesson)"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#f0dcb4] bg-white px-2.5 py-1 text-[11px] font-bold text-brighture-bronze transition hover:border-amber-300 hover:bg-amber-50"
+              >
+                <i class="fa-solid fa-pen text-[9px]" aria-hidden="true"></i>
+                Edit
+              </button>
+            </div>
             <!-- One line in the source: pre-wrap would print any newline or
                  indent around the text, pushing the quotes onto their own lines. -->
             <p class="m-0 mt-1.5 whitespace-pre-wrap text-xs italic leading-relaxed text-slate-700 sm:text-sm">“{{ lesson.note.trim() }}”</p>
@@ -280,14 +303,20 @@
               <button
                 type="button"
                 @click="$emit('cancel', lesson)"
-                class="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2.5 text-xs font-bold text-red-600 transition hover:bg-red-50"
+                :disabled="!cancellable"
+                :title="cancellable ? null : levelCheckCancelNote"
+                class="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2.5 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
               >
                 <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                 Cancel class
               </button>
             </div>
             <ul class="mt-3 space-y-1 text-[11px] leading-relaxed text-slate-500">
-              <li><strong class="text-slate-600">Cancellation:</strong> free up to 3h before the class starts — points are refunded.</li>
+              <li v-if="checkType && !cancellable" class="font-semibold text-amber-800">
+                <strong>Cancellation:</strong> {{ levelCheckCancelNote }}
+              </li>
+              <li v-else-if="checkType"><strong class="text-slate-600">Cancellation:</strong> free up to {{ LEVEL_CHECK_CANCEL_MINUTES }} minutes before the start{{ lesson.points ? ' — points are refunded' : '' }}.</li>
+              <li v-else><strong class="text-slate-600">Cancellation:</strong> free up to 3h before the class starts — points are refunded.</li>
               <li><strong class="text-slate-600">Reschedule:</strong> move to another date or time without losing points.</li>
               <li><strong class="text-slate-600">Changes:</strong> subject and message can be changed until 2h before.</li>
             </ul>
@@ -296,33 +325,35 @@
 
           <!-- TAB: INSTRUCTOR INFO -->
           <div v-if="activeTab === 'instructor'" class="space-y-4">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-center">
-              <div class="min-w-0 flex-1 space-y-2">
-                <p class="m-0 text-sm font-semibold text-brighture-bronze">{{ instructor.specialtyLabel }}</p>
-                <div class="flex flex-wrap items-center gap-2 text-xs font-bold">
-                  <span class="rounded-xl bg-slate-100 px-3 py-1 text-slate-700">
-                    Rate: {{ instructor.rate30 }} pts (30m) · {{ instructor.rate60 }} pts (1hr)
-                  </span>
-                  <span class="inline-flex items-center gap-1 rounded-xl bg-amber-50 px-3 py-1 text-amber-800">
-                    <i class="fa-solid fa-star text-[10px] text-amber-500" aria-hidden="true"></i>
-                    {{ instructor.rating }} · {{ instructor.lessonCount.toLocaleString() }} lessons
-                  </span>
-                </div>
+            <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
+              <div class="mx-auto w-full max-w-[220px] shrink-0 sm:mx-0 sm:w-[180px]">
+                <AppImage
+                  :src="lesson.teacherPhoto"
+                  :alt="lesson.teacherName"
+                  class="block aspect-square w-full rounded-2xl border-2 border-white object-cover shadow-md ring-2 ring-slate-100"
+                />
               </div>
-              <div class="flex w-full shrink-0 flex-col gap-2 sm:w-[200px]">
-                <button
-                  v-for="v in VIDEOS"
-                  :key="v.kind"
-                  type="button"
-                  @click="activeVideo = activeVideo === v.kind ? null : v.kind"
-                  class="inline-flex w-full items-center justify-center gap-2 whitespace-nowrap rounded-xl border px-3 py-2 text-xs font-bold shadow-2xs transition active:scale-95"
-                  :class="activeVideo === v.kind ? v.on : 'border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900'"
-                >
-                  <span class="flex h-5 w-5 items-center justify-center rounded-full" :class="v.dot">
-                    <i :class="v.icon" aria-hidden="true"></i>
-                  </span>
-                  {{ v.label(firstName) }}
-                </button>
+              <div class="flex min-w-0 flex-1 flex-col gap-2">
+                <div class="relative min-w-0 rounded-2xl rounded-tl-md border border-amber-400 bg-[#fffaf0] p-4 pl-11 text-left">
+                  <span class="absolute -left-[7px] top-6 hidden h-3 w-3 rotate-45 border-b border-l border-amber-400 bg-[#fffaf0] sm:block" aria-hidden="true"></span>
+                  <i class="fa-solid fa-quote-left absolute left-4 top-4 text-lg text-amber-400" aria-hidden="true"></i>
+                  <p class="m-0 text-sm leading-relaxed text-slate-700">{{ instructor.selfIntro }}</p>
+                </div>
+                <div class="grid grid-cols-2 gap-2">
+                  <button
+                    v-for="v in VIDEOS"
+                    :key="v.kind"
+                    type="button"
+                    @click="activeVideo = activeVideo === v.kind ? null : v.kind"
+                    class="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border px-2 py-2 text-xs font-bold shadow-2xs transition active:scale-95 sm:px-3"
+                    :class="activeVideo === v.kind ? v.on : 'border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900'"
+                  >
+                    <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" :class="v.dot">
+                      <i :class="v.icon" aria-hidden="true"></i>
+                    </span>
+                    <span class="truncate">{{ v.label(firstName) }}</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -330,35 +361,31 @@
               <TeacherIntroVideo :key="activeVideo" :video-id="activeVideo === 'demo' ? DEMO_VIDEO_ID : INTRO_VIDEO_ID" />
             </div>
 
+            <!-- The same fields as the instructor's production profile, as cards. -->
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div class="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
-                <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Major / Degree</p>
-                <p class="m-0 mt-1 text-sm font-bold text-slate-800">{{ instructor.major }}</p>
-              </div>
-              <div class="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
-                <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Core expertise</p>
-                <p class="m-0 mt-1 text-sm font-bold text-slate-800">{{ instructor.expertise }}</p>
+              <div
+                v-for="row in instructorFacts"
+                :key="row.label"
+                class="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4"
+                :class="row.wide ? 'sm:col-span-2' : ''"
+              >
+                <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">{{ row.label }}</p>
+                <p class="m-0 mt-1 text-sm font-bold text-slate-800">{{ row.items.join(', ') }}</p>
               </div>
             </div>
 
             <div v-if="instructor.subjects.length" class="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
-              <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Subjects covered ({{ instructor.subjects.length }})</p>
-              <div class="mt-2 flex flex-wrap gap-1.5">
+              <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Subjects taught ({{ instructor.subjects.length }})</p>
+              <!-- An even two-column grid, so long names don't leave ragged rows. -->
+              <div class="mt-2 grid grid-cols-1 gap-1.5 sm:grid-cols-2">
                 <span
                   v-for="sub in instructor.subjects"
                   :key="sub.code"
-                  class="inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-bold"
-                  :class="sub.style.badgeClass"
+                  class="flex min-w-0 items-center rounded-lg border border-slate-200 bg-white px-2 py-1.5 text-xs font-bold text-slate-700"
                 >
-                  <span class="h-1.5 w-1.5 rounded-full" :class="sub.style.dotClass"></span>
-                  {{ sub.name }}
+                  <SubjectCode :subject="sub.code" />
                 </span>
               </div>
-            </div>
-
-            <div class="rounded-2xl border border-[#faecd2] bg-[#fdfbf6] p-4">
-              <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-[#996b27]">Self-introduction</p>
-              <p class="m-0 mt-1.5 text-xs italic leading-relaxed text-slate-700 sm:text-sm">“{{ instructor.selfIntro }}”</p>
             </div>
           </div>
 
@@ -374,7 +401,9 @@
               class="rounded-2xl border border-slate-100 bg-white p-4"
             >
               <div class="flex flex-wrap items-center justify-between gap-2">
-                <p class="m-0 text-sm font-bold text-slate-900">{{ past.subject }}</p>
+                <p class="m-0 flex min-w-0 text-sm font-bold text-slate-900">
+                  <SubjectCode :subject="past.subject" size="sm" />
+                </p>
                 <span
                   class="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide"
                   :class="past.status === 'completed' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'"
@@ -423,8 +452,10 @@
               </span>
               <span class="min-w-0 flex-1">
                 <span class="block truncate text-sm font-bold text-slate-900">{{ item.title }}</span>
-                <span class="block text-[11px] font-medium text-slate-500">
-                  {{ materialKind(item.kind).label }}<template v-if="item.subject"> · {{ item.subject }}</template> · {{ item.addedOn }}
+                <span class="flex min-w-0 flex-wrap items-center gap-x-1 text-[11px] font-medium text-slate-500">
+                  <span>{{ materialKind(item.kind).label }}</span>
+                  <template v-if="item.subject"><span aria-hidden="true">·</span><SubjectCode :subject="item.subject" size="sm" /></template>
+                  <span aria-hidden="true">·</span><span>{{ item.addedOn }}</span>
                 </span>
                 <span v-if="item.note" class="mt-1 block text-xs text-slate-600">{{ item.note }}</span>
               </span>
@@ -444,14 +475,16 @@
 import GoogleMeetIcon from './GoogleMeetIcon.vue';
 import { computed, ref, watch } from 'vue';
 import AppImage from './AppImage.vue';
+import SubjectCode from './SubjectCode.vue';
 import TeacherIntroVideo from './TeacherIntroVideo.vue';
 import { MANILA, TOKYO, dateIn, rangeIn, countdownLabel } from '@/lib/schoolTime';
 import { materialKind } from '@/lib/lessonMaterials';
+import { assessmentTypeOf, LEVEL_CHECK_CANCEL_MINUTES } from '@/lib/brelas';
 import { useUserStore } from '@/stores/useUserStore';
 import { useSchoolStore } from '@/stores/useSchoolStore';
 import {
   INSTRUCTORS, INTRO_VIDEO_ID, DEMO_VIDEO_ID, SUBJECT_LABELS,
-  parseSubjectCodes, getSubjectBadgeStyle, getTeacherProfile, pointsForDuration,
+  parseSubjectCodes, getTeacherProfile, pointsForDuration,
 } from '@/pages/student-view-v4/constants';
 
 const props = defineProps({
@@ -464,6 +497,12 @@ defineEmits(['close', 'cancel', 'edit', 'reschedule']);
 
 const user = useUserStore();
 const school = useSchoolStore();
+
+// Level checks (trial / counseling) close for cancelling 50 minutes before
+// the start; regular lessons keep their own rule, handled on confirmation.
+const checkType = computed(() => assessmentTypeOf(props.lesson?.subject));
+const cancellable = computed(() => !checkType.value || school.canCancel(props.lesson?.id));
+const levelCheckCancelNote = `Level checks can be cancelled until ${LEVEL_CHECK_CANCEL_MINUTES} minutes before the start.`;
 
 /* Pre-class materials for this lesson, from the shared store. */
 const prep = computed(() => (props.lesson?.id ? school.prepFor(props.lesson.id) : { items: [], total: 0, reviewed: 0, chosen: false }));
@@ -538,17 +577,21 @@ const instructor = computed(() => {
   const profile = t ? getTeacherProfile(t) : {};
   const codes = parseSubjectCodes(t?.specialty);
   return {
-    specialtyLabel: t?.specialty ?? '',
+    majors: profile.majors ?? ['Education', 'Language'],
+    areas: profile.areas ?? ['Conversation', 'Grammar'],
     rate30: t ? pointsForDuration(t, 30) : 5,
     rate60: t ? pointsForDuration(t, 60) : 9,
-    rating: t?.rating ?? profile.rating ?? '—',
-    lessonCount: t?.lessonCount ?? profile.lessonCount ?? 0,
-    major: profile.major ?? 'Education & Language Teaching',
-    expertise: profile.expertise ?? 'English Language & Communication',
     selfIntro: profile.selfIntro ?? 'Hello! I focus on practical English communication and personalised feedback.',
-    subjects: codes.map((code) => ({ code, name: SUBJECT_LABELS[code] || code, style: getSubjectBadgeStyle(code, false) })),
+    subjects: codes.map((code) => ({ code, name: SUBJECT_LABELS[code] || code })),
   };
 });
+
+/** Background rows, short cards first, then the long expertise list across the full width. */
+const instructorFacts = computed(() => [
+  { label: 'Major at university', items: instructor.value.majors },
+  { label: 'Required points', items: [`${instructor.value.rate30} pts (30m)`, `${instructor.value.rate60} pts (1hr)`] },
+  { label: 'Areas of expertise', wide: true, items: instructor.value.areas },
+]);
 
 /** Classes this student actually took with this instructor, newest first —
  *  cancelled ones are left out. */

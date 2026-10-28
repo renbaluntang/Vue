@@ -1,12 +1,15 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { useRoute } from "vue-router";
 import BookingScheduler from "../../components/BookingScheduler.vue";
 import BookingConfirmationPage from "../student-view-v4/BookingConfirmationPage.vue";
+import TeacherDataModal from "../../components/TeacherDataModal.vue";
 import FreeConversationModal from "../../components/FreeConversationModal.vue";
 import TeacherIntroVideo from "../../components/TeacherIntroVideo.vue";
 import { REFERRAL_TERMS } from "../../lib/referral";
 import DateTimeFilterPopover from "../student-view-v4/DateTimeFilterPopover.vue";
 import SubjectFilterBar from "../student-view-v4/SubjectFilterBar.vue";
+import SubjectCode from "../../components/SubjectCode.vue";
 import {
   INSTRUCTORS,
   SUBJECT_LABELS,
@@ -33,6 +36,21 @@ import { TOKYO, partsIn, tokyoAt } from "../../lib/schoolTime";
 
 const user = useUserStore();
 const school = useSchoolStore();
+const route = useRoute();
+
+// ── Level checks ──────────────────────────────────────────────────────
+// The trial lesson & assessment (TA) is free and taken once, by new students
+// only. Once it is used (or for anyone who never qualified) the [TA] subject
+// is removed from everything this page offers: filters, cards, the subject
+// list on the confirmation step.
+const TA_CODE = "[TA]";
+// Free Conversation is the on-demand "Talk Now" lesson, so it is never a
+// subject to book into a slot.
+const excludedCodes = computed(() => (user.taEligible ? ["[FC]"] : [TA_CODE, "[FC]"]));
+/** The subject codes a teacher can be booked for by this student. */
+const offeredCodes = (teacher) => parseSubjectCodes(teacher.specialty).filter((code) => !excludedCodes.value.includes(code));
+/** The specialty string with unbookable subjects taken out, for filtering and search. */
+const offeredSpecialty = (teacher) => offeredCodes(teacher).join(", ");
 
 /** Tokyo calendar date `offset` days from today, as 'YYYY-MM-DD'. The grid times are JST. */
 const tokyoDayIso = (offset) => {
@@ -63,6 +81,7 @@ const getSlotStatusLive = (teacherId, dayIndex, slotIndex) => {
 const favorites = ref(getInitialFavorites());
 const showFreeConversationModal = ref(false);
 const profileTeacher = ref(null);
+const infoTeacher = ref(null);
 
 const bookingNotice = ref(null);
 
@@ -132,7 +151,7 @@ const videoTabs = [
 
 /** The same subject names the card shows, read off the same field. */
 const videoSubjects = (teacher) => {
-  const names = parseSubjectCodes(teacher.specialty)
+  const names = offeredCodes(teacher)
     .map((code) => (SUBJECT_LABELS[code] || code).replace(/^\[[^\]]+\]\s*/, ''));
   if (!names.length) return 'English';
   if (names.length <= 2) return names.join(' and ');
@@ -176,10 +195,12 @@ const resetFilters = () => {
 };
 
 // Teacher card friendly presentation helpers
-const getCleanSubjectName = (code) => {
-  const label = SUBJECT_LABELS[code] || code;
-  return label.replace(/^\[[A-Z0-9]+\]\s*/i, "").trim();
-};
+// Subject chips stay neutral so each subject's own letter-box colour reads;
+// only a chip that matches the active filter is lit up.
+const subjectChipClass = (code) =>
+  subjectFilter.value !== "ALL" && isSubjectMatchingFilter(code, subjectFilter.value)
+    ? getSubjectBadgeStyle(code, true)
+    : "bg-white text-slate-700 border-slate-200";
 
 const getSubjectCategoryBadge = (code) => {
   const cat = getSubjectCategory(code);
@@ -262,9 +283,22 @@ const openTeacherProfile = (teacher) => {
   // Carry the searched subject into the booking calendar, but only when this
   // teacher actually teaches it — otherwise the code has no matching option
   // (also covers a subject left over from the previously opened teacher).
-  bookingSubject.value = parseSubjectCodes(teacher.specialty).includes(subjectFilter.value)
+  bookingSubject.value = offeredCodes(teacher).includes(subjectFilter.value)
     ? subjectFilter.value
     : "ALL";
+};
+
+const openTeacherInfo = (teacher) => {
+  infoTeacher.value = teacher;
+};
+
+const closeTeacherInfo = () => {
+  infoTeacher.value = null;
+};
+
+const bookFromTeacherInfo = (teacher) => {
+  closeTeacherInfo();
+  openTeacherProfile(teacher);
 };
 
 /**
@@ -289,7 +323,7 @@ const confirmSubject = ref("");
 const confirmMessage = ref("");
 const confirmSubjectOptions = computed(() =>
   confirmationDraft.value
-    ? parseSubjectCodes(confirmationDraft.value.teacher.specialty).map((code) => ({ value: code, label: SUBJECT_LABELS[code] ?? code }))
+    ? offeredCodes(confirmationDraft.value.teacher).map((code) => ({ value: code, label: SUBJECT_LABELS[code] ?? code }))
     : []
 );
 
@@ -302,6 +336,12 @@ const openConfirmation = (pick) => {
   confirmSubject.value = bookingSubject.value === "ALL" ? "" : bookingSubject.value;
 };
 
+/** What the booking takes from the wallet: nothing for the free trial. */
+const confirmPoints = computed(() => {
+  if (!confirmationDraft.value) return 0;
+  return confirmSubject.value === TA_CODE && user.taEligible ? 0 : confirmationDraft.value.points;
+});
+
 const cancelConfirmation = () => {
   confirmationDraft.value = null;
 };
@@ -311,22 +351,28 @@ const finalizeBooking = () => {
   if (!draft) return;
   // Booked in the shared store, so it shows on the dashboard and in the
   // teacher's reservations. It refuses a taken slot or a short balance.
+  // The cost is read first: booking the trial ends eligibility, which would
+  // otherwise flip it back to the regular price.
+  const cost = confirmPoints.value;
+  const wasTrial = confirmSubject.value === TA_CODE;
   const booked = user.bookLesson({
     teacherId: draft.teacher.imageKey,
     start: draft.start,
     duration: draft.minutes,
     subject: confirmSubject.value ? SUBJECT_LABELS[confirmSubject.value] ?? confirmSubject.value : "Lesson",
     note: confirmMessage.value.trim(),
-    points: draft.points,
+    points: cost,
   });
   confirmationDraft.value = null;
   if (!booked) {
     bookingNotice.value = {
       type: "error",
       message:
-        user.profile.pointsBalance < draft.points
-          ? `Not enough points — this lesson costs ${draft.points} pts and you have ${user.profile.pointsBalance}.`
-          : "That slot was just taken. Please choose another time.",
+        wasTrial && cost !== 0
+          ? "Your free trial lesson & assessment has already been booked. Choose another subject."
+          : user.profile.pointsBalance < cost
+            ? `Not enough points — this lesson costs ${cost} pts and you have ${user.profile.pointsBalance}.`
+            : "That slot was just taken. Please choose another time.",
     };
     return;
   }
@@ -340,7 +386,7 @@ const finalizeBooking = () => {
     when: draft.dayLabel,
     time: `${draft.startLabel} – ${draft.endLabel} JST`,
     length: draft.minutes === 60 ? "1 hour" : "30 min",
-    points: draft.points,
+    points: cost,
     left: user.profile.pointsBalance,
     // Kept for screen readers and the error path, which only has text.
     message: `${draft.minutes === 60 ? "1 hour" : "30 min"} with ${draft.teacher.name}, ${draft.dayLabel}, ${draft.startLabel} – ${draft.endLabel} JST.`,
@@ -364,7 +410,7 @@ const filteredInstructors = computed(() => {
   }
 
   if (subjectFilter.value !== "ALL") {
-    list = list.filter((teacher) => isSubjectMatchingFilter(teacher.specialty, subjectFilter.value));
+    list = list.filter((teacher) => isSubjectMatchingFilter(offeredSpecialty(teacher), subjectFilter.value));
   }
 
   if (selectedDayKey.value || selectedTime.value) {
@@ -413,7 +459,7 @@ const filteredInstructors = computed(() => {
       const profile = getTeacherProfile(teacher);
       return (
         teacher.name.toLowerCase().includes(query) ||
-        teacher.specialty.toLowerCase().includes(query) ||
+        offeredSpecialty(teacher).toLowerCase().includes(query) ||
         profile.major.toLowerCase().includes(query) ||
         profile.expertise.toLowerCase().includes(query)
       );
@@ -429,6 +475,40 @@ const filteredInstructors = computed(() => {
     return right.id - left.id;
   });
 });
+
+// A link such as /booking?subject=[CS] (from Assessment Feedback) opens the
+// list already filtered to that subject, if this student may book it.
+const applySubjectQuery = () => {
+  const code = route.query.subject;
+  if (typeof code === "string" && SUBJECT_LABELS[code] && !excludedCodes.value.includes(code)) {
+    subjectFilter.value = code;
+  }
+};
+watch(() => route.query.subject, applySubjectQuery, { immediate: true });
+
+// A link such as /booking?teacher=184 (Book a class, from a class panel) opens
+// that instructor's booking calendar straight away. The id is the teacher-image
+// key the lessons store.
+const applyTeacherQuery = () => {
+  const key = Number(route.query.teacher);
+  const teacher = Number.isFinite(key) ? INSTRUCTORS.find((item) => item.imageKey === key) : null;
+  if (teacher) openTeacherProfile(teacher);
+};
+watch(() => route.query.teacher, applyTeacherQuery, { immediate: true });
+
+// A filter can be left on [TA] after the trial is booked; it is no longer
+// on offer then, so fall back to all subjects.
+watch(excludedCodes, (codes) => {
+  if (codes.includes(subjectFilter.value)) subjectFilter.value = "ALL";
+});
+
+const instructorList = ref(null);
+/** The trial promo: show only the instructors who give it, then bring them into view. */
+const showTrialInstructors = () => {
+  resetFilters();
+  subjectFilter.value = TA_CODE;
+  nextTick(() => instructorList.value?.scrollIntoView?.({ behavior: "smooth", block: "start" }));
+};
 
 const toggleFavorite = (teacherId) => {
   favorites.value = favorites.value.includes(teacherId)
@@ -480,6 +560,39 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
 <template>
   <div class="min-h-screen bg-[#f1f5f9] px-3 py-6 pb-10 text-slate-800 sm:px-6">
     <div :class="`mx-auto space-y-6 transition-all duration-300 ${containerMaxWidthClass}`">
+      <!-- The free trial lesson & assessment, for a new student who has not
+           taken it. It sits above everything else because it is the best
+           first booking, and it disappears for good once it is booked. -->
+      <section
+        v-if="user.taEligible"
+        class="relative overflow-hidden rounded-2xl border border-brighture-gold/40 bg-brighture-cream p-5 shadow-sm sm:p-6"
+        aria-labelledby="trial-promo-title"
+      >
+        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div class="flex items-start gap-3.5">
+            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brighture-gold text-lg text-brighture-ink shadow-sm">
+              <i class="fa-solid fa-gift" aria-hidden="true"></i>
+            </span>
+            <div class="min-w-0">
+              <div class="flex flex-wrap items-center gap-2">
+                <h2 id="trial-promo-title" class="m-0 text-base font-extrabold tracking-tight text-slate-900 sm:text-lg">Your free trial lesson &amp; assessment</h2>
+                <span class="rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">Free · once</span>
+              </div>
+              <p class="m-0 mt-1 text-xs font-medium text-slate-600 sm:text-sm">
+                Meet an instructor, talk about your goals, and get personal feedback on how you're doing and what to work on. It costs no points.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            @click="showTrialInstructors"
+            class="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-slate-800 sm:w-auto"
+          >
+            Choose a trial instructor <i class="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
+          </button>
+        </div>
+      </section>
+
       <!-- Two ways in: start something now, or bring someone with you.
            Stacked, these two cost a whole phone screen before the teachers —
            the thing the page is for — come into view, so on small screens they
@@ -644,6 +757,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
             v-model="subjectFilter"
             v-model:favorites-only="favoritesOnly"
             :favorites-count="favorites.length"
+            :exclude-codes="excludedCodes"
           />
         </div>
 
@@ -670,7 +784,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
       </header>
 
       <!-- Instructors Grid List -->
-      <section :class="`grid gap-5 transition-all duration-300 ${sectionColsClass}`">
+      <section ref="instructorList" :class="`grid scroll-mt-24 gap-5 transition-all duration-300 ${sectionColsClass}`">
         <article
           v-for="teacher in filteredInstructors"
           :key="teacher.id"
@@ -680,12 +794,16 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
             <!-- Header Row: Instructor Name, Lesson Stats, Rates & Favorite Button -->
             <div class="flex flex-col gap-3 pb-4 border-b border-slate-100 sm:flex-row sm:items-center sm:justify-between">
               <div class="flex flex-wrap items-center gap-3">
-                <h3
-                  @click="openTeacherProfile(teacher)"
-                  class="m-0 text-xl font-extrabold tracking-tight text-slate-900 cursor-pointer hover:text-amber-600 transition flex items-center gap-2"
-                  title="Click to view full schedule & profile"
-                >
-                  <span>{{ teacher.name }}</span>
+                <h3 class="m-0 text-xl font-extrabold tracking-tight">
+                  <button
+                    type="button"
+                    @click="openTeacherInfo(teacher)"
+                    class="text-slate-900 cursor-pointer hover:text-amber-600 transition flex items-center gap-2"
+                    :aria-label="`View ${teacher.name}'s teacher information`"
+                    title="View teacher information"
+                  >
+                    <span>{{ teacher.name }}</span>
+                  </button>
                 </h3>
 
                 <!-- Experience Tag -->
@@ -729,10 +847,12 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
             <div :class="`mt-5 grid gap-5 ${cardBodyGridClass}`">
               <!-- Left Column: Instructor Photo & Video Actions -->
               <div class="flex flex-col items-center sm:items-start gap-3">
-                <div
-                  @click="openTeacherProfile(teacher)"
+                <button
+                  type="button"
+                  @click="openTeacherInfo(teacher)"
                   :class="`relative w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-200 shadow-sm group/avatar cursor-pointer ${cardPhotoAspectClass}`"
-                  title="Click to view teacher schedule & available slots"
+                  :aria-label="`View ${teacher.name}'s teacher information`"
+                  title="View teacher information"
                 >
                   <img
                     :src="getTeacherModalImage(teacher)"
@@ -747,9 +867,9 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                   <!-- What the photo does. Low and right: the crop is anchored
                        to the top, so this corner is shoulder, never face. -->
                   <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur-xs transition group-hover/avatar:bg-slate-900">
-                    <i class="fa-solid fa-calendar-days text-[#FFCD00]" aria-hidden="true"></i> View Schedule
+                    <i class="fa-solid fa-user text-[#FFCD00]" aria-hidden="true"></i> View Profile
                   </div>
-                </div>
+                </button>
 
                 <!-- Video Buttons (Distinct Icons & Clarifying Labels) -->
                 <div class="flex w-full max-w-[200px] flex-col gap-2">
@@ -808,7 +928,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                       <svg class="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
                       </svg>
-                      <span>Subjects Taught ({{ parseSubjectCodes(teacher.specialty).length }})</span>
+                      <span>Subjects Taught ({{ offeredCodes(teacher).length }})</span>
                     </div>
                     <span v-if="subjectFilter !== 'ALL'" class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
                       <i class="fa-solid fa-check" aria-hidden="true"></i> Filter match
@@ -817,19 +937,14 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
 
                   <div class="flex flex-wrap gap-2">
                     <span
-                      v-for="code in parseSubjectCodes(teacher.specialty)"
+                      v-for="code in offeredCodes(teacher)"
                       :key="code"
                       :class="[
-                        'inline-flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs font-semibold transition-all shadow-2xs',
-                        getSubjectBadgeStyle(code, isSubjectMatchingFilter(code, subjectFilter) && subjectFilter !== 'ALL')
+                        'inline-flex max-w-full items-center rounded-lg border px-2 py-1 text-xs font-semibold transition-all shadow-2xs',
+                        subjectChipClass(code)
                       ]"
                     >
-                      <!-- Subject Code Tag -->
-                      <span class="rounded bg-black/10 px-1 py-0.2 text-[10px] font-mono font-black opacity-75">
-                        {{ code.replace(/[\[\]]/g, '') }}
-                      </span>
-                      <!-- Readable Subject Title -->
-                      <span>{{ getCleanSubjectName(code) }}</span>
+                      <SubjectCode :subject="code" size="sm" />
                     </span>
                   </div>
                 </div>
@@ -1030,12 +1145,14 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
               </div>
               <div v-if="bookingNotice.subject" class="flex items-center gap-2.5">
                 <dt class="w-4 shrink-0 text-center text-indigo-500"><i class="fa-solid fa-book-open" aria-hidden="true"></i><span class="sr-only">Subject</span></dt>
-                <dd class="m-0 truncate font-semibold text-slate-700">{{ bookingNotice.subject }}</dd>
+                <dd class="m-0 flex min-w-0 font-semibold text-slate-700"><SubjectCode :subject="bookingNotice.subject" size="sm" /></dd>
               </div>
               <div class="flex items-center gap-2.5">
                 <dt class="w-4 shrink-0 text-center text-amber-500"><i class="fa-solid fa-coins" aria-hidden="true"></i><span class="sr-only">Points</span></dt>
                 <dd class="m-0 font-semibold text-slate-700 tabular-nums">
-                  {{ bookingNotice.points }} pts used · <span class="text-slate-500">{{ bookingNotice.left }} left</span>
+                  <template v-if="bookingNotice.points">{{ bookingNotice.points }} pts used</template>
+                  <template v-else>Free</template>
+                  · <span class="text-slate-500">{{ bookingNotice.left }} left</span>
                 </dd>
               </div>
             </dl>
@@ -1122,15 +1239,15 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
             <!-- Distinct subjects covered chips in modal header -->
             <div class="mt-2 flex flex-wrap justify-center sm:justify-start gap-1.5">
               <span
-                v-for="code in parseSubjectCodes(profileTeacher.specialty)"
+                v-for="code in offeredCodes(profileTeacher)"
                 :key="code"
                 :class="[
-                  'inline-flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-bold shadow-2xs',
-                  getSubjectBadgeStyle(code, isSubjectMatchingFilter(code, subjectFilter) && subjectFilter !== 'ALL')
+                  'inline-flex max-w-full items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-bold shadow-2xs',
+                  subjectChipClass(code)
                 ]"
               >
                 <i v-if="isSubjectMatchingFilter(code, subjectFilter) && subjectFilter !== 'ALL'" class="fa-solid fa-check text-amber-700" aria-hidden="true"></i>
-                <span>{{ SUBJECT_LABELS[code] || code }}</span>
+                <SubjectCode :subject="code" size="sm" />
               </span>
             </div>
 
@@ -1153,6 +1270,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
             :initial-date="schedulerStart.date"
             :initial-time="schedulerStart.time"
             :initial-duration="schedulerStart.minutes"
+            :free="bookingSubject === TA_CODE && user.taEligible"
             @review="openConfirmation"
           />
         </div>
@@ -1170,7 +1288,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
     :start-label="confirmationDraft.startLabel"
     :end-label="confirmationDraft.endLabel"
     :minutes="confirmationDraft.minutes"
-    :points="confirmationDraft.points"
+    :points="confirmPoints"
     :subject="confirmSubject"
     :subject-options="confirmSubjectOptions"
     :message="confirmMessage"
@@ -1184,6 +1302,11 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
   <FreeConversationModal
     :isOpen="showFreeConversationModal"
     @close="showFreeConversationModal = false"
+  />
+  <TeacherDataModal
+    :teacher="infoTeacher"
+    @close="closeTeacherInfo"
+    @book="bookFromTeacherInfo"
   />
 </template>
 

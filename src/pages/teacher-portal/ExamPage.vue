@@ -115,9 +115,7 @@
                 <span class="w-1.5 h-1.5 rounded-full" :class="exam.status === 'Published' ? 'bg-emerald-500' : 'bg-amber-500'"></span>
                 {{ exam.status }}
               </span>
-              <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-extrabold text-xs">
-                {{ exam.subject }}
-              </span>
+              <SubjectCode :subject="examSubject(exam.subject)" class="font-extrabold text-xs text-slate-700" />
             </div>
 
             <h3 class="text-base font-extrabold text-slate-900 group-hover:text-amber-700 transition">
@@ -244,7 +242,7 @@
       <div class="rounded-3xl border border-slate-200/80 bg-white p-5 shadow-xs flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-extrabold text-xs">{{ resultsExam.subject }}</span>
+            <SubjectCode :subject="examSubject(resultsExam.subject)" class="font-extrabold text-xs text-slate-700" />
             <span class="text-[11px] font-bold uppercase tracking-wider text-slate-400">Results</span>
           </div>
           <h2 class="mt-1.5 text-lg font-extrabold text-slate-900 truncate">{{ resultsExam.title }}</h2>
@@ -449,12 +447,7 @@
               v-model="currentExam.subject"
               class="w-full px-3.5 py-2.5 text-sm rounded-2xl border border-slate-200 focus:outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-200/50 font-bold text-slate-800 bg-white"
             >
-              <option value="SF">Speech Fluency (SF)</option>
-              <option value="DC">Daily Conversation (DC)</option>
-              <option value="PP">Pronunciation Power (PP)</option>
-              <option value="RW">Reading &amp; Writing (RW)</option>
-              <option value="FC">Free Conversation (FC)</option>
-              <option value="BC">Business Communication (BC)</option>
+              <option v-for="(name, code) in EXAM_SUBJECTS" :key="code" :value="code">{{ name }} ({{ code }})</option>
             </select>
           </div>
 
@@ -810,7 +803,7 @@
             <span class="px-2.5 py-1 rounded-lg bg-amber-100 text-amber-800 text-[10px] font-black uppercase tracking-wider">
               Student Preview Mode
             </span>
-            <span class="text-xs text-slate-500 font-bold">{{ previewExamData.subject }}</span>
+            <SubjectCode :subject="examSubject(previewExamData.subject)" size="sm" class="text-xs text-slate-500 font-bold" />
           </div>
           <button
             type="button"
@@ -898,6 +891,7 @@ import { ref, computed, watch } from 'vue';
 import AppImage from '../../components/AppImage.vue';
 import { useSchoolStore } from '../../stores/useSchoolStore';
 import { useTeacherStore } from '../../stores/useTeacherStore';
+import SubjectCode from '@/components/SubjectCode.vue';
 import { MANILA, stampIn, relativeLabel } from '../../lib/schoolTime';
 
 const school = useSchoolStore();
@@ -907,6 +901,18 @@ const TEACHER_ID = teacher.teacherId;
 // Tests live in the school's records, so a published one reaches the students
 // it is assigned to, and their answers come back here.
 const examsList = computed(() => school.examsForTeacher(TEACHER_ID));
+
+// Tests store a bare code ("SF"). The names live here, beside the picker that
+// offers them, so the subject box can show "PP" or "BC" with a proper name too.
+const EXAM_SUBJECTS = {
+  SF: 'Speech Fluency',
+  DC: 'Daily Conversation',
+  PP: 'Pronunciation Power',
+  RW: 'Reading & Writing',
+  FC: 'Free Conversation',
+  BC: 'Business Communication',
+};
+const examSubject = (code) => (EXAM_SUBJECTS[code] ? `[${code}] ${EXAM_SUBJECTS[code]}` : code);
 
 /** 'Just now', '3h', 'Oct 2' — the card footer's "Updated" label. */
 const updatedLabel = (iso) => (iso ? relativeLabel(iso, school.now) : '');

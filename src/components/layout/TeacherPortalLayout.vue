@@ -400,6 +400,7 @@
             </svg>
           </button>
 
+
           <button
             type="button"
             @click="toggleSidebar"
@@ -667,6 +668,7 @@ const navItems = [
   { path: '/calendar', label: 'Scheduling', shortLabel: 'Schedule', icon: 'fa-regular fa-calendar-days' },
   { path: '/lessons', label: 'Lesson Log', shortLabel: 'Log', icon: 'fa-solid fa-clock-rotate-left', badge: 'feedback' },
   { path: '/writing', label: 'Writing', shortLabel: 'Writing', icon: 'fa-solid fa-pen-nib', badge: 'writing' },
+  { path: '/assessments', label: 'Assessments', shortLabel: 'Assess', icon: 'fa-solid fa-clipboard-check', badge: 'assessments' },
   { path: '/exams', label: 'Tests & Exams', shortLabel: 'Exams', icon: 'fa-solid fa-file-pen' },
   { path: '/chat', label: 'Messages', shortLabel: 'Chat', icon: 'fa-solid fa-comments', badge: 'chat' },
   { path: '/analytics', label: 'Analytics', shortLabel: 'Stats', icon: 'fa-solid fa-chart-line' },
@@ -678,6 +680,12 @@ const navItems = [
 const bottomNavItems = ['/', '/reservations', '/calendar', '/writing']
   .map((path) => navItems.find((item) => item.path === path));
 
+// A trial or counseling lesson only gets its assessment record once it has
+// started, so make sure those exist before counting what is left to write up.
+school.syncLessonAssessments();
+const assessmentTodoCount = computed(() => school.assessmentsForTeacher(teacher.teacherId)
+  .filter((a) => a.status === 'draft' || a.status === 'scheduled').length);
+
 /** Titles for pages that are not in the nav list. */
 const offNavTitles = { '/profile': 'Profile Setting', '/schedule': 'Availability grid' };
 
@@ -685,6 +693,7 @@ const badgeFor = (item) => {
   if (item.badge === 'writing') return teacher.pendingWritingCount || 0;
   if (item.badge === 'feedback') return teacher.pendingFeedback.length || 0;
   if (item.badge === 'chat') return teacher.unreadMessageCount || 0;
+  if (item.badge === 'assessments') return assessmentTodoCount.value;
   return 0;
 };
 

@@ -46,9 +46,6 @@
         <div class="text-center sm:text-left space-y-2 flex-1">
           <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <h2 class="text-2xl font-extrabold text-slate-900">{{ user.fullName }}</h2>
-            <span class="px-2.5 py-0.5 rounded-full bg-indigo-50 text-indigo-700 text-xs font-extrabold border border-indigo-200">
-              {{ user.profile.level }}
-            </span>
           </div>
           <p class="text-sm text-slate-400 font-semibold">Member since {{ user.profile.memberSince }}</p>
 

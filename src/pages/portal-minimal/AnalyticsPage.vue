@@ -62,12 +62,12 @@
 
       <div class="bg-white border border-zinc-200/80 rounded-2xl p-3.5 sm:p-4 shadow-[0_1px_3px_rgba(0,0,0,0.02)] flex flex-col justify-between">
         <div class="flex items-center justify-between mb-1.5">
-          <span class="text-[11px] sm:text-xs font-medium text-zinc-400">Current Level</span>
-          <span class="text-sm">🏆</span>
+          <span class="text-[11px] sm:text-xs font-medium text-zinc-400">Assessments Taken</span>
+          <i class="fa-solid fa-clipboard-list text-sm text-zinc-500" aria-hidden="true"></i>
         </div>
         <div>
-          <div class="text-lg sm:text-xl font-extrabold text-zinc-900 tracking-tight">{{ user.profile.level.split(' ')[0] }}</div>
-          <div class="text-[10px] sm:text-[11px] font-medium text-zinc-500 mt-0.5 truncate">{{ user.profile.level }}</div>
+          <div class="text-lg sm:text-xl font-extrabold text-zinc-900 tracking-tight">{{ user.assessmentFeedback.length }}</div>
+          <div class="text-[10px] sm:text-[11px] font-medium text-zinc-500 mt-0.5 truncate">Trial lessons and counseling sessions</div>
         </div>
       </div>
     </div>
@@ -83,7 +83,6 @@
             </h2>
             <p class="text-xs text-zinc-400 mt-0.5">Evaluated across your online lessons</p>
           </div>
-          <span class="text-xs font-semibold text-zinc-500">CEFR B2 Level</span>
         </div>
 
         <div class="space-y-3.5 pt-1">

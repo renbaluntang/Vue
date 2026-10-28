@@ -11,6 +11,7 @@ const routes = [
       { path: 'calendar', name: 't-calendar', component: () => import('../pages/teacher-portal/GoogleCalendarSchedulePage.vue') },
       { path: 'lessons', name: 't-lessons', component: () => import('../pages/teacher-portal/LessonLogPage.vue') },
       { path: 'writing', name: 't-writing', component: () => import('../pages/teacher-portal/WritingPage.vue') },
+      { path: 'assessments', name: 't-assessments', component: () => import('../pages/teacher-portal/AssessmentsPage.vue') },
       { path: 'exams', name: 't-exams', component: () => import('../pages/teacher-portal/ExamPage.vue') },
       { path: 'chat', name: 't-chat', component: () => import('../pages/teacher-portal/ChatPage.vue') },
       { path: 'analytics', name: 't-analytics', component: () => import('../pages/teacher-portal/AnalyticsPage.vue') },

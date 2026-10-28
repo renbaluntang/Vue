@@ -1,6 +1,7 @@
 <script setup>
 import { computed, ref, watch, onMounted, onBeforeUnmount } from "vue";
 import { getTeacherPhoto } from "./constants";
+import { assessmentTypeOf, LEVEL_CHECK_CANCEL_MINUTES } from "@/lib/brelas";
 
 const props = defineProps({
   teacher: { type: Object, required: true },
@@ -20,7 +21,17 @@ const props = defineProps({
 
 const emit = defineEmits(["update:subject", "update:message", "cancel", "submit"]);
 
-const MESSAGE_MAX = 500;
+// Long enough for a counseling or trial booking, where students describe
+// their goals and background; one limit for every lesson keeps it simple.
+const MESSAGE_MAX = 1000;
+
+/** 'TA' / 'CS' when the chosen subject is a level check, else null. */
+const checkType = computed(() => assessmentTypeOf(props.subject));
+/** A free booking (the trial lesson & assessment) shows "Free", not "0 pts". */
+const isFree = computed(() => props.points === 0);
+const cancelNote = computed(() => (checkType.value
+  ? `Free cancellation up to ${LEVEL_CHECK_CANCEL_MINUTES} minutes before the lesson.`
+  : "Free cancellation up to 3 hours before the lesson."));
 const lengthLabel = computed(() => (props.minutes === 60 ? "1 hour" : "30 min"));
 
 /** "2:30 – 3:30 PM": the period is said once when both ends share it. */
@@ -128,7 +139,8 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
           <div class="border-t border-brighture-gold/20 pt-3 sm:min-w-[9.5rem] sm:border-l sm:border-t-0 sm:pl-4 sm:pt-0">
             <div class="flex items-baseline justify-between gap-3">
               <span class="text-[10px] font-black uppercase tracking-wider text-slate-400">Cost</span>
-              <span class="text-xl font-black text-slate-900 tabular-nums">
+              <span v-if="isFree" class="text-xl font-black text-emerald-700">Free</span>
+              <span v-else class="text-xl font-black text-slate-900 tabular-nums">
                 {{ points }} <span class="text-xs font-bold text-slate-500">pt{{ points === 1 ? '' : 's' }}</span>
               </span>
             </div>
@@ -200,9 +212,11 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
               id="confirm-message"
               :value="message"
               :maxlength="MESSAGE_MAX"
-              rows="3"
+              :rows="checkType ? 5 : 3"
               @input="emit('update:message', $event.target.value)"
-              placeholder="e.g. Let's focus on business vocabulary for my meeting on Friday."
+              :placeholder="checkType
+                ? 'e.g. Tell your instructor about your goals, how you use English, and anything you find difficult.'
+                : 'e.g. Let\'s focus on business vocabulary for my meeting on Friday.'"
               class="w-full resize-none rounded-xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-700 outline-none transition placeholder:text-slate-400 hover:border-slate-300 focus:border-brighture-gold focus:ring-4 focus:ring-brighture-gold/15"
             />
           </div>
@@ -212,7 +226,7 @@ onBeforeUnmount(() => window.removeEventListener("keydown", onKey, true));
         <div class="flex flex-col-reverse gap-3 border-t border-slate-100 bg-slate-50/70 px-5 py-4 sm:flex-row sm:items-center sm:justify-between sm:px-7">
           <p class="m-0 text-[11px] font-medium text-slate-500">
             <i class="fa-solid fa-shield-halved mr-1 text-emerald-600" aria-hidden="true"></i>
-            Free cancellation up to 3 hours before the lesson.
+            {{ cancelNote }}
           </p>
           <div class="grid grid-cols-2 gap-2 sm:flex sm:items-center">
             <button

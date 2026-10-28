@@ -89,9 +89,6 @@
         <div class="text-center sm:text-left space-y-1.5 flex-1">
           <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
             <h2 class="text-lg sm:text-xl font-bold text-zinc-900">{{ form.firstName }} {{ form.lastName }}</h2>
-            <span class="px-2.5 py-0.5 rounded-md bg-zinc-100 text-zinc-700 text-xs font-semibold border border-zinc-200/60">
-              {{ user.profile.level }}
-            </span>
           </div>
           <p class="text-xs text-zinc-400 font-medium">
             {{ form.romaji || `${form.lastName} ${form.firstName}` }} • Member since {{ user.profile.memberSince }}

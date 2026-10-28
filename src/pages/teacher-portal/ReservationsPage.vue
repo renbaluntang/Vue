@@ -92,9 +92,11 @@
 
             <h2 class="mt-1.5 text-base sm:text-lg font-extrabold text-white truncate">
               {{ teacher.nextReservation.studentName }}
-              <span class="text-xs font-normal text-slate-300 ml-1.5 sm:inline">
-                ({{ teacher.nextReservation.subject }})
-              </span>
+              <SubjectCode
+                :subject="teacher.nextReservation.subject"
+                size="sm"
+                class="ml-1.5 text-xs font-normal text-slate-300"
+              />
             </h2>
 
             <p class="mt-0.5 text-xs text-slate-300 truncate max-w-xl">
@@ -503,7 +505,7 @@
                 :key="row.id"
                 @click="selectedStudent = row"
                 class="absolute inset-x-1.5 z-10 flex flex-col justify-center gap-0.5 overflow-hidden rounded-xl border px-2 py-1.5 shadow-2xs transition-all hover:shadow-md hover:z-20 cursor-pointer group"
-                :title="`${row.studentName} · ${row.topic || cleanSubjectTitle(row.subject)} · ${formatPrimaryTime(row)}`"
+                :title="`${row.studentName} · ${row.topic || parseSubject(row.subject).name} · ${formatPrimaryTime(row)}`"
                 :class="[
                   getSubjectCardTheme(row.subject).bg,
                   row.id === teacher.nextReservation?.id ? 'ring-2 ring-brighture-gold' : ''
@@ -511,12 +513,7 @@
                 :style="getReservationPosition(row)"
               >
                 <div class="flex min-w-0 items-center gap-1.5">
-                  <span
-                    class="inline-flex shrink-0 items-center rounded px-1 py-0.5 text-[8px] font-extrabold leading-none"
-                    :class="getSubjectCardTheme(row.subject).badge"
-                  >
-                    {{ extractSubjectCode(row.subject) }}
-                  </span>
+                  <SubjectCode :subject="row.subject" :show-name="false" size="sm" class="shrink-0" />
                   <p class="min-w-0 flex-1 truncate text-[11px] font-extrabold leading-tight text-slate-900 group-hover:text-blue-700">
                     {{ row.studentName }}
                   </p>
@@ -675,15 +672,7 @@
                   <td class="px-4 py-4 max-w-xs">
                     <div class="space-y-1">
                       <div class="flex items-center gap-1.5 flex-wrap">
-                        <span
-                          class="rounded-lg px-2 py-0.5 text-[10px] font-black"
-                          :class="subjectBadgeStyle(row.subject)"
-                        >
-                          {{ extractSubjectCode(row.subject) }}
-                        </span>
-                        <span class="text-xs font-extrabold text-slate-800">
-                          {{ cleanSubjectTitle(row.subject) }}
-                        </span>
+                        <SubjectCode :subject="row.subject" size="sm" class="text-xs font-extrabold text-slate-800" />
                         <span
                           v-if="row.substitution"
                           class="rounded-md bg-amber-100 px-1.5 py-0.2 text-[9px] font-bold text-amber-800"
@@ -808,16 +797,8 @@
 
               <!-- Subject & Topic Box -->
               <div class="rounded-xl bg-slate-50/90 p-3 border border-slate-100 space-y-1">
-                <div class="flex items-center gap-1.5">
-                  <span
-                    class="rounded-md px-1.5 py-0.5 text-[9px] font-black"
-                    :class="subjectBadgeStyle(row.subject)"
-                  >
-                    {{ extractSubjectCode(row.subject) }}
-                  </span>
-                  <span class="text-xs font-bold text-slate-800 truncate">
-                    {{ cleanSubjectTitle(row.subject) }}
-                  </span>
+                <div class="flex min-w-0 items-center">
+                  <SubjectCode :subject="row.subject" size="sm" class="text-xs font-bold text-slate-800" />
                 </div>
                 <p v-if="row.topic" class="text-xs text-slate-600 font-medium line-clamp-2">
                   <strong class="text-slate-700">Topic:</strong> {{ row.topic }}
@@ -907,9 +888,9 @@
                 >
                   {{ row.studentName }}
                 </button>
-                <p class="truncate text-xs font-semibold text-slate-600 mt-0.5">
-                  {{ row.subject }}
-                </p>
+                <div class="mt-0.5 flex min-w-0 text-xs font-semibold text-slate-600">
+                  <SubjectCode :subject="row.subject" size="sm" />
+                </div>
                 <div class="mt-1 flex flex-wrap items-center gap-1.5">
                   <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[9px] font-bold text-slate-600">
                     {{ row.membership }}
@@ -1010,6 +991,8 @@ import GoogleMeetIcon from '../../components/GoogleMeetIcon.vue';
 import { ref, computed, watch } from 'vue';
 import AppImage from '../../components/AppImage.vue';
 import StudentDetailModal from '../../components/teacher/StudentDetailModal.vue';
+import SubjectCode from '@/components/SubjectCode.vue';
+import { parseSubject } from '@/pages/student-view-v4/constants';
 import { useTeacherStore } from '../../stores/useTeacherStore';
 
 const teacher = useTeacherStore();
@@ -1190,7 +1173,6 @@ const getSubjectCardTheme = (subject) => {
   if (code === 'SF') {
     return {
       bg: 'bg-blue-50/90 hover:bg-blue-100/90 border-blue-200 text-blue-950',
-      badge: 'bg-blue-100 text-blue-700',
       icon: 'fa-solid fa-microphone',
       iconBg: 'bg-blue-500 text-white',
     };
@@ -1198,7 +1180,6 @@ const getSubjectCardTheme = (subject) => {
   if (code.startsWith('PP')) {
     return {
       bg: 'bg-purple-50/90 hover:bg-purple-100/90 border-purple-200 text-purple-950',
-      badge: 'bg-purple-100 text-purple-700',
       icon: 'fa-solid fa-waveform-lines',
       iconBg: 'bg-purple-500 text-white',
     };
@@ -1206,7 +1187,6 @@ const getSubjectCardTheme = (subject) => {
   if (code === 'DC' || code === 'FC') {
     return {
       bg: 'bg-emerald-50/90 hover:bg-emerald-100/90 border-emerald-200 text-emerald-950',
-      badge: 'bg-emerald-100 text-emerald-700',
       icon: 'fa-solid fa-comments',
       iconBg: 'bg-emerald-500 text-white',
     };
@@ -1214,14 +1194,12 @@ const getSubjectCardTheme = (subject) => {
   if (code === 'RW') {
     return {
       bg: 'bg-amber-50/90 hover:bg-amber-100/90 border-amber-200 text-amber-950',
-      badge: 'bg-amber-100 text-amber-700',
       icon: 'fa-solid fa-pen-nib',
       iconBg: 'bg-amber-500 text-white',
     };
   }
   return {
     bg: 'bg-indigo-50/90 hover:bg-indigo-100/90 border-indigo-200 text-indigo-950',
-    badge: 'bg-indigo-100 text-indigo-700',
     icon: 'fa-solid fa-headphones',
     iconBg: 'bg-indigo-500 text-white',
   };
@@ -1410,26 +1388,6 @@ const formatCardTime = (row) => {
 
 /** The student's own clock: the one zone the picker cannot stand in for. */
 const formatSecondaryTime = (row) => `Student: ${row.startStudent}`;
-
-// --- Subject & Code Utilities ------------------------------------------------
-const extractSubjectCode = (subject) => {
-  const match = subject.match(/\[(.*?)\]/);
-  return match ? match[1] : 'ESL';
-};
-
-const cleanSubjectTitle = (subject) => {
-  return subject.replace(/\[.*?\]\s*/, '');
-};
-
-const subjectBadgeStyle = (subject) => {
-  const code = extractSubjectCode(subject).toUpperCase();
-  if (code === 'SF') return 'bg-sky-100 text-sky-800 border border-sky-200/60';
-  if (code.startsWith('PP')) return 'bg-purple-100 text-purple-800 border border-purple-200/60';
-  if (code === 'DC' || code === 'FC') return 'bg-emerald-100 text-emerald-800 border border-emerald-200/60';
-  if (code === 'RW') return 'bg-amber-100 text-amber-800 border border-amber-200/60';
-  if (code.startsWith('LS')) return 'bg-indigo-100 text-indigo-800 border border-indigo-200/60';
-  return 'bg-slate-100 text-slate-700';
-};
 
 const resetFilters = () => {
   searchQuery.value = '';
