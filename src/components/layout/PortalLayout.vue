@@ -398,7 +398,7 @@
       </div>
 
       <!-- Mobile Nav List -->
-      <nav class="flex-1 overflow-y-auto p-4 space-y-1.5">
+      <nav class="flex-1 overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-1.5">
         <template v-for="item in navItems.filter(i => !i.action)" :key="item.key || item.path">
         <!-- Expandable group -->
         <div v-if="item.children" :data-tour="`dnav-${item.key}`">
@@ -467,104 +467,106 @@
           >{{ navBadge(item) }}</span>
         </RouterLink>
         </template>
+
+        <!-- Settings closes the list as its last group, styled like the others,
+             so it reads as part of the menu rather than a footer to find. -->
+        <div data-tour="dnav-settings">
+          <button
+            type="button"
+            @click="toggleUserMenu"
+            :aria-expanded="isUserMenuOpen ? 'true' : 'false'"
+            class="flex items-center justify-between w-full px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group"
+            :class="isUserMenuOpen || isCurrentRoute('/profile') ? 'text-brighture-ink bg-brighture-cream' : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'"
+          >
+            <span class="flex items-center gap-3">
+              <i
+                class="fa-solid fa-gear w-5 text-center text-lg text-slate-500 transition-transform duration-200 group-hover:scale-110"
+                :class="isUserMenuOpen ? 'rotate-90 text-brighture-bronze' : ''"
+              ></i>
+              <span>Settings</span>
+            </span>
+            <i
+              class="fa-solid fa-chevron-down text-[10px] text-slate-400 transition-transform duration-200"
+              :class="isUserMenuOpen ? 'rotate-180' : ''"
+            ></i>
+          </button>
+
+          <div v-show="isUserMenuOpen" class="mt-1 ml-5 space-y-1 border-l border-slate-200 pl-3">
+            <RouterLink
+              to="/profile"
+              @click="isMobileMenuOpen = false; isUserMenuOpen = false"
+              class="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150"
+              :class="isCurrentRoute('/profile')
+                ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40'
+                : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'"
+            >
+              <i class="fa-solid fa-user-gear w-4 text-center text-sm" :class="isCurrentRoute('/profile') ? 'text-brighture-ink' : 'text-slate-400'"></i>
+              <span>{{ t('nav.profile') }}</span>
+            </RouterLink>
+
+            <button
+              type="button"
+              @click="openGuide(); isMobileMenuOpen = false; isUserMenuOpen = false"
+              class="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150 text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink"
+            >
+              <i class="fa-solid fa-compass w-4 text-center text-sm text-teal-500"></i>
+              <span>{{ t('nav.guide') }}</span>
+            </button>
+
+            <a
+              :href="`mailto:${SUPPORT_EMAIL}`"
+              @click="isMobileMenuOpen = false; isUserMenuOpen = false"
+              class="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150 text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink"
+            >
+              <i class="fa-solid fa-headset w-4 text-center text-sm text-sky-500"></i>
+              <span>Contact us</span>
+            </a>
+
+            <button
+              type="button"
+              role="switch"
+              :aria-checked="isDark ? 'true' : 'false'"
+              @click="toggleTheme"
+              class="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150 text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink"
+            >
+              <i
+                class="w-4 text-center text-sm"
+                :class="isDark ? 'fa-solid fa-moon text-indigo-400' : 'fa-solid fa-sun text-amber-500'"
+              ></i>
+              <span>Dark mode</span>
+              <span
+                class="ml-auto flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors"
+                :class="isDark ? 'bg-brighture-gold' : 'bg-slate-300'"
+              >
+                <span
+                  class="h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
+                  :class="isDark ? 'translate-x-4' : 'translate-x-0'"
+                ></span>
+              </span>
+            </button>
+
+            <button
+              type="button"
+              @click="onResetDemo(() => { isMobileMenuOpen = false; isUserMenuOpen = false; })"
+              class="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150"
+              :class="resetArmed ? 'bg-red-50 text-red-600' : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'"
+            >
+              <i class="fa-solid fa-rotate-left w-4 text-center text-sm" :class="resetArmed ? 'text-red-500' : 'text-slate-400'"></i>
+              <span>{{ resetArmed ? 'Tap again to reset' : 'Reset demo data' }}</span>
+            </button>
+
+            <button
+              type="button"
+              @click="isMobileMenuOpen = false; isUserMenuOpen = false"
+              class="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150 text-slate-500 hover:bg-red-50 hover:text-red-600"
+            >
+              <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-sm text-slate-400"></i>
+              <span>{{ t('nav.logout') }}</span>
+            </button>
+          </div>
+        </div>
       </nav>
 
-      <!-- shrink-0 so a long nav list can never squeeze these off the panel, and
-           the safe-area padding keeps them clear of the iOS home indicator.
-           Same Settings group as the desktop sidebar — Profile, Contact us and
-           Log out live behind one gear rather than sitting loose in the drawer,
-           so the drawer footer is one row tall in landscape. -->
-      <div class="shrink-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-100 bg-slate-50/50 space-y-1.5">
-        <div v-show="isUserMenuOpen" class="space-y-0.5 pb-1.5 mb-1.5 border-b border-slate-200/70">
-          <RouterLink
-            to="/profile"
-            @click="isMobileMenuOpen = false; isUserMenuOpen = false"
-            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink rounded-xl transition"
-          >
-            <i class="fa-solid fa-user-gear w-4 text-center text-slate-400"></i>
-            <span>{{ t('nav.profile') }}</span>
-          </RouterLink>
-
-          <button
-            type="button"
-            @click="openGuide(); isMobileMenuOpen = false; isUserMenuOpen = false"
-            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink rounded-xl transition"
-          >
-            <i class="fa-solid fa-compass w-4 text-center text-teal-500"></i>
-            <span>{{ t('nav.guide') }}</span>
-          </button>
-
-          <a
-            :href="`mailto:${SUPPORT_EMAIL}`"
-            @click="isMobileMenuOpen = false; isUserMenuOpen = false"
-            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink rounded-xl transition"
-          >
-            <i class="fa-solid fa-headset w-4 text-center text-sky-500"></i>
-            <span>Contact us</span>
-          </a>
-
-          <button
-            type="button"
-            role="switch"
-            :aria-checked="isDark ? 'true' : 'false'"
-            @click="toggleTheme"
-            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink rounded-xl transition"
-          >
-            <i
-              class="w-4 text-center"
-              :class="isDark ? 'fa-solid fa-moon text-indigo-400' : 'fa-solid fa-sun text-amber-500'"
-            ></i>
-            <span>Dark mode</span>
-            <span
-              class="ml-auto flex h-5 w-9 shrink-0 items-center rounded-full p-0.5 transition-colors"
-              :class="isDark ? 'bg-brighture-gold' : 'bg-slate-300'"
-            >
-              <span
-                class="h-4 w-4 rounded-full bg-white shadow-sm transition-transform"
-                :class="isDark ? 'translate-x-4' : 'translate-x-0'"
-              ></span>
-            </span>
-          </button>
-
-          <button
-            type="button"
-            @click="onResetDemo(() => { isMobileMenuOpen = false; isUserMenuOpen = false; })"
-            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold rounded-xl transition"
-            :class="resetArmed ? 'bg-red-50 text-red-600' : 'text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink'"
-          >
-            <i class="fa-solid fa-rotate-left w-4 text-center" :class="resetArmed ? 'text-red-500' : 'text-slate-400'"></i>
-            <span>{{ resetArmed ? 'Tap again to reset' : 'Reset demo data' }}</span>
-          </button>
-
-          <button
-            @click="isMobileMenuOpen = false; isUserMenuOpen = false"
-            class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
-          >
-            <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-slate-400"></i>
-            <span>{{ t('nav.logout') }}</span>
-          </button>
-        </div>
-
-        <button
-          type="button"
-          @click="toggleUserMenu"
-          :aria-expanded="isUserMenuOpen ? 'true' : 'false'"
-          class="flex items-center justify-between w-full px-4 py-3 text-xs font-bold rounded-xl transition group"
-          :class="isUserMenuOpen ? 'bg-slate-100 text-slate-900' : 'text-slate-700 hover:bg-slate-100 hover:text-slate-900'"
-        >
-          <span class="flex items-center gap-3">
-            <i
-              class="fa-solid fa-gear w-4 text-center text-slate-500 transition-transform duration-200"
-              :class="isUserMenuOpen ? 'rotate-90 text-brighture-bronze' : ''"
-            ></i>
-            <span>Settings</span>
-          </span>
-          <i
-            class="fa-solid fa-chevron-up text-[10px] text-slate-400 transition-transform duration-200"
-            :class="isUserMenuOpen ? '' : 'rotate-180'"
-          ></i>
-        </button>
-      </div>
     </aside>
 
     <!-- Main Content Area -->
@@ -717,150 +719,8 @@
           <span class="text-[10px] tracking-tight truncate">{{ item.shortLabel }}</span>
         </RouterLink>
 
-        <!-- Settings is permanently on screen in the desktop sidebar, so it needs
-             a permanent home here too. Without it the only route to Profile,
-             Contact us or Log out on a phone is knowing the drawer exists. -->
-        <button
-          type="button"
-          data-tour="mobile-settings"
-          @click="isSettingsSheetOpen = true"
-          :aria-expanded="isSettingsSheetOpen ? 'true' : 'false'"
-          aria-haspopup="dialog"
-          class="flex flex-col items-center justify-center flex-1 py-1 text-center transition"
-          :class="isCurrentRoute('/profile')
-            ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40 rounded-xl'
-            : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
-        >
-          <i
-            class="fa-solid fa-gear mb-0.5 text-lg leading-none"
-            :class="isCurrentRoute('/profile') ? '!text-brighture-ink' : 'text-slate-500'"
-          ></i>
-          <span class="text-[10px] tracking-tight truncate">Settings</span>
-        </button>
       </nav>
 
-      <!-- Settings Bottom Sheet (mobile & tablet) -->
-      <Transition
-        enter-active-class="transition-opacity duration-200 ease-out"
-        enter-from-class="opacity-0"
-        leave-active-class="transition-opacity duration-200 ease-in"
-        leave-to-class="opacity-0"
-      >
-        <div
-          v-if="isSettingsSheetOpen"
-          class="lg:hidden fixed inset-0 z-40 bg-slate-900/50 backdrop-blur-xs"
-          @click="isSettingsSheetOpen = false"
-        ></div>
-      </Transition>
-
-      <Transition
-        enter-active-class="transition-transform duration-300 ease-out"
-        enter-from-class="translate-y-full"
-        leave-active-class="transition-transform duration-200 ease-in"
-        leave-to-class="translate-y-full"
-      >
-        <div
-          v-if="isSettingsSheetOpen"
-          role="dialog"
-          aria-modal="true"
-          aria-label="Settings"
-          class="lg:hidden fixed inset-x-0 bottom-0 z-50 rounded-t-3xl border-t border-slate-200 bg-white shadow-2xl"
-        >
-          <!-- Pinned to the sheet, not the scrolling body, so it stays in the
-               corner however far the content scrolls. -->
-          <button
-            type="button"
-            @click="isSettingsSheetOpen = false"
-            class="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-white text-slate-500 shadow-xs ring-1 ring-slate-200 transition hover:text-slate-900 active:scale-95"
-            aria-label="Close settings"
-          >
-            <i class="fa-solid fa-xmark text-xs"></i>
-          </button>
-
-          <!-- Capped and scrollable: a phone in landscape has ~360px of height,
-               and the sheet must never grow past what is on screen. -->
-          <div class="max-h-[85vh] supports-[max-height:100dvh]:max-h-[85dvh] overflow-y-auto p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-            <!-- Grab handle: the visual cue that this panel came from the edge. -->
-            <div class="mx-auto mb-6 h-1.5 w-10 shrink-0 rounded-full bg-slate-300"></div>
-
-            <div class="space-y-1">
-              <RouterLink
-                to="/profile"
-                @click="isSettingsSheetOpen = false"
-                class="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink active:scale-[0.99]"
-              >
-                <i class="fa-solid fa-user-gear w-5 text-center text-slate-400"></i>
-                <span>{{ t('nav.profile') }}</span>
-                <i class="fa-solid fa-chevron-right ml-auto text-[10px] text-slate-300"></i>
-              </RouterLink>
-
-              <button
-                type="button"
-                @click="openGuide(); isSettingsSheetOpen = false"
-                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink active:scale-[0.99]"
-              >
-                <i class="fa-solid fa-compass w-5 text-center text-teal-500"></i>
-                <span>{{ t('nav.guide') }}</span>
-                <i class="fa-solid fa-chevron-right ml-auto text-[10px] text-slate-300"></i>
-              </button>
-
-              <a
-                :href="`mailto:${SUPPORT_EMAIL}`"
-                @click="isSettingsSheetOpen = false"
-                class="flex items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink active:scale-[0.99]"
-              >
-                <i class="fa-solid fa-headset w-5 text-center text-sky-500"></i>
-                <span>Contact us</span>
-                <i class="fa-solid fa-chevron-right ml-auto text-[10px] text-slate-300"></i>
-              </a>
-
-              <button
-                type="button"
-                role="switch"
-                :aria-checked="isDark ? 'true' : 'false'"
-                @click="toggleTheme"
-                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-700 transition hover:bg-brighture-cream hover:text-brighture-ink active:scale-[0.99]"
-              >
-                <i
-                  class="w-5 text-center"
-                  :class="isDark ? 'fa-solid fa-moon text-indigo-400' : 'fa-solid fa-sun text-amber-500'"
-                ></i>
-                <span>Dark mode</span>
-                <span
-                  class="ml-auto flex h-6 w-11 shrink-0 items-center rounded-full p-0.5 transition-colors"
-                  :class="isDark ? 'bg-brighture-gold' : 'bg-slate-300'"
-                >
-                  <span
-                    class="h-5 w-5 rounded-full bg-white shadow-sm transition-transform"
-                    :class="isDark ? 'translate-x-5' : 'translate-x-0'"
-                  ></span>
-                </span>
-              </button>
-
-              <button
-                type="button"
-                @click="onResetDemo(() => { isSettingsSheetOpen = false; })"
-                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold transition active:scale-[0.99]"
-                :class="resetArmed ? 'bg-red-50 text-red-600' : 'text-slate-700 hover:bg-brighture-cream hover:text-brighture-ink'"
-              >
-                <i class="fa-solid fa-rotate-left w-5 text-center" :class="resetArmed ? 'text-red-500' : 'text-slate-400'"></i>
-                <span>{{ resetArmed ? 'Tap again to reset' : 'Reset demo data' }}</span>
-              </button>
-
-              <div class="my-1.5 border-t border-slate-100"></div>
-
-              <button
-                type="button"
-                @click="isSettingsSheetOpen = false"
-                class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-500 transition hover:bg-red-50 hover:text-red-600 active:scale-[0.99]"
-              >
-                <i class="fa-solid fa-arrow-right-from-bracket w-5 text-center text-slate-400"></i>
-                <span>{{ t('nav.logout') }}</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </Transition>
     </div>
 
     <NavigationTour :open="isGuideOpen" @prepare="onTourStep" @close="isGuideOpen = false" />
@@ -942,12 +802,11 @@ const isGuideOpen = ref(false);
 const openGuide = () => { isGuideOpen.value = true; };
 
 // The tour spotlights whatever is on screen, so the layout — not the tour —
-// puts the right surface on screen first. On a phone the last three pages live
-// in the drawer; on desktop every step is a sidebar row, so nothing opens.
+// puts the right surface on screen first. On a phone the last three pages and
+// Settings live in the drawer; on desktop every step is a sidebar row, so nothing opens.
 const onTourStep = (key) => {
-  isSettingsSheetOpen.value = false;
   isUserMenuOpen.value = false;
-  isMobileMenuOpen.value = window.innerWidth < 1024 && ['writing', 'points', 'refer'].includes(key);
+  isMobileMenuOpen.value = window.innerWidth < 1024 && ['writing', 'points', 'refer', 'settings'].includes(key);
   // Talk Now is a dashboard button, not a nav row — there is nothing to
   // spotlight unless we are on the dashboard.
   if (key === 'talknow' && route.path !== '/') router.push('/');
@@ -1018,18 +877,10 @@ const mobileBottomNavItems = [
   { path: '/booking', shortLabel: 'Book Class', icon: 'fa-solid fa-calendar-days text-indigo-500' },
   { path: '/analytics', shortLabel: 'Badges', icon: 'fa-solid fa-medal text-amber-500' },
   { path: '/history', shortLabel: 'History', icon: 'fa-solid fa-clock-rotate-left text-violet-500' },
-  // No '/profile' tab: Settings takes the last slot and Profile lives inside it,
-  // exactly as it does on the desktop sidebar.
+  // No Settings or Profile tab: on a phone both live at the foot of the ☰
+  // drawer, as they do at the foot of the desktop sidebar.
 ];
 
-// Settings gets its own bottom sheet rather than reusing the nav drawer: the
-// drawer is a full-height panel of unrelated navigation, and sliding all of it
-// in to show three rows means the answer arrives buried in the thing you did
-// not ask for. The sheet rises from the tab that summoned it instead.
-const isSettingsSheetOpen = ref(false);
-
-// Any navigation out of the sheet should leave it closed behind you.
-watch(() => route.path, () => { isSettingsSheetOpen.value = false; });
 
 // A group opens itself when one of its pages is active; clicking the row then
 // overrides that until the route changes again.

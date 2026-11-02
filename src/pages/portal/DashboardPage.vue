@@ -714,8 +714,12 @@
          overflowing short screens, and /refer already holds the full details. -->
     <RouterLink
       to="/refer"
-      class="group relative block overflow-hidden rounded-xl border border-slate-800 bg-slate-950 select-none focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFCD00] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
+      class="group relative block overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-r from-black via-slate-900 to-slate-700 shadow-md shadow-slate-900/20 select-none transition hover:shadow-lg hover:shadow-slate-900/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFCD00] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
     >
+      <!-- Faint gold glows on the dark gradient, so it reads as a promotion
+           rather than one more card. -->
+      <span class="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-[#FFCD00]/15 blur-2xl" aria-hidden="true"></span>
+      <span class="pointer-events-none absolute right-40 -bottom-20 h-36 w-36 rounded-full bg-white/10 blur-2xl" aria-hidden="true"></span>
       <div class="relative flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-5 sm:px-8">
         <div class="flex items-center gap-4">
           <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10">
@@ -724,14 +728,14 @@
           <div>
             <h3 class="text-lg font-extrabold text-white leading-tight">Refer a Friend — Earn 5 Points</h3>
             <p class="mt-0.5 text-sm text-slate-300">
-              Your friend gets <span class="font-bold text-white">$20 USD off</span> their plan &mdash; you earn <span class="font-bold text-white">5 points</span> once they buy a plan and start learning.
+              Your friend gets <span class="font-bold text-[#FFCD00]">$20 USD off</span> their plan &mdash; you earn <span class="font-bold text-[#FFCD00]">5 points</span> once they buy a plan and start learning.
             </p>
           </div>
         </div>
         <!-- A span, not a button: the whole banner is already the link, and a
              button inside an anchor is invalid markup. -->
         <span
-          class="shrink-0 flex items-center gap-2 rounded-lg bg-[#FFCD00] px-5 py-2.5 text-sm font-extrabold text-slate-950 transition group-hover:bg-[#FFD933] group-active:scale-[0.98]"
+          class="shrink-0 flex items-center gap-2 rounded-lg bg-[#FFCD00] px-5 py-2.5 text-sm font-extrabold text-slate-950 shadow-sm transition group-hover:bg-[#FFD933] group-active:scale-[0.98]"
         >
           <i class="fa-solid fa-share-nodes text-sm"></i>
           Share &amp; Earn

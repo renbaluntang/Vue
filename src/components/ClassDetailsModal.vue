@@ -21,12 +21,23 @@
         <div class="shrink-0 bg-[#1e2738] px-5 pt-5 text-white sm:px-6 sm:pt-6">
           <div class="flex items-center justify-between gap-3">
             <div class="flex min-w-0 items-center gap-3.5">
-              <AppImage
-                :src="lesson.teacherPhoto"
-                :alt="lesson.teacherName"
-                eager
-                class="h-16 w-16 shrink-0 rounded-2xl object-cover shadow-sm ring-2 ring-[#c5a059] sm:h-[72px] sm:w-[72px]"
-              />
+              <!-- The only photo in the panel; pressing it shows it full size. -->
+              <button
+                type="button"
+                @click="photoOpen = true"
+                class="group relative shrink-0 cursor-zoom-in rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+                :aria-label="`View ${lesson.teacherName}'s photo`"
+              >
+                <AppImage
+                  :src="lesson.teacherPhoto"
+                  :alt="lesson.teacherName"
+                  eager
+                  class="h-16 w-16 rounded-2xl object-cover shadow-sm ring-2 ring-[#c5a059] transition group-hover:brightness-90 sm:h-[72px] sm:w-[72px]"
+                />
+                <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-white text-[9px] text-slate-700 shadow ring-1 ring-slate-200" aria-hidden="true">
+                  <i class="fa-solid fa-magnifying-glass-plus"></i>
+                </span>
+              </button>
               <div class="min-w-0">
                 <p class="m-0 text-[11px] font-black uppercase tracking-wider text-[#e6b95c]">
                   {{ lesson.isSubstitute ? 'Substitute instructor' : 'Your instructor' }}
@@ -77,7 +88,7 @@
           <!-- Folder tabs, the same set of dividers as the instructor's panel:
                left tabs sit over right ones, the open tab comes to the front. -->
           <div
-            class="tab-row -ml-5 mt-5 flex items-end overflow-x-auto sm:-ml-6"
+            class="tab-row -ml-7 mt-5 flex items-end overflow-x-auto sm:-ml-8"
             role="tablist"
             aria-label="Class detail sections"
           >
@@ -134,14 +145,19 @@
             </div>
           </div>
 
-          <!-- The message the instructor reads before the lesson -->
-          <div v-if="lesson.note" class="rounded-2xl border border-[#faecd2] bg-[#fdfbf6] p-4">
+          <!-- The message the instructor reads before the lesson. Kept neutral,
+               like the cards above, so the amber of an unopened material is the
+               only thing on the tab asking for attention. -->
+          <div v-if="lesson.note" class="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
             <div class="flex items-center justify-between gap-2">
-              <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-[#996b27]">Your message to the instructor</p>
+              <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <i class="fa-regular fa-message mr-1" aria-hidden="true"></i>
+                Your message to the instructor
+              </p>
               <button
                 type="button"
                 @click="$emit('edit', lesson)"
-                class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-[#f0dcb4] bg-white px-2.5 py-1 text-[11px] font-bold text-brighture-bronze transition hover:border-amber-300 hover:bg-amber-50"
+                class="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
               >
                 <i class="fa-solid fa-pen text-[9px]" aria-hidden="true"></i>
                 Edit
@@ -168,9 +184,9 @@
           <div
             v-if="prep.total"
             ref="prepCard"
-            class="rounded-2xl border p-4 transition-shadow"
+            class="rounded-2xl p-4 transition-shadow"
             :class="[
-              prepDone ? 'border-emerald-100 bg-emerald-50/40' : 'border-amber-200 bg-amber-50/40',
+              prepDone ? 'border border-emerald-100 bg-emerald-50/40' : 'border-2 border-amber-400 bg-amber-50 shadow-sm shadow-amber-200/60',
               highlightPrep ? 'ring-4 ring-amber-300/50' : '',
             ]"
           >
@@ -179,23 +195,24 @@
                 <i :class="prepDone ? 'fa-solid fa-circle-check' : 'fa-solid fa-book-open'" class="mr-1" aria-hidden="true"></i>
                 Before your class
               </p>
-              <span class="text-[11px] font-bold" :class="prepDone ? 'text-emerald-700' : 'text-amber-800'">
-                {{ prepDone ? 'Reviewed' : 'Not opened yet' }}
+              <span
+                class="inline-flex items-center gap-1 rounded-full text-[11px] font-black"
+                :class="prepDone ? 'text-emerald-700' : 'bg-brighture-gold px-2.5 py-0.5 text-brighture-ink'"
+              >
+                <i v-if="!prepDone" class="fa-solid fa-circle-exclamation text-[10px]" aria-hidden="true"></i>
+                {{ prepDone ? 'Reviewed' : prep.reviewed ? `${prep.total - prep.reviewed} not opened yet` : 'Not opened yet' }}
               </span>
             </div>
-            <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
-              <div
-                class="h-full rounded-full transition-all duration-300"
-                :class="prepDone ? 'bg-emerald-500' : 'bg-amber-400'"
-                :style="{ width: `${(prep.reviewed / prep.total) * 100}%` }"
-              ></div>
-            </div>
+            <p v-if="!prepDone" class="m-0 mt-1.5 text-xs font-semibold text-amber-900">
+              Open {{ prep.total - prep.reviewed === 1 ? 'this' : 'these' }} before your class, so you and {{ firstName }} can start right away.
+            </p>
 
             <ul class="m-0 mt-3 list-none space-y-2 p-0">
               <li
                 v-for="item in prep.items"
                 :key="item.id"
-                class="flex items-center gap-3 rounded-xl border border-white bg-white p-2.5 shadow-2xs"
+                class="flex items-center gap-3 rounded-xl border bg-white p-2.5 shadow-2xs"
+                :class="item.reviewedAt ? 'border-white' : 'border-amber-200'"
               >
                 <button
                   type="button"
@@ -219,7 +236,10 @@
                   target="_blank"
                   rel="noopener"
                   @click="school.markMaterialReviewed(lesson.id, item.id, true)"
-                  class="shrink-0 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[11px] font-bold text-slate-700 transition hover:bg-slate-50"
+                  class="shrink-0 rounded-lg border px-2.5 py-1.5 text-[11px] font-bold transition"
+                  :class="item.reviewedAt
+                    ? 'border-slate-200 bg-white text-slate-700 hover:bg-slate-50'
+                    : 'border-amber-400 bg-brighture-gold text-brighture-ink shadow-2xs hover:bg-amber-300'"
                 >
                   Open <i class="fa-solid fa-arrow-up-right-from-square ml-0.5 text-[9px]" aria-hidden="true"></i>
                 </a>
@@ -325,17 +345,11 @@
 
           <!-- TAB: INSTRUCTOR INFO -->
           <div v-if="activeTab === 'instructor'" class="space-y-4">
-            <div class="flex flex-col gap-4 sm:flex-row sm:items-start">
-              <div class="mx-auto w-full max-w-[220px] shrink-0 sm:mx-0 sm:w-[180px]">
-                <AppImage
-                  :src="lesson.teacherPhoto"
-                  :alt="lesson.teacherName"
-                  class="block aspect-square w-full rounded-2xl border-2 border-white object-cover shadow-md ring-2 ring-slate-100"
-                />
-              </div>
-              <div class="flex min-w-0 flex-1 flex-col gap-2">
+            <!-- The header already shows the instructor's photo, so the tab opens
+                 with what they say about themselves. -->
+            <div>
+              <div class="flex min-w-0 flex-col gap-2">
                 <div class="relative min-w-0 rounded-2xl rounded-tl-md border border-amber-400 bg-[#fffaf0] p-4 pl-11 text-left">
-                  <span class="absolute -left-[7px] top-6 hidden h-3 w-3 rotate-45 border-b border-l border-amber-400 bg-[#fffaf0] sm:block" aria-hidden="true"></span>
                   <i class="fa-solid fa-quote-left absolute left-4 top-4 text-lg text-amber-400" aria-hidden="true"></i>
                   <p class="m-0 text-sm leading-relaxed text-slate-700">{{ instructor.selfIntro }}</p>
                 </div>
@@ -344,9 +358,9 @@
                     v-for="v in VIDEOS"
                     :key="v.kind"
                     type="button"
-                    @click="activeVideo = activeVideo === v.kind ? null : v.kind"
-                    class="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border px-2 py-2 text-xs font-bold shadow-2xs transition active:scale-95 sm:px-3"
-                    :class="activeVideo === v.kind ? v.on : 'border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900'"
+                    @click="activeVideo = v.kind"
+                    class="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border px-2 py-2 text-xs font-black shadow-2xs transition hover:shadow-sm active:scale-95 sm:px-3"
+                    :class="v.off"
                   >
                     <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" :class="v.dot">
                       <i :class="v.icon" aria-hidden="true"></i>
@@ -357,9 +371,6 @@
               </div>
             </div>
 
-            <div v-if="activeVideo" class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-900">
-              <TeacherIntroVideo :key="activeVideo" :video-id="activeVideo === 'demo' ? DEMO_VIDEO_ID : INTRO_VIDEO_ID" />
-            </div>
 
             <!-- The same fields as the instructor's production profile, as cards. -->
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -467,23 +478,65 @@
           </div>
         </div>
       </div>
+
+      <!-- The video buttons open the same pop-up as the booking page, over this panel. -->
+      <TeacherVideoModal
+        v-if="activeVideo"
+        v-model:kind="activeVideo"
+        :name="lesson.teacherName"
+        :subjects="videoSubjects"
+        @close="activeVideo = null"
+        @book="bookFromVideo"
+      />
+
+      <!-- The header photo at full size. Pressing anywhere or Escape closes it
+           and returns to the panel, not the page behind. -->
+      <div
+        v-if="photoOpen"
+        ref="photoViewer"
+        tabindex="-1"
+        class="fixed inset-0 z-[60] flex cursor-zoom-out items-start justify-center bg-slate-950/80 px-4 pt-6 outline-none sm:pt-12"
+        role="dialog"
+        aria-modal="true"
+        :aria-label="`${lesson.teacherName}'s photo`"
+        @click.stop="photoOpen = false"
+        @keydown.esc.stop="photoOpen = false"
+      >
+        <figure class="m-0 w-full max-w-md">
+          <AppImage
+            :src="lesson.teacherPhoto"
+            :alt="lesson.teacherName"
+            eager
+            class="block aspect-square w-full rounded-3xl border-4 border-white object-cover shadow-2xl"
+          />
+          <figcaption class="mt-3 text-center text-sm font-bold text-white">{{ lesson.teacherName }}</figcaption>
+        </figure>
+        <button
+          type="button"
+          class="absolute right-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white/15 text-white transition hover:bg-white/25"
+          aria-label="Close photo"
+        >
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+      </div>
     </div>
   </Transition>
 </template>
 
 <script setup>
 import GoogleMeetIcon from './GoogleMeetIcon.vue';
-import { computed, ref, watch } from 'vue';
+import { computed, nextTick, ref, watch } from 'vue';
+import { useRouter } from 'vue-router';
 import AppImage from './AppImage.vue';
 import SubjectCode from './SubjectCode.vue';
-import TeacherIntroVideo from './TeacherIntroVideo.vue';
-import { MANILA, TOKYO, dateIn, rangeIn, countdownLabel } from '@/lib/schoolTime';
+import TeacherVideoModal from './TeacherVideoModal.vue';
+import { MANILA, TOKYO, partsIn, rangeIn, countdownLabel } from '@/lib/schoolTime';
 import { materialKind } from '@/lib/lessonMaterials';
 import { assessmentTypeOf, LEVEL_CHECK_CANCEL_MINUTES } from '@/lib/brelas';
 import { useUserStore } from '@/stores/useUserStore';
 import { useSchoolStore } from '@/stores/useSchoolStore';
 import {
-  INSTRUCTORS, INTRO_VIDEO_ID, DEMO_VIDEO_ID, SUBJECT_LABELS,
+  INSTRUCTORS, SUBJECT_LABELS,
   parseSubjectCodes, getTeacherProfile, pointsForDuration,
 } from '@/pages/student-view-v4/constants';
 
@@ -493,7 +546,7 @@ const props = defineProps({
   /** Opened from a Join button: show the "materials not opened" prompt straight away. */
   joinIntent: { type: Boolean, default: false },
 });
-defineEmits(['close', 'cancel', 'edit', 'reschedule']);
+const emit = defineEmits(['close', 'cancel', 'edit', 'reschedule']);
 
 const user = useUserStore();
 const school = useSchoolStore();
@@ -537,9 +590,14 @@ const tabs = [
 ];
 const activeTab = ref('class');
 const activeVideo = ref(null);
+const photoOpen = ref(false);
+const photoViewer = ref(null);
+// Focus the viewer when it opens so Escape reaches it straight away.
+watch(photoOpen, (open) => { if (open) nextTick(() => photoViewer.value?.focus()); });
 watch(() => props.lesson?.id, () => {
   activeTab.value = 'class';
   activeVideo.value = null;
+  photoOpen.value = false;
   showJoinPrompt.value = props.joinIntent && unreviewed.value > 0;
 }, { immediate: true });
 
@@ -565,9 +623,30 @@ const onTabKey = (event, index) => {
 
 const firstName = computed(() => (props.lesson?.teacherName || '').split(' ')[0]);
 
+// Tinted cards with a solid play circle, so the videos stand out from the
+// plain cards below. Each opens the video pop-up on that video.
+const router = useRouter();
+
+/** The same caption the booking page gives the intro video. */
+const videoSubjects = computed(() => {
+  const names = instructor.value.subjects.map((s) => s.name.replace(/^\[[^\]]+\]\s*/, ''));
+  if (names.length <= 2) return names.join(' and ');
+  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
+});
+
+/** From the video straight to this instructor's booking calendar. */
+const bookFromVideo = () => {
+  const teacher = props.lesson?.teacherId;
+  activeVideo.value = null;
+  emit('close');
+  router.push({ path: '/booking', query: teacher ? { teacher } : {} });
+};
+
 const VIDEOS = [
-  { kind: 'intro', label: (n) => `Get to know ${n}`, icon: 'fa-solid fa-play text-[7px]', dot: 'bg-red-100 text-red-600', on: 'border-red-200 bg-red-50 text-red-700' },
-  { kind: 'demo', label: (n) => `See ${n} teach`, icon: 'fa-solid fa-chalkboard-user text-[8px]', dot: 'bg-indigo-100 text-indigo-600', on: 'border-indigo-200 bg-indigo-50 text-indigo-700' },
+  { kind: 'intro', label: (n) => `Get to know ${n}`, icon: 'fa-solid fa-play text-[7px]', dot: 'bg-red-500 text-white',
+    off: 'border-red-200 bg-red-50 text-red-900 hover:border-red-300' },
+  { kind: 'demo', label: (n) => `See ${n} teach`, icon: 'fa-solid fa-chalkboard-user text-[8px]', dot: 'bg-indigo-500 text-white',
+    off: 'border-indigo-200 bg-indigo-50 text-indigo-900 hover:border-indigo-300' },
 ];
 
 /** Profile from the booking catalogue, matched by teacher id, then by name. */
@@ -606,15 +685,30 @@ const materials = computed(() => (user.lessonMaterials ?? []).filter((m) => m.ad
 const yourTime = computed(() => {
   const l = props.lesson;
   if (!l) return '';
-  if (l.start && l.duration) return `${l.date || dateIn(l.start, TOKYO)} · ${rangeIn(l.start, l.duration, TOKYO)} JST`;
+  if (l.start && l.duration) return `${l.date || relativeDayIn(l.start, TOKYO)} · ${rangeIn(l.start, l.duration, TOKYO)} JST`;
   return [l.date, l.time].filter(Boolean).join(' · ');
 });
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+/** 'Today, Nov 2' / 'Tomorrow, Nov 3' / 'Wed, Nov 4', counted in the given zone,
+ *  so the instructor's line reads the same way as the student's. */
+const relativeDayIn = (iso, tz) => {
+  const p = partsIn(iso, tz);
+  const n = partsIn(new Date().toISOString(), tz);
+  const diff = Math.round((Date.UTC(p.year, p.month, p.day) - Date.UTC(n.year, n.month, n.day)) / 86_400_000);
+  const short = `${MONTHS[p.month]} ${p.day}`;
+  if (diff === 0) return `Today, ${short}`;
+  if (diff === 1) return `Tomorrow, ${short}`;
+  return `${WEEKDAYS[new Date(Date.UTC(p.year, p.month, p.day)).getUTCDay()]}, ${short}`;
+};
 
 /** The instructor teaches on Manila time; shown so both sides agree on the hour. */
 const teacherTime = computed(() => {
   const l = props.lesson;
   if (!l?.start || !l?.duration) return '';
-  return `${dateIn(l.start, MANILA)} · ${rangeIn(l.start, l.duration, MANILA)} PHT`;
+  return `${relativeDayIn(l.start, MANILA)} · ${rangeIn(l.start, l.duration, MANILA)} PHT`;
 });
 
 const startsIn = computed(() => {

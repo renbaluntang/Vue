@@ -112,7 +112,7 @@ const STEPS = {
   collapse: { key: 'collapse', anchors: ['sidebar-toggle'], title: 'guide.collapseTitle', body: 'guide.collapseBody' },
   talknow: { key: 'talknow', anchors: ['talk-now'], title: 'guide.talkNowTitle', body: 'guide.talkNowBody', noClick: true },
   menu: { key: 'menu', anchors: ['mobile-menu'], title: 'guide.menuTitle', body: 'guide.menuBody' },
-  settings: { key: 'settings', anchors: ['settings', 'mobile-settings'], title: 'guide.settingsTitle', body: 'guide.settingsBody' },
+  settings: { key: 'settings', anchors: ['settings', 'dnav-settings'], title: 'guide.settingsTitle', body: 'guide.settingsBody' },
 };
 
 // Two orders, because the two layouts genuinely differ: the sidebar lists every

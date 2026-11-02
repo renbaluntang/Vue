@@ -5,7 +5,7 @@ import BookingScheduler from "../../components/BookingScheduler.vue";
 import BookingConfirmationPage from "../student-view-v4/BookingConfirmationPage.vue";
 import TeacherDataModal from "../../components/TeacherDataModal.vue";
 import FreeConversationModal from "../../components/FreeConversationModal.vue";
-import TeacherIntroVideo from "../../components/TeacherIntroVideo.vue";
+import TeacherVideoModal from "../../components/TeacherVideoModal.vue";
 import { REFERRAL_TERMS } from "../../lib/referral";
 import DateTimeFilterPopover from "../student-view-v4/DateTimeFilterPopover.vue";
 import SubjectFilterBar from "../student-view-v4/SubjectFilterBar.vue";
@@ -20,8 +20,6 @@ import {
   formatSlotTo12Hour,
   getTeacherPhoto,
   getTeacherModalImage,
-  INTRO_VIDEO_ID,
-  DEMO_VIDEO_ID,
   getTeacherProfile,
   parseSubjectCodes,
   getSubjectBadgeStyle,
@@ -143,11 +141,6 @@ const startPromoAuto = () => {
 
 onMounted(startPromoAuto);
 onBeforeUnmount(stopPromoAuto);
-
-const videoTabs = [
-  { kind: 'intro', icon: 'fa-solid fa-play text-red-500', label: (t) => `Get to know ${t.name.split(' ')[0]}` },
-  { kind: 'demo', icon: 'fa-solid fa-clapperboard text-indigo-500', label: (t) => `See ${t.name.split(' ')[0]} teach` },
-];
 
 /** The same subject names the card shows, read off the same field. */
 const videoSubjects = (teacher) => {
@@ -298,6 +291,8 @@ const closeTeacherInfo = () => {
 
 const bookFromTeacherInfo = (teacher) => {
   closeTeacherInfo();
+  // Opened from the calendar's own header: the calendar is already there.
+  if (profileTeacher.value?.id === teacher?.id) return;
   openTeacherProfile(teacher);
 };
 
@@ -1006,73 +1001,15 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
 
 
     <!-- Video Lightbox Modal -->
-    <div
+    <TeacherVideoModal
       v-if="activeVideo"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/75 backdrop-blur-xs p-4"
-      @click="closeVideo"
-    >
-      <div
-        class="relative w-full max-w-2xl overflow-hidden rounded-2xl bg-black shadow-2xl border border-slate-800"
-        @click.stop
-      >
-        <div class="flex items-center justify-between gap-3 bg-slate-900 px-4 py-3 text-white border-b border-slate-800">
-          <!-- Both videos answer different questions about the same teacher, so
-               they belong on one switch rather than behind two separate trips
-               out to the card and back. -->
-          <div
-            role="tablist"
-            :aria-label="`Videos from ${activeVideo.teacher.name}`"
-            class="flex min-w-0 items-center gap-1 rounded-full bg-slate-800/80 p-1"
-          >
-            <button
-              v-for="tab in videoTabs"
-              :key="tab.kind"
-              type="button"
-              role="tab"
-              :aria-selected="activeVideo.kind === tab.kind ? 'true' : 'false'"
-              @click="activeVideo = { ...activeVideo, kind: tab.kind }"
-              class="flex cursor-pointer items-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1.5 text-xs font-bold transition"
-              :class="activeVideo.kind === tab.kind
-                ? 'bg-white text-slate-900 shadow-sm'
-                : 'text-slate-300 hover:text-white'"
-            >
-              <i :class="tab.icon" aria-hidden="true"></i>
-              {{ tab.label(activeVideo.teacher) }}
-            </button>
-          </div>
-
-          <button
-            type="button"
-            @click="closeVideo"
-            aria-label="Close video"
-            class="shrink-0 rounded-lg bg-slate-800 px-2.5 py-1.5 text-xs font-semibold text-slate-300 transition hover:bg-slate-700 hover:text-white"
-          >
-            Close <i class="fa-solid fa-xmark ml-1" aria-hidden="true"></i>
-          </button>
-        </div>
-
-        <TeacherIntroVideo :video-id="activeVideo.kind === 'demo' ? DEMO_VIDEO_ID : INTRO_VIDEO_ID" />
-
-        <!-- The point of watching. Booking sat two screens away, so the moment
-             of "yes, them" had nowhere to go. -->
-        <div class="flex flex-wrap items-center justify-between gap-3 border-t border-slate-800 bg-slate-900 px-4 py-3">
-          <p class="min-w-0 text-xs text-slate-400">
-            {{ activeVideo.kind === 'demo'
-              ? `This is what a class with ${activeVideo.teacher.name.split(' ')[0]} looks like.`
-              : `${activeVideo.teacher.name.split(' ')[0]} teaches ${videoSubjects(activeVideo.teacher)}.` }}
-          </p>
-          <button
-            type="button"
-            @click="bookFromVideo"
-            class="inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-xl border border-amber-300 bg-[#FFCD00] px-5 py-2 text-xs font-extrabold text-slate-900 shadow-md transition hover:bg-[#FFD933] hover:shadow-lg active:scale-95"
-          >
-            <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
-            Book a class with {{ activeVideo.teacher.name.split(' ')[0] }}
-            <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-          </button>
-        </div>
-      </div>
-    </div>
+      :name="activeVideo.teacher.name"
+      :kind="activeVideo.kind"
+      :subjects="videoSubjects(activeVideo.teacher)"
+      @update:kind="(kind) => (activeVideo = { ...activeVideo, kind })"
+      @close="closeVideo"
+      @book="bookFromVideo"
+    />
 
     <!-- Result notice, top right, below the header so it never covers the
          next-class bar. Its border is a countdown: a coloured line runs down
@@ -1215,25 +1152,44 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
           <div class="h-1 w-10 rounded-full bg-slate-300"></div>
         </div>
 
-        <div class="flex items-center justify-between border-b border-slate-200 bg-slate-50 px-4 py-3 sm:px-5">
-          <h2 class="m-0 text-base font-semibold text-slate-900 truncate pr-2">{{ profileTeacher.name }}</h2>
+        <!-- The name appears once, beside the photo; the close button sits in the corner. -->
+        <div class="relative flex flex-col items-center gap-4 border-b border-slate-200 p-4 text-center sm:flex-row sm:items-center sm:text-left sm:p-5 sm:pr-14">
           <button
+            type="button"
             @click="closeTeacherProfile"
-            class="shrink-0 rounded-lg border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 transition hover:bg-slate-100"
+            class="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-600 transition hover:bg-slate-200 hover:text-slate-900"
+            aria-label="Close"
           >
-            Close
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
-        </div>
-
-        <div class="flex flex-col items-center gap-4 border-b border-slate-200 p-4 text-center sm:flex-row sm:items-center sm:text-left sm:p-5">
-          <img
-            :src="getTeacherPhoto(profileTeacher)"
-            :alt="profileTeacher.name"
-            class="h-20 w-20 sm:h-24 sm:w-24 flex-none rounded-2xl object-cover shadow-sm ring-2 ring-white outline outline-1 outline-slate-200"
-          />
+          <!-- The photo and name open the instructor's full profile over the calendar. -->
+          <button
+            type="button"
+            @click="openTeacherInfo(profileTeacher)"
+            class="group relative flex-none cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+            :aria-label="`View ${profileTeacher.name}'s profile`"
+          >
+            <img
+              :src="getTeacherPhoto(profileTeacher)"
+              :alt="profileTeacher.name"
+              class="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover shadow-sm ring-2 ring-white outline outline-1 outline-slate-200 transition group-hover:brightness-95 group-hover:outline-amber-300"
+            />
+            <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[10px] text-slate-700 shadow ring-1 ring-slate-200 transition group-hover:text-brighture-bronze" aria-hidden="true">
+              <i class="fa-solid fa-user"></i>
+            </span>
+          </button>
           <div class="min-w-0 flex-1">
             <div class="flex items-center gap-2 justify-center sm:justify-start flex-wrap">
-              <p class="m-0 text-lg sm:text-xl font-black text-slate-900">{{ profileTeacher.name }}</p>
+              <h2 class="m-0 text-lg sm:text-xl font-black text-slate-900">
+                <button
+                  type="button"
+                  @click="openTeacherInfo(profileTeacher)"
+                  class="group inline-flex cursor-pointer items-center gap-1.5 rounded text-left transition hover:text-brighture-bronze focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+                >
+                  <span class="underline-offset-4 group-hover:underline">{{ profileTeacher.name }}</span>
+                  <i class="fa-solid fa-chevron-right text-xs text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-brighture-bronze" aria-hidden="true"></i>
+                </button>
+              </h2>
             </div>
 
             <!-- Distinct subjects covered chips in modal header -->

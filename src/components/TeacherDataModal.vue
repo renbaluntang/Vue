@@ -38,49 +38,23 @@
               <i class="fa-solid fa-quote-left absolute left-4 top-4 text-lg text-amber-400" aria-hidden="true"></i>
               <p class="m-0 text-sm leading-relaxed text-slate-700">{{ selfIntro }}</p>
             </div>
+            <!-- Tinted so they stand out from the plain cards below; each opens the video pop-up. -->
             <div class="grid w-full grid-cols-2 gap-2">
               <button
+                v-for="v in VIDEOS"
+                :key="v.kind"
                 type="button"
-                @click="openVideo('intro')"
-                class="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border px-2 py-2 text-xs font-bold shadow-2xs transition active:scale-95 sm:px-3"
-                :class="activeVideo === 'intro' ? 'border-red-200 bg-red-50 text-red-700' : 'border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900'"
+                @click="activeVideo = v.kind"
+                class="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border px-2 py-2 text-xs font-black shadow-2xs transition hover:shadow-sm active:scale-95 sm:px-3"
+                :class="v.card"
               >
-                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-100 text-red-600">
-                  <i class="fa-solid fa-play text-[7px]" aria-hidden="true"></i>
+                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full" :class="v.dot">
+                  <i :class="v.icon" aria-hidden="true"></i>
                 </span>
-                <span class="truncate">Get to know {{ firstName }}</span>
-              </button>
-              <button
-                type="button"
-                @click="openVideo('demo')"
-                class="inline-flex min-w-0 items-center justify-center gap-2 rounded-xl border px-2 py-2 text-xs font-bold shadow-2xs transition active:scale-95 sm:px-3"
-                :class="activeVideo === 'demo' ? 'border-indigo-200 bg-indigo-50 text-indigo-700' : 'border-slate-200 bg-white text-slate-700 hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900'"
-              >
-                <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-100 text-indigo-600">
-                  <i class="fa-solid fa-chalkboard-user text-[8px]" aria-hidden="true"></i>
-                </span>
-                <span class="truncate">See {{ firstName }} teach</span>
+                <span class="truncate">{{ v.label(firstName) }}</span>
               </button>
             </div>
           </div>
-        </div>
-
-        <!-- Video player, opened by the two buttons above -->
-        <div v-if="activeVideo" class="overflow-hidden rounded-2xl border border-slate-200 bg-slate-900">
-          <div class="flex items-center justify-between gap-2 px-3 py-2 sm:px-4">
-            <p class="truncate text-xs font-bold text-white">
-              {{ activeVideo === 'demo' ? `See ${firstName} teach` : `Get to know ${firstName}` }}
-            </p>
-            <button
-              type="button"
-              @click="activeVideo = null"
-              class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-slate-300 transition hover:bg-white/10 hover:text-white"
-              aria-label="Close video"
-            >
-              <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
-            </button>
-          </div>
-          <TeacherIntroVideo :key="activeVideo" :video-id="activeVideo === 'demo' ? DEMO_VIDEO_ID : INTRO_VIDEO_ID" />
         </div>
 
         <!-- The same fields as the instructor's production profile, as cards; the
@@ -127,6 +101,15 @@
         </button>
       </div>
     </div>
+
+    <TeacherVideoModal
+      v-if="activeVideo"
+      v-model:kind="activeVideo"
+      :name="teacher.name"
+      :subjects="videoSubjects"
+      @close="activeVideo = null"
+      @book="activeVideo = null; $emit('book', teacher); $emit('close')"
+    />
   </div>
 </template>
 
@@ -135,10 +118,8 @@ import { computed, ref, watch } from 'vue';
 import { imageForKey, teacherImage } from '@/lib/teacherImages';
 import AppImage from './AppImage.vue';
 import SubjectCode from './SubjectCode.vue';
-import TeacherIntroVideo from './TeacherIntroVideo.vue';
+import TeacherVideoModal from './TeacherVideoModal.vue';
 import {
-  INTRO_VIDEO_ID,
-  DEMO_VIDEO_ID,
   parseSubjectCodes,
   findInstructor,
   pointsForDuration,
@@ -152,9 +133,15 @@ const props = defineProps({
 
 defineEmits(['close', 'book']);
 
-/** Which video is open: 'intro', 'demo', or null. */
+/** Which video's pop-up is open: 'intro', 'demo', or null. */
 const activeVideo = ref(null);
-const openVideo = (kind) => { activeVideo.value = activeVideo.value === kind ? null : kind; };
+
+const VIDEOS = [
+  { kind: 'intro', label: (n) => `Get to know ${n}`, icon: 'fa-solid fa-play text-[7px]', dot: 'bg-red-500 text-white',
+    card: 'border-red-200 bg-red-50 text-red-900 hover:border-red-300' },
+  { kind: 'demo', label: (n) => `See ${n} teach`, icon: 'fa-solid fa-chalkboard-user text-[8px]', dot: 'bg-indigo-500 text-white',
+    card: 'border-indigo-200 bg-indigo-50 text-indigo-900 hover:border-indigo-300' },
+]
 const firstName = computed(() => (props.teacher?.name || '').split(' ')[0]);
 
 // A different instructor opens with no video playing.
@@ -186,6 +173,13 @@ const selfIntro = computed(() => {
   const match = findInstructor(props.teacher);
   return (match && getTeacherProfile(match).selfIntro) || props.teacher?.selfIntro
     || 'Hello! I am passionate about helping students overcome hesitation and speak natural, confident English with customized guidance on fluency, pronunciation, and vocabulary.';
+});
+
+/** The same caption the booking page gives the intro video. */
+const videoSubjects = computed(() => {
+  const names = displaySubjects.value.map((s) => s.name.replace(/^\[[^\]]+\]\s*/, ''));
+  if (names.length <= 2) return names.join(' and ');
+  return `${names[0]}, ${names[1]} and ${names.length - 2} more`;
 });
 
 const displaySubjects = computed(() => {
