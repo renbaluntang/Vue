@@ -11,7 +11,8 @@
       :title="info.name"
       aria-hidden="true"
     >{{ info.badge }}</span>
-    <span v-if="showName" class="min-w-0 truncate">{{ info.name }}</span>
+    <!-- iconOnMobile keeps the name for screen readers on narrow screens. -->
+    <span v-if="showName" class="min-w-0 truncate" :class="iconOnMobile ? 'sr-only sm:not-sr-only' : ''">{{ info.name }}</span>
     <span v-else class="sr-only">{{ info.name }}</span>
   </span>
 </template>
@@ -25,6 +26,8 @@ const props = defineProps({
   subject: { type: String, default: '' },
   /** Show the subject's name after the box. */
   showName: { type: Boolean, default: true },
+  /** Below the sm breakpoint, show only the box (the name stays readable by screen readers). */
+  iconOnMobile: { type: Boolean, default: false },
   /** sm 20px, md 24px, lg 32px. */
   size: { type: String, default: 'md' },
 });

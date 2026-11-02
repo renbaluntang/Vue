@@ -79,6 +79,7 @@
 
       <!-- Bottom Profile & Logout -->
       <div class="p-3 border-t border-zinc-100 bg-zinc-50/40 space-y-1">
+        <LanguageSwitch row-class="gap-3 px-4 py-2.5 text-xs text-slate-600" />
         <RouterLink
           to="/profile"
           class="flex items-center gap-2.5 w-full px-3 py-2 text-xs font-medium text-zinc-600 hover:text-zinc-900 hover:bg-zinc-100 rounded-lg transition"
@@ -158,6 +159,7 @@
       </nav>
 
       <div class="shrink-0 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] border-t border-zinc-100 bg-zinc-50/50 space-y-1">
+        <LanguageSwitch row-class="gap-3 px-4 py-2.5 text-xs text-slate-600" />
         <RouterLink
           to="/profile"
           @click="isMobileMenuOpen = false"
@@ -241,15 +243,6 @@
           >
             <span>🗓️</span> Book Class
           </RouterLink>
-
-          <!-- Language Selector -->
-          <select
-            v-model="$i18n.locale"
-            class="bg-zinc-50 border border-zinc-200 rounded-lg text-xs font-medium text-zinc-700 py-1 px-1.5 sm:px-2 outline-none hover:border-zinc-300 focus:border-zinc-400 transition"
-          >
-            <option value="en">EN</option>
-            <option value="ja">JA</option>
-          </select>
         </div>
       </header>
 
@@ -277,6 +270,7 @@
 </template>
 
 <script setup>
+import LanguageSwitch from '@/components/LanguageSwitch.vue';
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';

@@ -1,3 +1,4 @@
+import { watch } from 'vue';
 import { createI18n } from 'vue-i18n';
 
 const messages = {
@@ -111,11 +112,39 @@ const messages = {
   }
 };
 
+// The chosen language is remembered per browser, like the theme. Storage can
+// throw in private mode, so both reads and writes fall back quietly.
+const LOCALE_KEY = 'brighture:locale';
+
+/** Every language a student can pick, each named in its own language. Ones
+ *  without a translation yet fall back to English text. */
+export const LANGUAGES = [
+  { code: 'en', label: 'English' },
+  { code: 'ja', label: '日本語' },
+  { code: 'zh-CN', label: '简体中文' },
+  { code: 'zh-TW', label: '繁體中文' },
+];
+
+const savedLocale = (() => {
+  try {
+    const v = localStorage.getItem(LOCALE_KEY);
+    return v && LANGUAGES.some((l) => l.code === v) ? v : 'en';
+  } catch {
+    return 'en';
+  }
+})();
+
 const i18n = createI18n({
   legacy: false,
-  locale: 'en',
+  locale: savedLocale,
   fallbackLocale: 'en',
   messages,
 });
+
+watch(i18n.global.locale, (locale) => {
+  try { localStorage.setItem(LOCALE_KEY, locale); } catch { /* private mode */ }
+  document.documentElement.lang = locale;
+});
+document.documentElement.lang = savedLocale;
 
 export default i18n;

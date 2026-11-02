@@ -68,6 +68,7 @@
 
       <!-- Bottom Profile & Logout -->
       <div class="p-4 border-t border-slate-100 bg-slate-50/50 space-y-1.5">
+        <LanguageSwitch row-class="gap-3 px-4 py-2.5 text-xs text-slate-600" />
         <RouterLink
           to="/profile"
           class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
@@ -145,6 +146,7 @@
       <!-- shrink-0 so a long nav list can never squeeze these two off the panel,
            and the safe-area padding keeps them clear of the iOS home indicator. -->
       <div class="shrink-0 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] border-t border-slate-100 bg-slate-50/50 space-y-1.5">
+        <LanguageSwitch row-class="gap-3 px-4 py-2.5 text-xs text-slate-600" />
         <RouterLink
           to="/profile"
           @click="isMobileMenuOpen = false"
@@ -223,16 +225,6 @@
             <span class="tracking-tight"><strong>{{ user.profile.pointsBalance }}</strong> <span class="text-slate-400 font-medium">pts</span></span>
             <span class="text-[10px] text-slate-400 font-medium hidden sm:inline border-l border-slate-700 pl-2">Exp: {{ user.profile.pointsExpiry }}</span>
           </RouterLink>
-
-
-          <!-- Language Selector -->
-          <select
-            v-model="$i18n.locale"
-            class="bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 py-1.5 px-2 outline-none hover:border-slate-300 focus:border-indigo-400 transition"
-          >
-            <option value="en">EN</option>
-            <option value="ja">日本語</option>
-          </select>
         </div>
       </header>
 
@@ -260,6 +252,7 @@
 </template>
 
 <script setup>
+import LanguageSwitch from '@/components/LanguageSwitch.vue';
 import { ref, computed } from 'vue';
 import { useI18n } from 'vue-i18n';
 import { useRoute } from 'vue-router';

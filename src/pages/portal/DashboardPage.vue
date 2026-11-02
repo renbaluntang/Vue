@@ -257,7 +257,7 @@
                   target="_blank"
                   rel="noopener"
                   @click="onEnterMeet"
-                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-sm sm:text-base shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all text-center whitespace-nowrap"
+                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all text-center whitespace-nowrap"
                 >
                   <GoogleMeetIcon size="lg" /> Enter Google Meet
                 </a>
@@ -275,18 +275,20 @@
 
         <!-- 2. SUBSEQUENT SCHEDULED LESSONS -->
         <div class="sched p-4 sm:p-6 bg-white space-y-4">
-          <div class="flex items-center justify-between gap-2 pb-1 border-b border-slate-100/80">
-            <div class="flex items-center gap-2">
-              <span class="text-xs font-black uppercase tracking-wider text-slate-500">Upcoming Lesson Schedule</span>
-              <span class="rounded-full bg-slate-100 px-2 py-0.5 text-[10px] font-extrabold text-slate-700 border border-slate-200">
+          <!-- Title over a plain count, so neither has to wrap beside the other on a phone. -->
+          <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-100/80">
+            <div class="min-w-0">
+              <h3 class="m-0 text-base font-black text-slate-900 leading-tight">Upcoming lessons</h3>
+              <p class="m-0 mt-0.5 text-xs font-medium text-slate-500">
                 {{ scheduledLessons.length }} {{ scheduledLessons.length === 1 ? 'lesson' : 'lessons' }} after this one
-              </span>
+              </p>
             </div>
             <RouterLink
               to="/booking"
-              class="text-[11px] font-bold text-brighture-bronze hover:underline inline-flex items-center gap-1 shrink-0"
+              class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-brighture-bronze transition hover:bg-amber-100"
             >
-              <span>+ Book another</span>
+              <i class="fa-solid fa-plus text-[10px]" aria-hidden="true"></i>
+              <span>Book another</span>
             </RouterLink>
           </div>
 
@@ -414,71 +416,47 @@
                 :aria-expanded="isLessonOpen(lesson)"
                 class="w-full py-3 px-3.5 sm:px-4 cursor-pointer select-none focus:outline-none focus:bg-slate-100/60 transition-colors"
               >
-                <!-- Line 1: Identity Left (Teacher + Subject), Value Right (Time Slot) -->
-                <div class="flex items-center justify-between gap-3">
-                  <!-- Left: Teacher Name & Subject Identity -->
-                  <div class="flex items-center gap-2 min-w-0">
-                    <AppImage
-                      :src="lesson.teacherPhoto"
-                      :alt="lesson.teacherName"
-                      class="h-6 w-6 rounded-full object-cover shrink-0 ring-1 ring-slate-200"
-                    />
-                    <div class="flex items-center gap-1.5 min-w-0">
-                      <span class="font-extrabold text-sm text-slate-900 truncate">
-                        {{ lesson.teacherName }}
+                <!-- Photo | who and what | when. Each column has one job, so names
+                     and dates line up down the list instead of zig-zagging. -->
+                <div class="flex items-center gap-3">
+                  <AppImage
+                    :src="lesson.teacherPhoto"
+                    :alt="lesson.teacherName"
+                    class="h-10 w-10 shrink-0 rounded-full object-cover ring-1 ring-slate-200"
+                  />
+
+                  <div class="min-w-0 flex-1">
+                    <p class="m-0 truncate text-sm font-bold text-slate-900">{{ lesson.teacherName }}</p>
+                    <div class="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
+                      <SubjectCode :subject="lesson.subject" size="sm" icon-on-mobile />
+                      <span v-if="lesson.classType" class="min-w-0 truncate">{{ lesson.classType }}</span>
+                    </div>
+                    <div v-if="lesson.isSubstitute || lesson.isNext" class="mt-1.5 flex flex-wrap gap-1">
+                      <span
+                        v-if="lesson.isNext"
+                        class="inline-flex items-center rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 ring-1 ring-emerald-200"
+                      >
+                        Next up
                       </span>
-                      <span class="flex min-w-0 items-center gap-1.5 text-xs text-slate-500 font-medium">
-                        <span aria-hidden="true">·</span>
-                        <SubjectCode :subject="lesson.subject" size="sm" />
+                      <span
+                        v-if="lesson.isSubstitute"
+                        class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-800 ring-1 ring-amber-200"
+                      >
+                        <i class="fa-solid fa-arrows-rotate text-[8px]" aria-hidden="true"></i> Substitute
                       </span>
                     </div>
                   </div>
 
-                  <!-- Right: Rigid Value / Time Slot with Tabular Figures -->
-                  <div class="text-right shrink-0">
-                    <span class="font-black text-sm text-slate-900 tabular-nums tracking-tight">
-                      {{ startTime(lesson.time) }}
-                    </span>
-                  </div>
-                </div>
-
-                <!-- Line 2: Status & Due Date Underneath (Label the ambiguous) -->
-                <div class="flex items-center justify-between gap-2 mt-1">
-                  <!-- Left: Contextual Date + State Badges -->
-                  <div class="flex items-center gap-1.5 flex-wrap min-w-0">
-                    <span class="text-[11px] text-slate-600 font-medium">
-                      <span class="text-slate-400 font-normal">Starts:</span> <strong class="text-slate-700 font-semibold">{{ lesson.date }}</strong>
-                    </span>
-
-                    <span
-                      v-if="lesson.isSubstitute"
-                      class="inline-flex items-center gap-0.5 rounded bg-amber-50 px-1.5 py-0.5 text-[9px] font-bold text-amber-800 border border-amber-200/70 shrink-0"
-                    >
-                      <i class="fa-solid fa-arrows-rotate text-[7px]"></i> Sub
-                    </span>
-
-                    <span
-                      v-if="lesson.isNext"
-                      class="inline-flex items-center rounded bg-emerald-50 px-1.5 py-0.5 text-[9px] font-extrabold text-emerald-700 border border-emerald-200 shrink-0"
-                    >
-                      Next up
-                    </span>
-
-                    <span
-                      v-if="lesson.classType"
-                      class="text-[10px] text-slate-400 font-medium uppercase tracking-wider truncate"
-                    >
-                      {{ lesson.classType }}
-                    </span>
+                  <div class="shrink-0 text-right">
+                    <p class="m-0 text-sm font-black tabular-nums tracking-tight text-slate-900">{{ startTime(lesson.time) }}</p>
+                    <p class="m-0 mt-1 text-xs font-medium text-slate-500">{{ lesson.date }}</p>
                   </div>
 
-                  <!-- Right: Expand Affordance Chevron -->
-                  <div class="flex items-center gap-1 text-[11px] font-bold text-slate-400 group-hover:text-slate-600 shrink-0">
-                    <i
-                      class="fa-solid fa-chevron-down text-[10px] transition-transform duration-200"
-                      :class="{ 'rotate-180 text-brighture-bronze': isLessonOpen(lesson) }"
-                    ></i>
-                  </div>
+                  <i
+                    class="fa-solid fa-chevron-down shrink-0 text-[10px] text-slate-400 transition-transform duration-200 group-hover:text-slate-600"
+                    :class="{ 'rotate-180 text-brighture-bronze': isLessonOpen(lesson) }"
+                    aria-hidden="true"
+                  ></i>
                 </div>
               </div>
 
@@ -518,44 +496,45 @@
                   </div>
                 </div>
 
-                <!-- Actions Slide In -->
-                <div class="pt-1 flex items-center justify-between gap-2 flex-wrap">
-                  <div class="flex items-center gap-1.5 flex-1 min-w-0">
+                <!-- Actions: joining first and full width, then one row of three.
+                     Reschedule's column is a little wider so its word fits on
+                     a 360px phone. -->
+                <div class="space-y-2 pt-1">
+                  <a
+                    v-if="lesson.meetLink"
+                    :href="lesson.meetLink"
+                    target="_blank"
+                    @click.stop
+                    class="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-xs transition hover:bg-emerald-500 active:scale-[0.98]"
+                  >
+                    <GoogleMeetIcon size="md" /> Join Meet
+                  </a>
+                  <div class="grid grid-cols-[1fr_1.25fr_1fr] gap-1.5">
                     <button
                       type="button"
                       @click.stop="detailsLesson = lesson"
-                      class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-100 hover:border-slate-300 active:scale-95 transition cursor-pointer shadow-2xs"
+                      class="inline-flex min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-1.5 py-2 text-[11px] font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-100 active:scale-95"
                     >
-                      <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Details
+                      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+                      <span class="truncate">Details</span>
                     </button>
                     <button
                       type="button"
                       @click.stop="requestRescheduleFromDetails(lesson)"
-                      class="inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-xl border border-amber-200 bg-amber-50 text-amber-900 font-bold text-xs hover:bg-amber-100 hover:border-amber-300 active:scale-95 transition cursor-pointer shadow-2xs"
+                      class="inline-flex min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-xl border border-amber-200 bg-amber-50 px-1.5 py-2 text-[11px] font-bold text-amber-900 shadow-2xs transition hover:border-amber-300 hover:bg-amber-100 active:scale-95"
                     >
-                      <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Reschedule
+                      <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+                      <span class="truncate">Reschedule</span>
                     </button>
-                  </div>
-
-                  <div class="flex items-center gap-1.5 shrink-0">
-                    <a
-                      v-if="lesson.meetLink"
-                      :href="lesson.meetLink"
-                      target="_blank"
-                      @click.stop
-                      class="inline-flex items-center justify-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-xs active:scale-95 transition cursor-pointer"
-                    >
-                      <GoogleMeetIcon size="md" /> Join Meet
-                    </a>
                     <button
                       type="button"
                       @click.stop="cancelTargetLesson = lesson"
                       :disabled="!canCancelRow(lesson)"
-                      class="h-8 w-8 rounded-xl border border-slate-200 text-slate-400 hover:text-red-600 hover:border-red-200 hover:bg-red-50 flex items-center justify-center transition cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400 disabled:hover:border-slate-200"
+                      class="inline-flex min-w-0 items-center justify-center gap-1 whitespace-nowrap rounded-xl border border-slate-200 bg-white px-1.5 py-2 text-[11px] font-bold text-slate-500 shadow-2xs transition hover:border-red-200 hover:bg-red-50 hover:text-red-600 active:scale-95 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-slate-200 disabled:hover:bg-white disabled:hover:text-slate-500"
                       :title="canCancelRow(lesson) ? 'Cancel class' : LEVEL_CHECK_CANCEL_NOTE"
-                      aria-label="Cancel class"
                     >
                       <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                      <span class="truncate">Cancel</span>
                     </button>
                   </div>
                 </div>

@@ -273,6 +273,10 @@
               <span>Contact us</span>
             </a>
 
+            <!-- Moved here from the header: a setting you change once, not a
+                 control that needs to sit on every page. -->
+            <LanguageSwitch row-class="gap-3 px-3 py-2 text-xs text-slate-700" />
+
             <!-- The menu stays open on toggle: seeing the theme change under
                  the switch is the confirmation. -->
             <button
@@ -470,10 +474,10 @@
 
         <!-- Settings closes the list as its last group, styled like the others,
              so it reads as part of the menu rather than a footer to find. -->
-        <div data-tour="dnav-settings">
+        <div ref="drawerSettings" data-tour="dnav-settings">
           <button
             type="button"
-            @click="toggleUserMenu"
+            @click="toggleDrawerSettings"
             :aria-expanded="isUserMenuOpen ? 'true' : 'false'"
             class="flex items-center justify-between w-full px-4 py-3 rounded-2xl text-sm font-bold transition-all duration-150 group"
             :class="isUserMenuOpen || isCurrentRoute('/profile') ? 'text-brighture-ink bg-brighture-cream' : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'"
@@ -521,6 +525,8 @@
               <i class="fa-solid fa-headset w-4 text-center text-sm text-sky-500"></i>
               <span>Contact us</span>
             </a>
+
+            <LanguageSwitch row-class="gap-2.5 px-3 py-2.5 text-[13px] text-slate-600" />
 
             <button
               type="button"
@@ -681,15 +687,6 @@
             <span class="text-[10px] text-slate-400 font-medium hidden sm:inline border-l border-slate-700 pl-2">Exp: {{ user.profile.pointsExpiry }}</span>
           </RouterLink>
 
-
-          <!-- Language Selector -->
-          <select
-            v-model="$i18n.locale"
-            class="bg-white border border-slate-200 rounded-xl text-xs font-bold text-slate-700 py-1.5 px-2 outline-none hover:border-slate-300 focus:border-brighture-amber transition"
-          >
-            <option value="en">EN</option>
-            <option value="ja">日本語</option>
-          </select>
         </div>
       </header>
 
@@ -732,7 +729,7 @@
 <script setup>
 import GoogleMeetIcon from '../GoogleMeetIcon.vue';
 import { countdownLabel } from '@/lib/schoolTime';
-import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue';
+import { ref, computed, watch, nextTick, onMounted, onBeforeUnmount } from 'vue';
 import { zoneId, zoneAbbr } from '@/lib/schoolTime';
 import { useI18n } from 'vue-i18n';
 import { useRoute, useRouter } from 'vue-router';
@@ -740,6 +737,7 @@ import { useUserStore } from '../../stores/useUserStore';
 import { useSchoolStore } from '../../stores/useSchoolStore';
 import { CURRENT_STUDENT_ID } from '../../lib/schoolSeed';
 import RouteProgress from '../../components/RouteProgress.vue';
+import LanguageSwitch from '@/components/LanguageSwitch.vue';
 import NavigationTour from '../../components/NavigationTour.vue';
 import brightureLogo from '@/assets/logo-black.svg';
 import { isDark, toggleTheme } from '@/lib/theme';
@@ -815,6 +813,15 @@ const onTourStep = (key) => {
 const isUserMenuOpen = ref(false);
 const toggleUserMenu = () => {
   isUserMenuOpen.value = !isUserMenuOpen.value;
+};
+
+// Settings is the last group in the phone drawer, so its rows open below the
+// fold. Scroll them into view, or the tap looks like it did nothing.
+const drawerSettings = ref(null);
+const toggleDrawerSettings = () => {
+  toggleUserMenu();
+  if (!isUserMenuOpen.value) return;
+  nextTick(() => drawerSettings.value?.scrollIntoView({ behavior: 'smooth', block: 'end' }));
 };
 
 // Close user menu on route navigation
