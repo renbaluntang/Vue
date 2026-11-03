@@ -355,7 +355,7 @@
                         v-if="lesson.meetLink"
                         :href="lesson.meetLink"
                         target="_blank"
-                        class="inline-flex items-center justify-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-50 text-emerald-700 font-bold text-xs hover:bg-emerald-100 hover:scale-105 active:scale-95 transition whitespace-nowrap flex-shrink-0 shadow-2xs cursor-pointer"
+                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-colors hover:border-emerald-200 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] whitespace-nowrap flex-shrink-0 cursor-pointer"
                       >
                         <GoogleMeetIcon size="md" />
                         <span>Join Meet</span>
@@ -363,7 +363,7 @@
                       <button
                         type="button"
                         @click="requestRescheduleFromDetails(lesson)"
-                        class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-amber-200 bg-amber-50/70 text-amber-900 font-bold text-xs hover:bg-amber-100 hover:border-amber-300 active:scale-95 transition whitespace-nowrap flex-shrink-0 cursor-pointer shadow-2xs"
+                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-colors hover:border-amber-300 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] whitespace-nowrap flex-shrink-0 cursor-pointer"
                         title="Reschedule class"
                       >
                         <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
@@ -372,7 +372,7 @@
                       <button
                         type="button"
                         @click="detailsLesson = lesson"
-                        class="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:border-slate-300 hover:bg-slate-50 active:scale-95 transition whitespace-nowrap flex-shrink-0 cursor-pointer shadow-2xs"
+                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] whitespace-nowrap flex-shrink-0 cursor-pointer"
                         title="View class details"
                       >
                         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>

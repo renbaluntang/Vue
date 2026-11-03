@@ -8,7 +8,6 @@ import {
   Lock,
   Mail,
   User,
-  Star,
   FileText,
   Volume2,
   Sparkles,
@@ -198,10 +197,6 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
                         <div>
                           <p class="text-xs text-white/80">Certified 1-on-1 Instructor</p>
                         </div>
-                        <div class="flex items-center gap-1 rounded-lg bg-amber-400/90 px-2 py-0.5 text-xs font-bold text-slate-950">
-                          <Star class="h-3.5 w-3.5 fill-slate-950 stroke-none" />
-                          <span>4.9</span>
-                        </div>
                       </div>
                     </div>
                   </div>
@@ -233,8 +228,7 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
                   </div>
                 </div>
 
-                <!-- Floating Brighture Feature Badge 2 — Bottom Centre-Right.
-                    Sits inboard of the corner so the photo's own 4.9 rating stays visible. -->
+                <!-- Floating Brighture Feature Badge 2 — Bottom Centre-Right -->
                 <div class="absolute -bottom-5 left-[52%] z-20 flex items-center gap-2.5 rounded-2xl border border-slate-200/80 bg-white p-3 shadow-[0_12px_28px_-6px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-transform duration-300 hover:scale-105 short:-bottom-4 short:left-[48%] short:p-2.5">
                   <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-amber-400 short:h-9 short:w-9">
                     <FileText class="h-5 w-5" />

@@ -6,16 +6,9 @@ import { getMinimalRouter } from "./router/minimal";
 import { getTeacherRouter } from "./router/teacher";
 import { getAdminRouter } from "./router/admin";
 import i18n from "./i18n";
-import App from "./pages/app-panel/App.vue";
 import LoginRegisterPanel from "./pages/LoginRegisterPanel.vue";
 import LoginRegisterPanelV2 from "./pages/LoginRegisterPanelV2.vue";
 import RootPage from "./pages/RootPage.vue";
-import SocialConversationPage from "./pages/SocialConversationPage.vue";
-import StudentView from "./pages/StudentView.vue";
-import StudentViewV2 from "./pages/StudentViewV2.vue";
-import StudentViewV3 from "./pages/StudentViewV3.vue";
-import StudentViewV4 from "./pages/StudentViewV4.vue";
-import PointsPurchase from "./pages/PointsPurchase.vue";
 import PortalApp from "./pages/PortalApp.vue";
 import TeacherPortalApp from "./pages/TeacherPortalApp.vue";
 import AdminPortalApp from "./pages/AdminPortalApp.vue";
@@ -28,16 +21,10 @@ const BASE_PREFIX = import.meta.env.BASE_URL.replace(/\/+$/, "");
 const rawPath = window.location.pathname.replace(/\/+$/, "") || "/";
 const normalizedPath =
   (BASE_PREFIX && rawPath.startsWith(BASE_PREFIX) ? rawPath.slice(BASE_PREFIX.length) : rawPath) || "/";
-const isTeacherView = normalizedPath === "/teacher";
 const isTeacherPortalView =
   normalizedPath === "/teacher-portal" || normalizedPath.startsWith("/teacher-portal/");
 const isAdminPortalView =
   normalizedPath === "/admin-portal" || normalizedPath.startsWith("/admin-portal/");
-const isStudentView = normalizedPath === "/student";
-const isStudentViewV2 = normalizedPath === "/student-2";
-const isStudentViewV3 = normalizedPath === "/student-3";
-const isStudentViewV4 = normalizedPath === "/student-4";
-const isSocialConversationView = normalizedPath === "/social-conversation";
 const isLoginView = normalizedPath === "/login";
 const isLoginViewV2 = normalizedPath === "/login-2";
 
@@ -61,32 +48,11 @@ const getPage = () => {
   if (isTeacherPortalView) {
     return TeacherPortalApp;
   }
-  if (isTeacherView) {
-    return App;
-  }
   if (isLoginView || isLoginViewV2) {
     return LoginRegisterPanelV2;
   }
   if (normalizedPath === "/login-1") {
     return LoginRegisterPanel;
-  }
-  if (isStudentView) {
-    return StudentView;
-  }
-  if (isStudentViewV2) {
-    return StudentViewV2;
-  }
-  if (isStudentViewV3) {
-    return StudentViewV3;
-  }
-  if (isStudentViewV4) {
-    return StudentViewV4;
-  }
-  if (isSocialConversationView) {
-    return SocialConversationPage;
-  }
-  if (normalizedPath === "/points-purchase") {
-    return PointsPurchase;
   }
   if (isStudentPortalView || isStudentPortalClassicView || isStudentPortalV2View) {
     return PortalApp;
@@ -100,7 +66,7 @@ const page = getPage();
 // tab says which one is open — the two are often side by side while testing.
 if (isStudentPortalView || isStudentPortalClassicView || isStudentPortalV2View) {
   document.title = "Student Panel";
-} else if (isTeacherPortalView || isTeacherView) {
+} else if (isTeacherPortalView) {
   document.title = "Instructor Panel";
 } else if (isAdminPortalView) {
   document.title = "Admin Panel";

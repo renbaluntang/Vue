@@ -11,42 +11,6 @@
 
       <div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <a
-          :href="withBase('/teacher')"
-          class="inline-flex items-center justify-center rounded-2xl bg-primary px-5 py-4 text-center text-sm font-semibold text-white transition hover:bg-primary-dark"
-        >
-          Teacher Panel
-        </a>
-        <a
-          :href="withBase('/student')"
-          class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-4 text-center text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-        >
-          Student Panel
-        </a>
-        <a
-          :href="withBase('/student-2')"
-          class="inline-flex items-center justify-center rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-center text-sm font-semibold text-amber-900 transition hover:bg-amber-100"
-        >
-          Student Panel 2
-        </a>
-        <a
-          :href="withBase('/student-3')"
-          class="inline-flex items-center justify-center rounded-2xl border border-teal-200 bg-teal-50 px-5 py-4 text-center text-sm font-semibold text-teal-900 transition hover:bg-teal-100"
-        >
-          Student Panel 3
-        </a>
-        <a
-          :href="withBase('/student-4')"
-          class="inline-flex items-center justify-center rounded-2xl border border-primary/30 bg-primary/10 px-5 py-4 text-center text-sm font-semibold text-primary-dark transition hover:bg-primary/20"
-        >
-          Student Panel 4
-        </a>
-        <a
-          :href="withBase('/social-conversation')"
-          class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-4 text-center text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
-        >
-          Social Conversation
-        </a>
-        <a
           :href="withBase('/login-1')"
           class="inline-flex items-center justify-center rounded-2xl border border-slate-300 bg-white px-5 py-4 text-center text-sm font-semibold text-slate-800 transition hover:bg-slate-50"
         >
@@ -62,19 +26,13 @@
           :href="withBase('/student-portal')"
           class="inline-flex items-center justify-center rounded-2xl border border-indigo-300 bg-indigo-50 px-5 py-4 text-center text-sm font-semibold text-indigo-950 transition hover:bg-indigo-100"
         >
-          New Student Portal
+          Student Portal
         </a>
         <a
           :href="withBase('/teacher-portal')"
           class="inline-flex items-center justify-center rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-center text-sm font-semibold text-emerald-950 transition hover:bg-emerald-100"
         >
-          New Teacher Portal
-        </a>
-        <a
-          :href="withBase('/points-purchase')"
-          class="inline-flex items-center justify-center rounded-2xl border border-sky-300 bg-sky-50 px-5 py-4 text-center text-sm font-semibold text-sky-950 transition hover:bg-sky-100"
-        >
-          Points Purchase
+          Teacher Portal
         </a>
         <a
           :href="withBase('/admin-portal')"

@@ -20,7 +20,7 @@ One Vite app that serves several front-end prototypes for Brighture, an online E
 | `/student-portal-classic` | `router/classic.js` | `pages/portal-classic/` | `PortalLayoutClassic.vue` |
 | `/student-portal-v2`, `/student-5` | `router/minimal.js` | `pages/portal-minimal/` | `PortalMinimalLayout.vue` |
 
-Other paths (`/login`, `/points-purchase`, `/student-2..4`, the legacy `/teacher` panel) mount standalone pages without a router. Classic and minimal are older variants. Keep them compiling, but new work goes into the main student portal.
+`/login` (also `/login-2`) and `/login-1` mount the two login pages without a router; any other path shows the panel chooser (`pages/RootPage.vue`). `pages/PointsPurchase.vue` has no URL of its own: each student portal's Purchase Points page embeds it. Classic and minimal are older variants. Keep them compiling, but new work goes into the main student portal.
 
 ## Data: one shared store, two portals
 
