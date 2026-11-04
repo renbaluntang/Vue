@@ -188,7 +188,6 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
                     />
                     <!-- Live indicator badge -->
                     <div class="absolute right-3 top-3 flex items-center gap-1.5 rounded-full bg-slate-900/80 px-3 py-1 text-xs font-semibold text-white backdrop-blur-md">
-                      <span class="h-2 w-2 animate-pulse rounded-full bg-rose-500" />
                       <span>16:45</span>
                     </div>
                     <!-- Bottom info scrim -->
@@ -239,8 +238,9 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
                   </div>
                 </div>
 
-                <!-- Floating badge 3 — Right edge pill, dropped clear of the photo's live timer -->
-                <div class="absolute -right-8 top-24 z-20 flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur-md transition-all duration-300 hover:translate-x-1 short:-right-6 short:top-20 short:px-3.5 short:py-2">
+                <!-- Floating badge 3 — Right edge pill, low enough to sit over the laptop
+                    rather than the instructor's face -->
+                <div class="absolute -right-8 top-[62%] z-20 flex items-center gap-2 rounded-full border border-slate-200/80 bg-white/95 px-4 py-2.5 shadow-lg backdrop-blur-md transition-all duration-300 hover:translate-x-1 short:-right-6 short:px-3.5 short:py-2">
                   <GraduationCap class="h-5 w-5 text-amber-500 short:h-4 short:w-4" />
                   <span class="text-sm font-bold text-brighture-ink short:text-xs">Certified Instructors</span>
                 </div>

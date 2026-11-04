@@ -649,10 +649,27 @@
             :aria-expanded="!isSidebarCollapsed"
             aria-label="Toggle sidebar"
           >
-            <i
-              class="fa-solid fa-bars-staggered text-sm transition-transform duration-200"
-              :class="isSidebarCollapsed ? 'rotate-180 text-brighture-bronze' : 'text-slate-600'"
-            ></i>
+            <!-- A panel with its divider; the chevron points the way the
+                 sidebar will move, so it flips once the sidebar is open. -->
+            <svg
+              class="h-5 w-5"
+              :class="isSidebarCollapsed ? 'text-brighture-bronze' : 'text-slate-600'"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+            >
+              <rect x="3" y="3" width="18" height="18" rx="5" />
+              <path d="M15.5 3v18" />
+              <path
+                d="M8 9l3 3-3 3"
+                class="origin-[9.5px_12px] transition-transform duration-200"
+                :class="isSidebarCollapsed ? '' : 'rotate-180'"
+              />
+            </svg>
           </button>
 
           <!-- Current Page Title -->

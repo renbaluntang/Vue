@@ -168,7 +168,7 @@ const copyReferralLink = async () => {
 const shareVia = (channel) => {
   const msg = encodeURIComponent(referralShareMessage(referralCode.value));
   const urls = {
-    whatsapp: `https://wa.me/?text=${msg}`,
+    facebook: `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(referralLink.value)}`,
     twitter:  `https://twitter.com/intent/tweet?text=${msg}`,
     email:    `mailto:?subject=${encodeURIComponent('Join me on Brighture!')}&body=${msg}`,
   };
@@ -754,11 +754,11 @@ const shareVia = (channel) => {
               <div class="flex gap-2">
                 <button
                   type="button"
-                  @click="shareVia('whatsapp')"
-                  class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#25D366] py-2.5 text-xs font-bold text-white hover:opacity-90 transition active:scale-95 cursor-pointer"
+                  @click="shareVia('facebook')"
+                  class="flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#1877F2] py-2.5 text-xs font-bold text-white hover:opacity-90 transition active:scale-95 cursor-pointer"
                 >
-                  <i class="fa-brands fa-whatsapp text-base"></i>
-                  WhatsApp
+                  <i class="fa-brands fa-facebook-f text-base"></i>
+                  Facebook
                 </button>
                 <button
                   type="button"

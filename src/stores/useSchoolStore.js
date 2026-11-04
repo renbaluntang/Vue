@@ -23,6 +23,21 @@ import {
  */
 
 const STORAGE_KEY = 'brighture:school:v1';
+
+/** When Reset demo data last ran (epoch ms), in any tab. */
+export const DEMO_RESET_AT_KEY = 'brighture:demo-reset-at';
+
+// Page settings that Reset demo data clears. Add a key here when a page starts
+// remembering a new layout choice.
+const PAGE_SETTING_KEYS = [
+  'brighture:dashboard:referral-hidden',
+  'brighture:sidebar-collapsed',
+  'brighture:teacher-sidebar-collapsed',
+  'brighture:admin:zone',
+  'teacher_scheduling_added_timezones',
+  'teacher_scheduling_active_timezone',
+  'student_view_v4_favorites',
+];
 const WRITING_COST = 5;
 /** Free cancellation up to this many minutes before the start. */
 const FREE_CANCEL_MINUTES = 180;
@@ -111,9 +126,31 @@ export const useSchoolStore = defineStore('school', () => {
   const now = ref(Date.now());
   setInterval(() => { now.value = Date.now(); }, 30_000);
 
-  /** Throws away every change and starts again from the sample data. */
+  /**
+   * Throws away every change and starts again from the sample data, along
+   * with the page settings people change as they click around (hidden
+   * dashboard cards, a collapsed sidebar, favourite teachers, added time
+   * zones), so the demo looks the way it did on first open. Language and
+   * dark mode are kept: they are the viewer's own choice, not demo state.
+   */
   const resetDemo = () => {
     db.value = buildSeed(manilaToday());
+    try {
+      // Written here rather than left to the watcher, which runs after this
+      // function returns and would be cut off by the reload below.
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(db.value));
+      // Other open tabs are not reloaded, and their sessionStorage is out of
+      // reach from here, so pages that remember a choice compare it against
+      // this time and drop anything saved before it.
+      localStorage.setItem(DEMO_RESET_AT_KEY, String(Date.now()));
+      for (const key of PAGE_SETTING_KEYS) {
+        localStorage.removeItem(key);
+        sessionStorage.removeItem(key);
+      }
+    } catch { /* storage blocked: the reload still starts from the seed */ }
+    // The settings above are read once when each page opens, so reload to
+    // pick up their defaults everywhere instead of resetting each by hand.
+    if (typeof window !== 'undefined') window.location.reload();
   };
 
   // ── People ────────────────────────────────────────────────────────────

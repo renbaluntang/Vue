@@ -153,33 +153,40 @@
 
     <!-- MERGED & UNIFIED: SCHEDULED ONLINE CLASSES SECTION -->
     <section class="space-y-4">
-      <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-        <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
-          <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span>
-          <h2 class="min-w-0 text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight">
-            Scheduled Online Classes
-          </h2>
-          <span class="shrink-0 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-extrabold">
-            {{ upcomingLessons.length }} Upcoming
-          </span>
+      <div
+        class="grid grid-cols-1 items-start gap-x-6 gap-y-4 xl:items-stretch"
+        :class="referralHidden ? '' : 'xl:grid-cols-[minmax(0,1fr)_330px]'"
+        :data-referral="referralHidden ? null : ''"
+      >
+        <!-- In the first column only, so the links sit over the classes card
+             rather than over the referral card beside it. -->
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+            <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span>
+            <h2 class="min-w-0 text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+              Scheduled Online Classes
+            </h2>
+            <span class="shrink-0 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-extrabold">
+              {{ upcomingLessons.length }} Upcoming
+            </span>
+          </div>
+          <div class="flex items-center gap-3">
+            <RouterLink to="/booking" class="text-xs font-bold text-brighture-bronze hover:text-brighture-bronze">
+              + Book Another Class
+            </RouterLink>
+            <span class="text-slate-300">•</span>
+            <RouterLink to="/history" class="text-xs font-bold text-slate-500 hover:text-slate-700">
+              Past Lessons History →
+            </RouterLink>
+          </div>
         </div>
-        <div class="flex items-center gap-3">
-          <RouterLink to="/booking" class="text-xs font-bold text-brighture-bronze hover:text-brighture-bronze">
-            + Book Another Class
-          </RouterLink>
-          <span class="text-slate-300">•</span>
-          <RouterLink to="/history" class="text-xs font-bold text-slate-500 hover:text-slate-700">
-            Past Lessons History →
-          </RouterLink>
-        </div>
-      </div>
-
+        <div class="min-w-0 xl:col-start-1 xl:flex xl:flex-col">
       <!-- Unified Card Container -->
-      <div class="bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden">
+      <div class="xl:flex-1 bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden">
         <!-- 1. FEATURED NEXT IMMEDIATE CLASS (SPOTLIGHT) -->
         <div
           v-if="user.nextUpcomingClass"
-          class="relative overflow-hidden text-white p-6 sm:p-8 border-b border-slate-900/50 bg-[radial-gradient(115%_135%_at_90%_-12%,rgba(255,205,0,0.17)_0%,rgba(255,205,0,0.07)_26%,rgba(255,205,0,0.02)_44%,transparent_64%),radial-gradient(85%_115%_at_2%_108%,rgba(255,189,0,0.10)_0%,rgba(255,189,0,0.035)_32%,transparent_66%),linear-gradient(140deg,#0F1319_0%,#131925_24%,#161C26_48%,#111722_72%,#0A0D12_100%)]"
+          class="relative overflow-hidden text-white p-6 sm:p-8 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:p-6 border-b border-slate-900/50 bg-[radial-gradient(115%_135%_at_90%_-12%,rgba(255,205,0,0.17)_0%,rgba(255,205,0,0.07)_26%,rgba(255,205,0,0.02)_44%,transparent_64%),radial-gradient(85%_115%_at_2%_108%,rgba(255,189,0,0.10)_0%,rgba(255,189,0,0.035)_32%,transparent_66%),linear-gradient(140deg,#0F1319_0%,#131925_24%,#161C26_48%,#111722_72%,#0A0D12_100%)]"
         >
           <!-- lit top edge, so the card reads as raised rather than cut out -->
           <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
@@ -187,11 +194,16 @@
           <div class="relative z-10 space-y-6">
             <!-- Status row -->
             <div class="flex flex-wrap items-center gap-2.5">
-              <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 text-xs font-black">
-                NEXT CLASS • STARTS IN {{ countdownLabel(user.nextUpcomingClass.minutesUntil).toUpperCase() }}
-              </span>
-              <span class="text-xs font-bold text-slate-300 bg-white/10 px-2.5 py-1 rounded-full">
-                {{ user.nextUpcomingClass.timeFull }}
+              <!-- Two parts: a solid tag says what this card is, and the
+                   countdown beside it carries the number the student scans for. -->
+              <span class="inline-flex items-stretch overflow-hidden rounded-full border border-emerald-400/40 bg-emerald-500/10 text-xs">
+                <span class="inline-flex items-center bg-emerald-500 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-emerald-950">
+                  Next class
+                </span>
+                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 font-semibold text-emerald-100">
+                  <i class="fa-regular fa-clock text-[11px] text-emerald-300" aria-hidden="true"></i>
+                  Starts in <strong class="font-black text-white">{{ countdownLabel(user.nextUpcomingClass.minutesUntil) }}</strong>
+                </span>
               </span>
               <!-- Pre-class materials. Within 3 hours of the start an unfinished
                    list turns solid amber so it is hard to miss. -->
@@ -211,9 +223,14 @@
               </button>
             </div>
 
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+            <!-- From xl to about 1380px the referral card sits beside this one
+                 and squeezes it, so the photo, title and buttons step down a
+                 size there to keep the buttons on the right. The step-down
+                 only applies while the card is shown (data-referral on the
+                 grid); once it is hidden this card has the full width. -->
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:gap-4">
               <!-- Teacher alongside the class it belongs to -->
-              <div class="flex items-start gap-4 sm:gap-5 max-w-2xl">
+              <div class="flex min-w-0 items-start gap-4 sm:gap-5 max-w-2xl [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:gap-3">
                 <button
                   type="button"
                   @click="openTeacherDetails({ name: user.nextUpcomingClass.teacherName, photo: user.nextUpcomingClass.teacherPhoto, specialty: '[SF] Speech Fluency, [LS1], [DC]', rating: '4.98', major: 'B.A. in English Linguistics', expertise: '[SF] Speech Fluency & [EP] Exam Prep' })"
@@ -224,7 +241,7 @@
                     :src="user.nextUpcomingClass.teacherPhoto"
                     :alt="user.nextUpcomingClass.teacherName"
                     eager
-                    class="w-20 h-20 sm:w-24 sm:h-24 mx-auto rounded-full border-2 border-brighture-amber/70 transition group-hover:border-brighture-gold/50 group-hover:scale-105"
+                    class="w-20 h-20 sm:w-24 sm:h-24 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:h-20 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:w-20 mx-auto rounded-full border-2 border-brighture-amber/70 transition group-hover:border-brighture-gold/50 group-hover:scale-105"
                   />
                   <span class="mt-2 block truncate text-xs font-bold text-white transition group-hover:text-brighture-gold">
                     {{ user.nextUpcomingClass.teacherName }}
@@ -235,11 +252,17 @@
                 </button>
 
                 <div class="min-w-0 pt-1">
-                  <h3 class="flex min-w-0 text-xl sm:text-2xl font-extrabold tracking-tight text-white">
+                  <h3 class="flex min-w-0 text-xl sm:text-2xl [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:text-xl font-extrabold tracking-tight text-white">
                     <SubjectCode :subject="user.nextUpcomingClass.subject" size="lg" />
                   </h3>
                   <p class="text-brighture-gold text-sm font-medium mt-1.5">
                     Topic: <strong class="text-white">{{ user.nextUpcomingClass.topic }}</strong>
+                  </p>
+                  <!-- The time sits with the subject and topic so the class reads
+                       as one block: what, about what, and when. -->
+                  <p class="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-slate-300">
+                    <i class="fa-regular fa-clock text-xs text-slate-400" aria-hidden="true"></i>
+                    {{ user.nextUpcomingClass.timeFull }}
                   </p>
                   <span
                     v-if="user.nextUpcomingClass.isSubstitute"
@@ -257,14 +280,14 @@
                   target="_blank"
                   rel="noopener"
                   @click="onEnterMeet"
-                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all text-center whitespace-nowrap"
+                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:px-4 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:py-3 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:text-sm shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all text-center whitespace-nowrap"
                 >
                   <GoogleMeetIcon size="lg" /> Enter Google Meet
                 </a>
                 <button
                   type="button"
                   @click="openDetails(user.nextUpcomingClass)"
-                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-sm sm:text-base transition border border-white/15 text-center whitespace-nowrap"
+                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-sm sm:text-base [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:px-4 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:py-3 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:text-sm transition border border-white/15 text-center whitespace-nowrap"
                 >
                   <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Class Details
                 </button>
@@ -293,14 +316,14 @@
           </div>
 
           <!-- Desktop Table View -->
-          <div class="sched__table overflow-x-auto">
-            <table class="w-full text-left border-collapse min-w-[680px]">
+          <div class="sched__table">
+            <table class="w-full table-fixed text-left border-collapse">
               <thead>
                 <tr class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-100">
-                  <th class="py-3 px-4">Date & Time</th>
-                  <th class="py-3 px-4">Online Teacher</th>
-                  <th class="py-3 px-4">Subject & Class</th>
-                  <th class="py-3 px-4 text-right">Actions</th>
+                  <th class="w-[21%] py-3 px-2.5 sm:px-3">Date &amp; time</th>
+                  <th class="w-[24%] py-3 px-2.5 sm:px-3">Online teacher</th>
+                  <th class="w-[25%] py-3 px-2.5 sm:px-3">Subject &amp; class</th>
+                  <th class="w-[30%] py-3 px-2.5 sm:px-3">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 text-sm">
@@ -310,7 +333,7 @@
                   class="transition-colors hover:bg-slate-50/70 group"
                   :class="lesson.isNext ? 'bg-brighture-cream/30' : ''"
                 >
-                  <td class="py-3.5 px-4 whitespace-nowrap">
+                  <td class="py-3.5 px-2.5 sm:px-3 align-middle">
                     <div class="flex items-center gap-2">
                       <span v-if="lesson.isNext" class="w-2 h-2 rounded-full bg-emerald-500" title="Next upcoming lesson"></span>
                       <div>
@@ -319,17 +342,17 @@
                       </div>
                     </div>
                   </td>
-                  <td class="py-3.5 px-4">
+                  <td class="py-3.5 px-2.5 sm:px-3 align-middle">
                     <button
                       type="button"
                       @click="openTeacherDetails({ name: lesson.teacherName, photo: lesson.teacherPhoto, specialty: lesson.subject, rating: '4.95' })"
-                      class="flex items-center gap-3 text-left group/teacher cursor-pointer"
+                      class="flex min-w-0 items-center gap-2 text-left group/teacher cursor-pointer"
                       title="View teacher profile"
                     >
                       <AppImage
                         :src="lesson.teacherPhoto"
                         :alt="lesson.teacherName"
-                        class="w-10 h-10 rounded-full ring-2 ring-white outline outline-1 outline-slate-200 shadow-2xs transition group-hover/teacher:outline-brighture-gold/50"
+                        class="h-9 w-9 shrink-0 rounded-full ring-2 ring-white outline outline-1 outline-slate-200 shadow-2xs transition group-hover/teacher:outline-brighture-gold/50"
                       />
                       <span class="min-w-0">
                         <span class="block truncate font-bold text-slate-800 transition group-hover/teacher:text-brighture-bronze">
@@ -344,49 +367,30 @@
                       </span>
                     </button>
                   </td>
-                  <td class="py-3.5 px-4">
-                    <div class="flex min-w-0 font-bold text-slate-700"><SubjectCode :subject="lesson.subject" size="sm" /></div>
-                    <div class="text-[11px] text-slate-400 font-medium uppercase tracking-wide mt-0.5">{{ lesson.classType }}</div>
+                  <td class="py-3.5 px-2.5 sm:px-3 align-middle">
+                    <div class="min-w-0 truncate font-bold text-slate-700"><SubjectCode :subject="lesson.subject" size="sm" /></div>
+                    <div class="mt-0.5 truncate text-[11px] font-medium uppercase tracking-wide text-slate-400">{{ lesson.classType }}</div>
                   </td>
-                  <!-- Non-Wrapping Action Buttons -->
-                  <td class="py-3.5 px-4 text-right whitespace-nowrap">
-                    <div class="inline-flex items-center justify-end gap-2 flex-nowrap">
+                  <!-- Keep the primary actions obvious; rescheduling stays in class details. -->
+                  <td class="py-3 px-2.5 sm:px-3 align-middle">
+                    <div class="flex flex-wrap items-center gap-1.5">
                       <a
                         v-if="lesson.meetLink"
                         :href="lesson.meetLink"
                         target="_blank"
-                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-3.5 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-colors hover:border-emerald-200 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] whitespace-nowrap flex-shrink-0 cursor-pointer"
+                        class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-2.5 py-2 text-[11px] font-bold text-slate-700 shadow-2xs transition-colors hover:border-emerald-200 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] whitespace-nowrap cursor-pointer"
                       >
                         <GoogleMeetIcon size="md" />
                         <span>Join Meet</span>
                       </a>
                       <button
                         type="button"
-                        @click="requestRescheduleFromDetails(lesson)"
-                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50/70 px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-colors hover:border-amber-300 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] whitespace-nowrap flex-shrink-0 cursor-pointer"
-                        title="Reschedule class"
-                      >
-                        <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
-                        <span>Reschedule</span>
-                      </button>
-                      <button
-                        type="button"
                         @click="detailsLesson = lesson"
-                        class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] whitespace-nowrap flex-shrink-0 cursor-pointer"
+                        class="ml-auto inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-bold text-slate-700 shadow-2xs transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] cursor-pointer"
                         title="View class details"
                       >
                         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
                         <span>Details</span>
-                      </button>
-                      <button
-                        type="button"
-                        @click="cancelTargetLesson = lesson"
-                        :disabled="!canCancelRow(lesson)"
-                        class="p-2 rounded-xl text-slate-400 hover:text-red-600 hover:bg-red-50 transition flex-shrink-0 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent disabled:hover:text-slate-400"
-                        :title="canCancelRow(lesson) ? 'Cancel class' : LEVEL_CHECK_CANCEL_NOTE"
-                        aria-label="Cancel class"
-                      >
-                        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                       </button>
                     </div>
                   </td>
@@ -550,17 +554,218 @@
           </p>
         </div>
 
-        <!-- Cancellation & Changes Footnote -->
-        <div class="bg-slate-50 p-4 border-t border-slate-100 text-[11px] text-slate-500 font-medium flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-          <div>
-            * <strong class="text-slate-600">Cancellation:</strong> Free cancellation up to 3h before class starts (Points refunded).<br class="hidden sm:inline" />
-            * <strong class="text-slate-600">Trial &amp; counseling:</strong> Cancel up to {{ LEVEL_CHECK_CANCEL_MINUTES }} min before the start (any points refunded).<br class="hidden sm:inline" />
-            * <strong class="text-slate-600">Changes:</strong> Subject & message can be adjusted until 2h prior.
+        <!-- Booking policies stay readable without competing with the lesson list. -->
+        <div class="border-t border-slate-100 bg-slate-50/80 p-4 sm:p-5">
+          <h4 class="text-xs font-extrabold text-slate-700">Booking policies</h4>
+          <div class="mt-1.5 space-y-1 text-[11px] leading-relaxed text-slate-500 sm:text-xs">
+            <p><strong class="font-bold text-slate-700">Cancelling a class:</strong> free until 3 hours before it starts, and your points come back.</p>
+            <p><strong class="font-bold text-slate-700">Trial lesson or counseling:</strong> cancel until {{ LEVEL_CHECK_CANCEL_MINUTES }} minutes before, and your points come back.</p>
+            <p><strong class="font-bold text-slate-700">Changing a class:</strong> edit the subject or your message until 2 hours before.</p>
           </div>
-          <RouterLink to="/booking" class="font-bold text-brighture-bronze hover:text-brighture-bronze whitespace-nowrap">
-            Schedule More Classes →
-          </RouterLink>
         </div>
+      </div>
+        </div>
+
+        <!-- Referral Card: stretched to the height of the classes card beside it.
+             Below xl there is no column for it, so it moves to the foot of the
+             page instead of pushing the rest of the dashboard down. -->
+        <Teleport v-if="!referralHidden" defer to="#dashboard-referral-foot" :disabled="isWide">
+        <aside class="w-full xl:col-start-2 xl:row-start-2 xl:flex xl:flex-col" aria-label="Referral rewards">
+          <div class="xl:flex-1 relative flex flex-col md:grid md:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] xl:flex xl:flex-col overflow-hidden rounded-3xl border border-slate-900/40 bg-gradient-to-br from-[#0B0F19] via-[#1A1A3A] to-[#2A184A] text-white shadow-sm transition-all duration-300 hover:shadow-md">
+            <!-- Hero Visual Header. The gradient sits on the card, so the
+                 header and the reward details below read as one surface. -->
+            <div class="xl:flex-1 relative flex flex-col justify-between overflow-hidden p-5 sm:p-6 text-white">
+              <!-- Lit top edge -->
+              <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-amber-300/35 to-transparent"></div>
+              <!-- Ambient glows -->
+              <span aria-hidden="true" class="pointer-events-none absolute -right-10 -top-10 h-36 w-36 rounded-full bg-[#FFCD00]/12 blur-2xl"></span>
+              <span aria-hidden="true" class="pointer-events-none absolute -left-10 -bottom-10 h-36 w-36 rounded-full bg-violet-600/15 blur-2xl"></span>
+
+              <div class="relative z-10 space-y-3">
+                <!-- Top badge row -->
+                <div class="flex items-center justify-between gap-2">
+                  <span class="inline-flex items-center gap-1.5 rounded-full bg-amber-400/15 border border-amber-300/30 px-2.5 py-1 text-[10px] font-black uppercase tracking-wider text-amber-300 shadow-xs">
+                    <i class="fa-solid fa-gift text-amber-300 text-[11px]" aria-hidden="true"></i>
+                    Referral Rewards
+                  </span>
+                  <div class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      @click="referralCloseAsk = true"
+                      class="-mr-1.5 inline-flex h-7 w-7 items-center justify-center rounded-full text-slate-300 transition hover:bg-white/10 hover:text-white cursor-pointer"
+                      title="Hide this card"
+                      aria-label="Hide the referral card"
+                    >
+                      <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Title & message -->
+                <div>
+                  <h3 class="text-xl sm:text-[22px] font-black tracking-tight leading-tight text-white">
+                    Give $20, Get 5 Pts
+                  </h3>
+                  <p class="mt-1 text-xs leading-relaxed text-indigo-100/85 font-medium">
+                    Invite friends to Brighture. When they begin learning, both of you earn rewards.
+                  </p>
+                </div>
+              </div>
+
+              <!-- Illustration. It takes the
+                   leftover height and centres in it, so it sits midway between
+                   the title and the reward details however tall the card gets. -->
+              <div class="relative z-10 flex w-full flex-1 items-center justify-center py-4">
+                <div class="relative flex w-full items-center justify-center">
+                  <img
+                    :src="referralIllustration"
+                    alt="Refer a friend to Brighture"
+                    class="h-auto w-full max-w-full object-contain drop-shadow-[0_8px_18px_rgba(0,0,0,0.35)] transition-transform duration-300 hover:scale-[1.02]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <!-- Body: Rewards, Code & Action -->
+            <div class="relative z-10 flex flex-col justify-between gap-3.5 p-4 pt-0 sm:p-5 sm:pt-0 md:pt-5 xl:pt-0">
+              <!-- Dual reward cards -->
+              <div class="grid grid-cols-2 gap-2">
+                <!-- For your friend -->
+                <div class="relative overflow-hidden rounded-2xl border border-indigo-300/25 bg-indigo-400/10 p-2.5 sm:p-3 transition-all hover:border-indigo-300/40">
+                  <div class="flex items-center gap-1.5 text-indigo-200">
+                    <i class="fa-solid fa-tag text-[10px]" aria-hidden="true"></i>
+                    <span class="text-[9px] font-extrabold uppercase tracking-wide">Friend gets</span>
+                  </div>
+                  <p class="mt-1 text-base sm:text-lg font-black text-white tracking-tight leading-none">
+                    {{ REFERRAL_TERMS.friendDiscountLabel }} <span class="text-[11px] font-bold text-indigo-200">OFF</span>
+                  </p>
+                  <p class="mt-1 text-[10px] font-medium text-slate-300 leading-tight">
+                    first plan purchase
+                  </p>
+                </div>
+
+                <!-- For you -->
+                <div class="relative overflow-hidden rounded-2xl border border-amber-300/30 bg-amber-400/10 p-2.5 sm:p-3 transition-all hover:border-amber-300/50">
+                  <div class="flex items-center gap-1.5 text-amber-300">
+                    <i class="fa-solid fa-coins text-[10px]" aria-hidden="true"></i>
+                    <span class="text-[9px] font-extrabold uppercase tracking-wide">You earn</span>
+                  </div>
+                  <p class="mt-1 text-base sm:text-lg font-black text-white tracking-tight leading-none">
+                    +{{ REFERRAL_TERMS.referrerPoints }} <span class="text-[11px] font-bold text-amber-300">PTS</span>
+                  </p>
+                  <p class="mt-1 text-[10px] font-medium text-slate-300 leading-tight">
+                    for booking classes
+                  </p>
+                </div>
+              </div>
+
+              <!-- Your Referral Code Box -->
+              <div class="rounded-2xl border border-white/10 bg-white/5 p-2.5 sm:p-3 transition-colors hover:border-white/20">
+                <div class="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider text-slate-300">
+                  <span class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-ticket text-amber-300 text-[11px]"></i> Your referral code
+                  </span>
+                  <span v-if="referralCodeCopied" class="text-emerald-300 font-extrabold flex items-center gap-1">
+                    <i class="fa-solid fa-check text-[10px]"></i> Copied!
+                  </span>
+                </div>
+                <div class="mt-1.5 flex items-center justify-between gap-2">
+                  <div class="min-w-0 flex-1 rounded-xl bg-white/10 border border-white/15 px-3 py-1.5 text-center sm:text-left">
+                    <span class="font-mono text-sm sm:text-base font-black tracking-widest text-white select-all">
+                      {{ REFERRAL_CODE }}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    @click="copyReferralCode"
+                    :class="referralCodeCopied
+                      ? 'bg-emerald-500 text-white border-emerald-500'
+                      : 'bg-white/10 border-white/15 text-slate-200 hover:bg-white/20 hover:text-white'"
+                    class="inline-flex h-10 w-10 shrink-0 items-center justify-center self-stretch rounded-xl border transition-all active:scale-95 cursor-pointer shadow-xs"
+                    :title="referralCodeCopied ? 'Code copied!' : 'Copy referral code'"
+                    :aria-label="referralCodeCopied ? 'Code copied' : 'Copy referral code'"
+                  >
+                    <i :class="referralCodeCopied ? 'fa-solid fa-check' : 'fa-regular fa-copy'" class="text-sm" aria-hidden="true"></i>
+                  </button>
+                </div>
+              </div>
+
+              <!-- Primary Action & Navigation -->
+              <div class="space-y-2 pt-0.5">
+                <button
+                  type="button"
+                  @click="shareOrCopyReferral"
+                  class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-[#FFCD00] hover:bg-[#FFD933] text-slate-950 px-4 py-2.5 text-xs sm:text-sm font-extrabold shadow-sm hover:shadow transition-all active:scale-[0.98] cursor-pointer"
+                >
+                  <i :class="referralLinkCopied ? 'fa-solid fa-check' : canShare ? 'fa-solid fa-share-nodes' : 'fa-regular fa-copy'" class="text-xs"></i>
+                  <span>{{ referralLinkCopied ? 'Invite link copied!' : canShare ? 'Share invite' : 'Copy invite link' }}</span>
+                </button>
+
+                <div class="flex items-center justify-between px-1 text-[11px]">
+                  <RouterLink
+                    to="/refer"
+                    class="font-bold text-slate-300 hover:text-white transition-colors inline-flex items-center gap-1"
+                  >
+                    <span>View referral status</span>
+                    <i class="fa-solid fa-arrow-right text-[10px]"></i>
+                  </RouterLink>
+                </div>
+              </div>
+
+              <p class="text-[10px] leading-relaxed text-slate-400 text-center sm:text-left">
+                Bonus points are credited once your friend's first plan purchase clears.
+              </p>
+            </div>
+
+            <!-- Asked inside the card rather than in a pop-up, so the choice
+                 sits right where the student clicked and nothing else moves. -->
+            <Transition
+              enter-active-class="transition duration-200 ease-out"
+              enter-from-class="opacity-0"
+              leave-active-class="transition duration-150 ease-in"
+              leave-to-class="opacity-0"
+            >
+              <div
+                v-if="referralCloseAsk"
+                role="dialog"
+                aria-modal="true"
+                aria-labelledby="referral-close-title"
+                class="absolute inset-0 z-30 flex items-center justify-center bg-slate-950/85 p-5 backdrop-blur-sm"
+                @keydown.esc="referralCloseAsk = false"
+              >
+                <div class="w-full max-w-xs">
+                  <h4 id="referral-close-title" class="text-base font-black text-white">Hide this card?</h4>
+                  <p class="mt-1 text-xs leading-relaxed text-slate-300">
+                    You can still invite friends anytime from <strong class="font-bold text-white">Refer a Friend</strong> in the menu.
+                  </p>
+                  <div class="mt-4 space-y-2">
+                    <button
+                      v-for="option in REFERRAL_HIDE_OPTIONS"
+                      :key="option.key"
+                      type="button"
+                      @click="hideReferralCard(option.key)"
+                      class="flex w-full items-center gap-3 rounded-xl border border-white/15 bg-white/5 px-3 py-2.5 text-left transition hover:border-white/30 hover:bg-white/10 cursor-pointer"
+                    >
+                      <i :class="option.icon" class="w-4 text-center text-sm text-amber-300" aria-hidden="true"></i>
+                      <span class="min-w-0">
+                        <span class="block text-xs font-extrabold text-white">{{ option.label }}</span>
+                        <span class="block text-[10px] text-slate-400">{{ option.hint }}</span>
+                      </span>
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    @click="referralCloseAsk = false"
+                    class="mt-3 w-full rounded-xl px-3 py-2 text-xs font-bold text-slate-300 transition hover:text-white cursor-pointer"
+                  >
+                    Keep it
+                  </button>
+                </div>
+              </div>
+            </Transition>
+          </div>
+        </aside>
+        </Teleport>
       </div>
     </section>
 
@@ -688,40 +893,8 @@
       </div>
     </section>
 
-    <!-- ===== Refer a Friend Banner ===== -->
-    <!-- A link, not a modal: the programme rules are long enough that they were
-         overflowing short screens, and /refer already holds the full details. -->
-    <RouterLink
-      to="/refer"
-      class="group relative block overflow-hidden rounded-xl border border-slate-800 bg-gradient-to-r from-black via-slate-900 to-slate-700 shadow-md shadow-slate-900/20 select-none transition hover:shadow-lg hover:shadow-slate-900/30 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FFCD00] focus-visible:ring-offset-2 focus-visible:ring-offset-white"
-    >
-      <!-- Faint gold glows on the dark gradient, so it reads as a promotion
-           rather than one more card. -->
-      <span class="pointer-events-none absolute -right-10 -top-16 h-44 w-44 rounded-full bg-[#FFCD00]/15 blur-2xl" aria-hidden="true"></span>
-      <span class="pointer-events-none absolute right-40 -bottom-20 h-36 w-36 rounded-full bg-white/10 blur-2xl" aria-hidden="true"></span>
-      <div class="relative flex flex-col sm:flex-row items-center justify-between gap-4 px-6 py-5 sm:px-8">
-        <div class="flex items-center gap-4">
-          <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-white/20 bg-white/10">
-            <i class="fa-solid fa-user-plus text-xl text-[#FFCD00]"></i>
-          </div>
-          <div>
-            <h3 class="text-lg font-extrabold text-white leading-tight">Refer a Friend — Earn 5 Points</h3>
-            <p class="mt-0.5 text-sm text-slate-300">
-              Your friend gets <span class="font-bold text-[#FFCD00]">$20 USD off</span> their plan &mdash; you earn <span class="font-bold text-[#FFCD00]">5 points</span> once they buy a plan and start learning.
-            </p>
-          </div>
-        </div>
-        <!-- A span, not a button: the whole banner is already the link, and a
-             button inside an anchor is invalid markup. -->
-        <span
-          class="shrink-0 flex items-center gap-2 rounded-lg bg-[#FFCD00] px-5 py-2.5 text-sm font-extrabold text-slate-950 shadow-sm transition group-hover:bg-[#FFD933] group-active:scale-[0.98]"
-        >
-          <i class="fa-solid fa-share-nodes text-sm"></i>
-          Share &amp; Earn
-        </span>
-      </div>
-    </RouterLink>
-    <!-- ===== /Refer a Friend Banner ===== -->
+    <!-- Where the referral card lands on tablet and phone (see above). -->
+    <div id="dashboard-referral-foot" class="xl:hidden"></div>
 
     <!-- Talk Now Modal -->
     <FreeConversationModal
@@ -776,11 +949,11 @@ import GoogleMeetIcon from '../../components/GoogleMeetIcon.vue';
 import { countdownLabel } from '@/lib/schoolTime';
 import { imageForKey } from '@/lib/teacherImages';
 import AppImage from '../../components/AppImage.vue';
-import { ref, computed } from 'vue';
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue';
 import { useRouter } from 'vue-router';
 import coinsImage from '@/assets/coins.svg';
 import { useUserStore } from '../../stores/useUserStore';
-import { useSchoolStore } from '../../stores/useSchoolStore';
+import { useSchoolStore, DEMO_RESET_AT_KEY } from '../../stores/useSchoolStore';
 import { TOKYO, partsIn } from '../../lib/schoolTime';
 import FreeConversationModal from '../../components/FreeConversationModal.vue';
 import ClassDetailsModal from '../../components/ClassDetailsModal.vue';
@@ -791,6 +964,13 @@ import RescheduleClassModal from '../../components/RescheduleClassModal.vue';
 import TeacherDataModal from '../../components/TeacherDataModal.vue';
 import SubjectCode from '../../components/SubjectCode.vue';
 import { parseSubjectCodes } from '@/pages/student-view-v4/constants';
+import {
+  REFERRAL_CODE,
+  REFERRAL_TERMS,
+  referralUrl,
+  referralShareMessage,
+} from '@/lib/referral';
+import referralIllustration from '@/assets/referral-illustration.svg';
 
 const router = useRouter();
 const user = useUserStore();
@@ -815,6 +995,127 @@ const weekRangeLabel = computed(() => {
 });
 
 const showFreeConversationModal = ref(false);
+const referralCodeCopied = ref(false);
+const referralLinkCopied = ref(false);
+const canShare = ref(false);
+
+onMounted(() => {
+  canShare.value = typeof navigator !== 'undefined' && typeof navigator.share === 'function';
+});
+
+// Tailwind's xl breakpoint: from here the referral card has its own column
+// beside the classes card; below it the card is teleported to the page foot.
+const wideQuery = window.matchMedia('(min-width: 1280px)');
+const isWide = ref(wideQuery.matches);
+const onWideChange = (e) => { isWide.value = e.matches; };
+wideQuery.addEventListener('change', onWideChange);
+onBeforeUnmount(() => wideQuery.removeEventListener('change', onWideChange));
+
+// The student can hide the referral card. "For now" lasts until the tab
+// closes; the other two choices are remembered in this browser. Each choice is
+// saved as { until, at } (until is 'never', 'session' or an ISO date; at is
+// when it was made), and one made before the last Reset demo data is ignored,
+// so a reset from any tab or portal brings the card back. Storage can be
+// blocked (private mode), in which case the card simply comes back next time.
+const REFERRAL_HIDE_KEY = 'brighture:dashboard:referral-hidden';
+const REFERRAL_SNOOZE_DAYS = 7;
+const REFERRAL_HIDE_OPTIONS = [
+  { key: 'session', icon: 'fa-regular fa-eye-slash', label: 'Hide for now', hint: 'It comes back next time you visit' },
+  { key: 'snooze', icon: 'fa-regular fa-clock', label: `Remind me in ${REFERRAL_SNOOZE_DAYS} days`, hint: 'Hidden for a week' },
+  { key: 'never', icon: 'fa-solid fa-ban', label: "Don't show again", hint: 'Remove it from your dashboard' },
+];
+
+const parseHide = (raw) => {
+  try { return raw ? JSON.parse(raw) : null; } catch { return null; }
+};
+
+const readReferralHidden = () => {
+  try {
+    const resetAt = Number(localStorage.getItem(DEMO_RESET_AT_KEY)) || 0;
+    const saved = parseHide(sessionStorage.getItem(REFERRAL_HIDE_KEY))
+      ?? parseHide(localStorage.getItem(REFERRAL_HIDE_KEY));
+    if (!saved || !(saved.at > resetAt)) return false;
+    if (saved.until === 'never' || saved.until === 'session') return true;
+    return Date.parse(saved.until) > Date.now();
+  } catch {
+    // Storage blocked: show the card.
+    return false;
+  }
+};
+
+const referralHidden = ref(readReferralHidden());
+const referralCloseAsk = ref(false);
+
+// A reset in another tab or portal does not reload this one, so pick it up
+// from the storage event instead.
+const onStorageChange = (event) => {
+  if (event.key === DEMO_RESET_AT_KEY || event.key === REFERRAL_HIDE_KEY) {
+    referralHidden.value = readReferralHidden();
+  }
+};
+window.addEventListener('storage', onStorageChange);
+onBeforeUnmount(() => window.removeEventListener('storage', onStorageChange));
+
+const hideReferralCard = (choice) => {
+  const at = Date.now();
+  try {
+    if (choice === 'session') {
+      sessionStorage.setItem(REFERRAL_HIDE_KEY, JSON.stringify({ until: 'session', at }));
+    } else {
+      const until = choice === 'snooze'
+        ? new Date(at + REFERRAL_SNOOZE_DAYS * 86400000).toISOString()
+        : 'never';
+      localStorage.setItem(REFERRAL_HIDE_KEY, JSON.stringify({ until, at }));
+    }
+  } catch {
+    // Storage blocked: the card stays hidden until the page reloads.
+  }
+  referralCloseAsk.value = false;
+  referralHidden.value = true;
+  showNotice(
+    choice === 'never'
+      ? 'Referral card removed. You can still invite friends from Refer a Friend in the menu.'
+      : choice === 'snooze'
+        ? `Referral card hidden for ${REFERRAL_SNOOZE_DAYS} days.`
+        : 'Referral card hidden for now.',
+  );
+};
+
+const copyReferralCode = async () => {
+  try {
+    await navigator.clipboard.writeText(REFERRAL_CODE);
+    referralCodeCopied.value = true;
+    window.setTimeout(() => { referralCodeCopied.value = false; }, 2500);
+  } catch {
+    router.push('/refer');
+  }
+};
+
+const copyReferralLink = async () => {
+  try {
+    await navigator.clipboard.writeText(referralUrl());
+    referralLinkCopied.value = true;
+    window.setTimeout(() => { referralLinkCopied.value = false; }, 2500);
+  } catch {
+    router.push('/refer');
+  }
+};
+
+const shareOrCopyReferral = async () => {
+  if (canShare.value) {
+    try {
+      await navigator.share({
+        title: 'Brighture English Referral',
+        text: referralShareMessage(),
+        url: referralUrl(),
+      });
+      return;
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+    }
+  }
+  await copyReferralLink();
+};
 
 // Five days' warning before a subscription ends, and on after it lapses.
 const RENEWAL_WARNING_DAYS = 5;
@@ -1011,9 +1312,9 @@ const writingTasks = computed(() =>
 </script>
 
 <style scoped>
-/* The breakpoint belongs to the table, not the screen. Six columns want about
-   700px; below that the rows take over — so the same section dropped into a
-   narrow panel restacks itself without knowing the window size. */
+/* The breakpoint belongs to the table, not the screen. Four columns need
+   about 700px for readable labels and actions. Below that, the rows take over,
+   so the same section restacks itself when placed in a narrow panel. */
 .sched { container-type: inline-size; }
 .sched__table { display: none; }
 .sched__rows { display: block; }

@@ -307,17 +307,17 @@
               <button
                 type="button"
                 @click="$emit('edit', lesson)"
-                class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+                class="flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-xs font-bold text-slate-800 transition hover:border-slate-300 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
               >
-                <i class="fa-solid fa-pen text-slate-400" aria-hidden="true"></i>
+                <i class="fa-solid fa-pen text-slate-500" aria-hidden="true"></i>
                 Edit subject &amp; message
               </button>
               <button
                 type="button"
                 @click="$emit('reschedule', lesson)"
-                class="flex items-center justify-center gap-2 rounded-xl border border-amber-300 bg-amber-50/80 px-3 py-2.5 text-xs font-bold text-amber-900 transition hover:border-amber-400 hover:bg-amber-100"
+                class="flex items-center justify-center gap-2 rounded-xl border border-[#e7b900] bg-[#FFCD00] px-3 py-2.5 text-xs font-extrabold text-slate-950 shadow-sm transition hover:border-[#d9ad00] hover:bg-[#f5c400] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-offset-2"
               >
-                <i class="fa-solid fa-calendar-days text-amber-600" aria-hidden="true"></i>
+                <i class="fa-solid fa-calendar-days text-slate-800" aria-hidden="true"></i>
                 Reschedule
               </button>
               <button
@@ -325,7 +325,7 @@
                 @click="$emit('cancel', lesson)"
                 :disabled="!cancellable"
                 :title="cancellable ? null : levelCheckCancelNote"
-                class="flex items-center justify-center gap-2 rounded-xl border border-red-200 bg-white px-3 py-2.5 text-xs font-bold text-red-600 transition hover:bg-red-50 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-white"
+                class="flex items-center justify-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-xs font-bold text-rose-700 transition hover:border-rose-300 hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-400 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-rose-200 disabled:hover:bg-rose-50"
               >
                 <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                 Cancel class

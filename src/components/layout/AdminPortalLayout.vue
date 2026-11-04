@@ -223,7 +223,6 @@ const onResetDemo = () => {
   school.resetDemo();
   isMenuOpen.value = false;
   isDrawerOpen.value = false;
-  showToast('Demo data reset. Every portal is back to the sample records.');
 };
 watch([isMenuOpen, isDrawerOpen], ([menu, drawer]) => {
   if (!menu && !drawer) resetArmed.value = false;
