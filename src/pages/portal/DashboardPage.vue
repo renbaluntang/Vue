@@ -371,14 +371,17 @@
                     <div class="min-w-0 truncate font-bold text-slate-700"><SubjectCode :subject="lesson.subject" size="sm" /></div>
                     <div class="mt-0.5 truncate text-[11px] font-medium uppercase tracking-wide text-slate-400">{{ lesson.classType }}</div>
                   </td>
-                  <!-- Keep the primary actions obvious; rescheduling stays in class details. -->
+                  <!-- Keep the primary actions obvious; rescheduling stays in class details.
+                       Two equal columns with each label centred, so Details lines
+                       up from row to row even where there is no Meet link yet. -->
                   <td class="py-3 px-2.5 sm:px-3 align-middle">
-                    <div class="flex flex-wrap items-center gap-1.5">
+                    <div class="grid grid-cols-2 items-center gap-1.5">
+                      <span v-if="!lesson.meetLink" aria-hidden="true"></span>
                       <a
-                        v-if="lesson.meetLink"
+                        v-else
                         :href="lesson.meetLink"
                         target="_blank"
-                        class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-2.5 py-2 text-[11px] font-bold text-slate-700 shadow-2xs transition-colors hover:border-emerald-200 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] whitespace-nowrap cursor-pointer"
+                        class="inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-2.5 py-2 text-[11px] font-bold text-slate-700 shadow-2xs transition-colors hover:border-emerald-200 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] whitespace-nowrap cursor-pointer"
                       >
                         <GoogleMeetIcon size="md" />
                         <span>Join Meet</span>
@@ -386,7 +389,7 @@
                       <button
                         type="button"
                         @click="detailsLesson = lesson"
-                        class="ml-auto inline-flex min-h-9 shrink-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-bold text-slate-700 shadow-2xs transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] cursor-pointer"
+                        class="inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-bold text-slate-700 shadow-2xs transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] cursor-pointer"
                         title="View class details"
                       >
                         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>

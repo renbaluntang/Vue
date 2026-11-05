@@ -1,12 +1,13 @@
 <template>
-  <!-- A subject as a square letter box in its own colour ("SF"), optionally
-       followed by its name. Every screen that shows a subject code uses this,
-       so the boxes look the same in both portals. The radius is fixed in px
-       because the theme's rounded-md follows --radius and would turn a small
-       box into a circle. -->
+  <!-- A subject as a square letter box in its own gradient with white
+       letters ("SF"), optionally followed by its name. Every screen that shows
+       a subject code uses this, so the boxes look the same in both portals.
+       The radius is fixed in px per size because the theme's rounded-md
+       follows --radius and would turn a small box into a circle. The inset
+       highlight along the top edge gives the box a little depth. -->
   <span class="inline-flex min-w-0 items-center gap-2 align-middle">
     <span
-      class="inline-flex shrink-0 items-center justify-center rounded-[5px] border font-black leading-none tracking-tight"
+      class="inline-flex shrink-0 items-center justify-center bg-gradient-to-br font-black leading-none tracking-tight text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.3),0_1px_2px_rgba(15,23,42,0.15)]"
       :class="[info.boxClass, sizeClass, fontClass]"
       :title="info.name"
       aria-hidden="true"
@@ -34,7 +35,7 @@ const props = defineProps({
 
 const info = computed(() => parseSubject(props.subject));
 
-const SIZES = { sm: 'h-5 w-5', md: 'h-6 w-6', lg: 'h-8 w-8' };
+const SIZES = { sm: 'h-5 w-5 rounded-[5px]', md: 'h-6 w-6 rounded-[6px]', lg: 'h-8 w-8 rounded-[8px]' };
 const sizeClass = computed(() => SIZES[props.size] ?? SIZES.md);
 
 // Longer codes (LS1, PP101) shrink their letters so the box stays square.

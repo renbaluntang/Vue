@@ -2,6 +2,11 @@ import { createRouter, createWebHistory } from 'vue-router';
 
 const routes = [
   {
+    path: '/login',
+    name: 't-login',
+    component: () => import('../pages/teacher-portal/LoginPage.vue'),
+  },
+  {
     path: '/',
     component: () => import('../components/layout/TeacherPortalLayout.vue'),
     children: [

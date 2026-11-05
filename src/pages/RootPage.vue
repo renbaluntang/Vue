@@ -28,6 +28,15 @@
         >
           Student Portal
         </a>
+        <!-- Teachers get their own sign-in page, separate from the student
+             login above, and a direct link into the portal for testing. -->
+        <a
+          :href="withBase('/teacher-portal/login')"
+          class="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300 bg-white px-5 py-4 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
+        >
+          <i class="fa-solid fa-chalkboard-user text-emerald-600" aria-hidden="true"></i>
+          Teacher Login
+        </a>
         <a
           :href="withBase('/teacher-portal')"
           class="inline-flex items-center justify-center rounded-2xl border border-emerald-300 bg-emerald-50 px-5 py-4 text-center text-sm font-semibold text-emerald-950 transition hover:bg-emerald-100"

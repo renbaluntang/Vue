@@ -67,7 +67,7 @@ const page = getPage();
 if (isStudentPortalView || isStudentPortalClassicView || isStudentPortalV2View) {
   document.title = "Student Panel";
 } else if (isTeacherPortalView) {
-  document.title = "Instructor Panel";
+  document.title = normalizedPath === "/teacher-portal/login" ? "Teacher Sign In | Brighture" : "Instructor Panel";
 } else if (isAdminPortalView) {
   document.title = "Admin Panel";
 }

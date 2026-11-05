@@ -174,7 +174,7 @@
 
           <button
             type="button"
-            @click="isUserMenuOpen = false"
+            @click="logOut"
             class="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 transition"
           >
             <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-slate-400"></i>
@@ -319,7 +319,7 @@
             <span>{{ resetArmed ? 'Tap again to reset' : 'Reset demo data' }}</span>
           </button>
           <button
-            @click="isMobileMenuOpen = false; isUserMenuOpen = false"
+            @click="logOut"
             class="flex items-center gap-3 w-full px-4 py-2.5 text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-xl transition"
           >
             <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-slate-400"></i>
@@ -621,7 +621,7 @@
 
               <button
                 type="button"
-                @click="isSettingsSheetOpen = false"
+                @click="logOut"
                 class="flex w-full items-center gap-3 rounded-2xl px-4 py-3.5 text-sm font-bold text-slate-500 transition hover:bg-red-50 hover:text-red-600 active:scale-[0.99]"
               >
                 <i class="fa-solid fa-arrow-right-from-bracket w-5 text-center text-slate-400"></i>
@@ -792,6 +792,13 @@ watch(() => route.path, () => {
   isSettingsSheetOpen.value = false;
   isMobileMenuOpen.value = false;
 });
+
+// There is no session to end in the prototype, so logging out just leaves the
+// portal for the panel chooser at the site root. BASE_URL keeps the
+// GitHub Pages prefix (/Vue/) in the address.
+const logOut = () => {
+  window.location.assign(import.meta.env.BASE_URL);
+};
 
 /**
  * Reset the shared demo records — lessons, messages, writing, exams, hours —

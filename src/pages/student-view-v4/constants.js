@@ -72,22 +72,24 @@ export const SUBJECT_LABELS = {
 
 /** One colour per subject for the square letter boxes (SubjectCode.vue), so no
  *  two subjects look alike (the category colours would make SF and SC the
- *  same). Full class strings so Tailwind keeps them. */
+ *  same). Each is a top-left to bottom-right gradient under white letters;
+ *  the light hues (yellow, lime, amber) start a shade darker so the white
+ *  stays readable. Full class strings so Tailwind keeps them. */
 export const SUBJECT_BOX_CLASSES = {
-  "[SF]": "bg-sky-100 text-sky-800 border-sky-200",
-  "[LS1]": "bg-teal-100 text-teal-800 border-teal-200",
-  "[DC]": "bg-emerald-100 text-emerald-800 border-emerald-200",
-  "[RW]": "bg-indigo-100 text-indigo-800 border-indigo-200",
-  "[SC]": "bg-rose-100 text-rose-800 border-rose-200",
-  "[PP101]": "bg-amber-100 text-amber-800 border-amber-200",
-  "[PP102]": "bg-orange-100 text-orange-800 border-orange-200",
-  "[PP201]": "bg-lime-100 text-lime-800 border-lime-200",
-  "[PP202]": "bg-yellow-100 text-yellow-800 border-yellow-200",
-  "[EP]": "bg-violet-100 text-violet-800 border-violet-200",
-  "[TA]": "bg-fuchsia-100 text-fuchsia-800 border-fuchsia-200",
-  "[CS]": "bg-cyan-100 text-cyan-800 border-cyan-200",
-  "[FC]": "bg-pink-100 text-pink-800 border-pink-200",
-  "[FA]": "bg-purple-100 text-purple-800 border-purple-200",
+  "[SF]": "from-sky-400 to-sky-600",
+  "[LS1]": "from-teal-400 to-teal-600",
+  "[DC]": "from-emerald-400 to-emerald-600",
+  "[RW]": "from-indigo-400 to-indigo-600",
+  "[SC]": "from-rose-400 to-rose-600",
+  "[PP101]": "from-amber-500 to-amber-700",
+  "[PP102]": "from-orange-400 to-orange-600",
+  "[PP201]": "from-lime-500 to-lime-700",
+  "[PP202]": "from-yellow-500 to-yellow-700",
+  "[EP]": "from-violet-400 to-violet-600",
+  "[TA]": "from-fuchsia-400 to-fuchsia-600",
+  "[CS]": "from-cyan-500 to-cyan-700",
+  "[FC]": "from-pink-400 to-pink-600",
+  "[FA]": "from-purple-400 to-purple-600",
 };
 
 /** Reads one subject as written anywhere in the app — "[SF] Speech Fluency",
@@ -104,7 +106,7 @@ export const parseSubject = (text) => {
     code,
     badge: letters ?? (part.charAt(0).toUpperCase() || "?"),
     name: (bracketed ? bracketed[2] : bare ? "" : part) || known || letters || part,
-    boxClass: SUBJECT_BOX_CLASSES[code] ?? "bg-slate-100 text-slate-700 border-slate-200",
+    boxClass: SUBJECT_BOX_CLASSES[code] ?? "from-slate-400 to-slate-600",
   };
 };
 

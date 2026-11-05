@@ -321,7 +321,7 @@
           <!-- Logout Action -->
           <button
             type="button"
-            @click="isUserMenuOpen = false"
+            @click="logOut"
             class="flex items-center gap-3 w-full px-3 py-2 rounded-xl text-xs font-bold text-slate-500 hover:text-red-600 hover:bg-red-50 transition"
           >
             <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-slate-400"></i>
@@ -563,7 +563,7 @@
 
             <button
               type="button"
-              @click="isMobileMenuOpen = false; isUserMenuOpen = false"
+              @click="logOut"
               class="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150 text-slate-500 hover:bg-red-50 hover:text-red-600"
             >
               <i class="fa-solid fa-arrow-right-from-bracket w-4 text-center text-sm text-slate-400"></i>
@@ -921,6 +921,13 @@ const badgeCounts = computed(() => ({
   exams: school.examsForStudent(CURRENT_STUDENT_ID).filter((e) => !school.submissionFor(e.id, CURRENT_STUDENT_ID)).length,
 }));
 const navBadge = (item) => (item.badge ? badgeCounts.value[item.badge] || 0 : 0);
+
+// There is no session to end in the prototype, so logging out just leaves the
+// portal for the panel chooser at the site root. BASE_URL keeps the
+// GitHub Pages prefix (/Vue/) in the address.
+const logOut = () => {
+  window.location.assign(import.meta.env.BASE_URL);
+};
 
 // Reset demo data: the first click arms the button for a few seconds, the
 // second one resets. No window.confirm — it looks nothing like the portal.
