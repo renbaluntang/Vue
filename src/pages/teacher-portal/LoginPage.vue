@@ -95,17 +95,20 @@ function signIn() {
         class="teacher-login__art relative order-2 isolate flex min-h-0 items-end justify-center overflow-hidden md:order-1 md:overflow-visible"
         aria-label="Brighture teacher team"
       >
-        <!-- Layer 1: Vibrant Purple/Violet Organic Blob (centered and biased right behind torso/head) -->
-        <div
-          aria-hidden="true"
-          class="pointer-events-none absolute bottom-[10%] right-[4%] h-[74%] w-[76%] rounded-[48%_52%_62%_38%_/_42%_48%_52%_58%] bg-gradient-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7] opacity-95 shadow-[0_24px_70px_-20px_rgba(124,58,237,0.38)] transition-all duration-700 md:bottom-[9%] md:right-[3%] md:h-[72%] md:w-[76%]"
-        />
-
-        <!-- Layer 2: Vibrant Mint/Turquoise Organic Blob (lower left, peeking out on left side) -->
-        <div
-          aria-hidden="true"
-          class="pointer-events-none absolute bottom-[6%] left-[-4%] h-[68%] w-[66%] rounded-[56%_44%_40%_60%_/_52%_60%_40%_48%] bg-gradient-to-tr from-[#00D2B4] via-[#10B981] to-[#2DD4BF] opacity-90 shadow-[0_20px_60px_-15px_rgba(0,210,180,0.35)] transition-all duration-700 md:bottom-[6%] md:left-[-3%] md:h-[66%] md:w-[66%]"
-        />
+        <!-- The two shapes sit in a frame with a fixed aspect ratio, sized to
+             the art area's height and centred under the photo. Sized against
+             the area's own width and height instead, they stretched into tall
+             or flat ovals whenever the screen's proportions changed. -->
+        <div aria-hidden="true" class="teacher-login__blobs pointer-events-none absolute bottom-0 left-1/2 -translate-x-1/2">
+          <!-- Violet shape, behind the heads and to the right -->
+          <div
+            class="absolute bottom-[8%] right-[6%] h-[80%] w-[74%] rounded-[48%_52%_62%_38%_/_42%_48%_52%_58%] bg-gradient-to-br from-[#7C3AED] via-[#9333EA] to-[#A855F7] opacity-95 shadow-[0_24px_70px_-20px_rgba(124,58,237,0.38)]"
+          ></div>
+          <!-- Mint shape, lower left, peeking out past the first teacher -->
+          <div
+            class="absolute bottom-[5%] left-[4%] h-[66%] w-[62%] rounded-[56%_44%_40%_60%_/_52%_60%_40%_48%] bg-gradient-to-tr from-[#00D2B4] via-[#10B981] to-[#2DD4BF] opacity-90 shadow-[0_20px_60px_-15px_rgba(0,210,180,0.35)]"
+          ></div>
+        </div>
 
         <!-- Teacher Cutout Image -->
         <img
@@ -243,6 +246,22 @@ function signIn() {
   object-position: center bottom;
 }
 
+/* The art area is a size container so the shape frame can be measured
+   against it. The frame is square and follows the photo rather than the
+   area: on wide layouts the photo is 112% of the area's width at its own
+   1567 x 1277 ratio, so it stands about 91% of the area's width tall, and
+   the frame is a quarter taller than that (114%) so the shapes rise above
+   the heads by the same amount at every size. It never outgrows the area's
+   height. */
+.teacher-login__art {
+  container-type: size;
+}
+
+.teacher-login__blobs {
+  aspect-ratio: 1 / 1;
+  height: min(114cqw, 100cqh);
+}
+
 .teacher-login {
   height: 100vh;
   height: 100dvh;
@@ -352,12 +371,14 @@ function signIn() {
     overflow: hidden;
   }
 
+  /* The photo stops short of the top of its area so the shape frame, which
+     fills the area's height, rises above the heads as it does on desktop. */
   .teacher-login__team {
     position: relative;
     left: auto;
     width: auto;
     max-width: 92%;
-    height: 100%;
+    height: 82%;
     transform: none;
   }
 

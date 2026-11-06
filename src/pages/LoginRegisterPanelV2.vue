@@ -16,7 +16,7 @@ import {
 } from "lucide-vue-next";
 import heroPhoto from "@/assets/hero-lesson.jpg";
 import brightureLogo from "@/assets/logo-black.svg";
-import studentAvatar from "@/assets/student-1.svg";
+import studentAvatar from "@/assets/speech-fluency-student.png";
 
 const HERO_COPY = {
   login: {
@@ -204,7 +204,7 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
                 <!-- Floating card 1 — Bottom Left overlapping student lesson badge -->
                 <div class="absolute -bottom-3 -left-8 z-20 flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-white/95 p-3.5 shadow-[0_12px_30px_-8px_rgba(0,0,0,0.12)] backdrop-blur-xl transition-all duration-300 hover:-translate-y-1 short:-bottom-2 short:-left-6 short:p-3">
                   <div class="relative flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-amber-100/80 short:h-11 short:w-11">
-                    <img :src="studentAvatar" alt="" class="h-8 w-8" />
+                    <img :src="studentAvatar" alt="" class="h-9 w-9 object-contain" />
                     <span class="absolute bottom-0 right-0 h-3 w-3 rounded-full border-2 border-white bg-emerald-500" />
                   </div>
                   <div>
@@ -251,7 +251,7 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
               <div class="mt-12 short:mt-9 xshort:mt-8">
                 <h1 class="font-display text-4xl font-extrabold leading-[1.12] tracking-tight text-brighture-ink xl:text-5xl short:text-3xl xshort:text-2xl">
                   {{ heroCopy.heading[0] }} <br />
-                  <span class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 bg-clip-text text-transparent underline decoration-amber-300/70 decoration-wavy decoration-2">
+                  <span class="bg-gradient-to-r from-amber-500 via-amber-400 to-amber-600 bg-clip-text text-transparent">
                     {{ heroCopy.heading[1] }}
                   </span>
                 </h1>

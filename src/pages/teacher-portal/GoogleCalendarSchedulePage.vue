@@ -140,20 +140,16 @@
         <div class="p-3.5 bg-slate-50 rounded-2xl border border-slate-200/80 space-y-2">
           <h4 class="text-[11px] font-black uppercase tracking-wider text-slate-500">On the board</h4>
           <ul class="space-y-1.5">
-            <li class="flex items-center gap-2">
-              <span class="relative flex h-5 w-[4.25rem] shrink-0 items-center overflow-hidden rounded-md border border-emerald-500 bg-emerald-50 pl-[19px] pr-1.5 text-[9px] font-extrabold uppercase tracking-wide text-emerald-800">
-                <span class="absolute inset-y-0 left-0 flex w-[15px] items-center justify-center bg-emerald-200" aria-hidden="true">
-                  <i class="fa-solid fa-rotate text-[8px] leading-none"></i>
-                </span>
-                Open
+            <li v-for="item in BOARD_LEGEND" :key="item.key" class="flex items-center gap-2">
+              <span
+                class="h-5 w-9 shrink-0 rounded-md border"
+                :class="item.key.endsWith('weekly') ? 'border-solid' : 'border-dashed'"
+                :style="{ background: RUN_STYLES[item.key].background, borderColor: RUN_STYLES[item.key].border }"
+                aria-hidden="true"
+              ></span>
+              <span class="text-[11px] leading-tight text-slate-600">
+                <strong class="font-bold text-slate-800">{{ item.title }}</strong> · {{ item.detail }}
               </span>
-              <span class="text-[11px] leading-tight text-slate-500">Repeats every week</span>
-            </li>
-            <li class="flex items-center gap-2">
-              <span class="flex h-5 w-[4.25rem] shrink-0 items-center rounded-md border border-dashed border-emerald-500 bg-emerald-50 pl-2 pr-1.5 text-[9px] font-extrabold uppercase tracking-wide text-emerald-800">
-                Open
-              </span>
-              <span class="text-[11px] leading-tight text-slate-500">This week only</span>
             </li>
           </ul>
         </div>
@@ -324,6 +320,44 @@
                 <div class="flex-1 border-t-2 border-red-500 shadow-xs"></div>
               </div>
 
+              <!-- What the teacher sees: each unbroken run of half hours with
+                   the same state, repeat and note drawn as one rounded block,
+                   titled at the top with its time range under it. A run that
+                   repeats every week is a solid gradient with a "Weekly" tag;
+                   one put on this week alone is lighter, striped and dashed
+                   with a "This week" tag, so the two read apart at a glance.
+                   The layer ignores the pointer: the per-slot blocks below sit
+                   on top of it as invisible targets, so clicking, dragging and
+                   hovering still work half hour by half hour. -->
+              <div
+                v-for="run in getRunsForDay(day, dayIdx)"
+                :key="run.id"
+                class="pointer-events-none absolute inset-x-1 z-[9] overflow-hidden rounded-xl border px-2 py-1.5 shadow-[0_1px_2px_rgba(15,23,42,0.08)]"
+                :class="[run.repeats ? 'border-solid' : 'border-dashed', run.editable ? '' : 'opacity-45 saturate-50']"
+                :style="{ top: `${run.top}px`, height: `${run.height}px`, background: run.style.background, borderColor: run.style.border, color: run.style.text }"
+                aria-hidden="true"
+              >
+                <!-- Title, then time, then the repeat tag, each on its own line
+                     so none of them is cut short at week-column widths. A
+                     single half hour has room for the title and a mark only. -->
+                <p class="flex min-w-0 items-center gap-1 text-[11px] font-extrabold leading-tight">
+                  <span class="min-w-0 truncate">{{ run.title }}</span>
+                  <i v-if="run.slots === 1 && run.repeats" class="fa-solid fa-rotate shrink-0 text-[8px] opacity-70"></i>
+                </p>
+                <p
+                  v-if="run.slots > 1"
+                  class="mt-0.5 truncate text-[10px] font-semibold leading-tight tabular-nums opacity-80"
+                >{{ run.timeRange }}</p>
+                <span
+                  v-if="run.slots > 2"
+                  class="mt-1.5 inline-flex max-w-full items-center gap-1 truncate rounded-full px-1.5 py-0.5 text-[9px] font-black uppercase leading-none tracking-wide"
+                  :style="{ backgroundColor: run.style.chip, color: run.style.text }"
+                >
+                  <i :class="run.repeats ? 'fa-solid fa-rotate' : 'fa-regular fa-calendar'" class="text-[8px]"></i>
+                  {{ run.repeats ? 'Weekly' : 'This week' }}
+                </span>
+              </div>
+
               <!-- Render Events / Availability Blocks overlay on day column -->
               <template v-for="event in getEventsForDay(day)" :key="event.id">
                 <div
@@ -332,59 +366,20 @@
                   @mouseenter="hoveredEvent = event"
                   @mouseleave="hoveredEvent = null"
                   :data-locked="event.canDelete ? null : 'true'"
-                  class="group absolute inset-x-1 rounded-lg pr-2 py-1 overflow-hidden shadow-xs transition-all z-10 text-xs border"
-                  :class="[
-                    isSlotEditable(day, event.slotIndex)
-                      ? 'hover:shadow-md hover:ring-2 hover:ring-indigo-400/80 hover:brightness-105 cursor-pointer'
-                      : 'opacity-45 saturate-50 cursor-default',
-                    event.repeats ? 'pl-[19px]' : 'pl-2 border-dashed',
-                  ]"
+                  class="group absolute inset-x-1 z-10 rounded-lg transition-all"
+                  :class="isSlotEditable(day, event.slotIndex)
+                    ? 'hover:bg-white/25 hover:ring-2 hover:ring-indigo-400/80 cursor-pointer'
+                    : 'cursor-default'"
                   :style="{
                     top: `${event.top}px`,
                     height: `${event.height}px`,
-                    backgroundColor: event.bgColor,
-                    borderColor: event.borderColor,
                     color: event.textColor,
                   }"
                   :title="event.status === 'reserved' ? null : `${event.title} • ${event.timeRange} • ${event.repeats ? 'repeats every week' : 'this week only'}`"
                 >
-                  <!-- A hold with a note is called by its note; without one it
-                       falls back to the status word. The time is never dropped,
-                       because two identical labels an hour apart are otherwise
-                       indistinguishable. -->
-                  <!-- An hour that is in the template wears a ↻ in a band down
-                       its leading edge. The band is a darker step of the
-                       block's own fill, so no new colour enters the board, and
-                       it is absolute: it takes 3px from the label rather than
-                       the 12px an inline glyph took, which cut "OPEN" to "O…"
-                       at week column widths. An hour put on this week alone
-                       has no band and a dashed outline — so the two states
-                       differ by a mark each, not by one mark's absence. -->
-                  <span
-                    v-if="event.repeats"
-                    class="pointer-events-none absolute inset-y-0 left-0 flex w-[15px] items-center justify-center rounded-l-lg"
-                    :style="{ backgroundColor: event.bandColor }"
-                    aria-hidden="true"
-                  >
-                    <i class="fa-solid fa-rotate text-[8px] leading-none"></i>
-                  </span>
-                  <div class="flex items-center justify-between gap-1 leading-tight h-full pointer-events-none">
-                    <span
-                      class="truncate text-[11px]"
-                      :class="event.label ? 'font-bold tracking-normal' : 'font-extrabold uppercase tracking-wide'"
-                    >{{ event.title }}</span>
-                    <!-- A named hold shows only its start time. The full range
-                         took more than half the block and left the label as
-                         "De…", which is no label at all; the block's position
-                         and the hour column already say where it sits. -->
-                    <span
-                      class="text-[10px] opacity-80 shrink-0 tabular-nums font-mono font-bold"
-                      :class="event.status === 'reserved' && isSlotEditable(day, event.slotIndex) ? 'group-hover:invisible' : ''"
-                    >
-                      {{ event.label ? event.startTime : event.timeRange }}
-                    </span>
-                  </div>
-
+                  <!-- The block's look comes from the run layer above; this
+                       half hour only keeps its hover ring and, on a hold, the
+                       button that clears it. -->
                   <!-- Clears the hold in one move. It takes the start time's
                        place on hover rather than sitting beside it, so the
                        label keeps its width at narrow week columns. -->
@@ -393,7 +388,7 @@
                     type="button"
                     @mousedown.stop
                     @click.stop="deleteEvent(event); hoveredEvent = null"
-                    class="absolute right-1 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full opacity-0 transition group-hover:opacity-100 hover:bg-indigo-200 cursor-pointer"
+                    class="absolute right-1 top-1/2 flex h-5 w-5 -translate-y-1/2 items-center justify-center rounded-full bg-white/70 opacity-0 transition group-hover:opacity-100 hover:bg-white cursor-pointer"
                     :aria-label="`Remove ${event.title} at ${event.timeRange}`"
                   >
                     <i class="fa-solid fa-xmark text-[10px]"></i>
@@ -2642,6 +2637,74 @@ const getEventsForDay = (day) => {
   }
 
   return results;
+};
+
+// Fills for the merged run blocks. A weekly run is a solid top-to-bottom
+// gradient; a this-week-only run is a paler gradient under white diagonal
+// stripes, the usual mark for something temporary. Open is green and a hold
+// is indigo, as everywhere else on the board.
+const STRIPES = 'repeating-linear-gradient(135deg, rgba(255,255,255,0.6) 0 5px, rgba(255,255,255,0) 5px 11px)';
+const RUN_STYLES = {
+  'open-weekly': {
+    background: 'linear-gradient(180deg, #bbf7d0 0%, #6ee7b7 50%, #34d399 100%)',
+    border: '#10b981', text: '#064e3b', chip: 'rgba(255,255,255,0.55)',
+  },
+  'open-once': {
+    background: `${STRIPES}, linear-gradient(180deg, #ecfdf5 0%, #a7f3d0 100%)`,
+    border: '#10b981', text: '#065f46', chip: 'rgba(255,255,255,0.85)',
+  },
+  'reserved-weekly': {
+    background: 'linear-gradient(180deg, #e0e7ff 0%, #a5b4fc 55%, #818cf8 100%)',
+    border: '#6366f1', text: '#1e1b4b', chip: 'rgba(255,255,255,0.55)',
+  },
+  'reserved-once': {
+    background: `${STRIPES}, linear-gradient(180deg, #eef2ff 0%, #c7d2fe 100%)`,
+    border: '#6366f1', text: '#312e81', chip: 'rgba(255,255,255,0.85)',
+  },
+};
+
+const BOARD_LEGEND = [
+  { key: 'open-weekly', title: 'Available', detail: 'repeats every week' },
+  { key: 'open-once', title: 'Available', detail: 'this week only' },
+  { key: 'reserved-weekly', title: 'Reserved', detail: 'repeats every week' },
+  { key: 'reserved-once', title: 'Reserved', detail: 'this week only' },
+];
+
+/**
+ * Joins a day's half hours into runs for drawing: neighbours merge while they
+ * share state (open or held), repeat, note and editability. A half hour lifted
+ * by a drag is left out, since it is drawn in the hand instead.
+ */
+const getRunsForDay = (day, dayIdx) => {
+  const runs = [];
+  let run = null;
+  for (const ev of getEventsForDay(day)) {
+    if (liftedOut(dayIdx, ev.slotIndex)) { run = null; continue; }
+    const kind = ev.status === 'reserved' ? 'reserved' : 'open';
+    const label = kind === 'reserved' ? (ev.label || '') : '';
+    const editable = isSlotEditable(day, ev.slotIndex);
+    const sig = `${kind}|${label}|${ev.repeats}|${editable}`;
+    if (run && run.sig === sig && run.end === ev.slotIndex - 1) {
+      run.end = ev.slotIndex;
+    } else {
+      run = { sig, kind, label, repeats: ev.repeats, editable, start: ev.slotIndex, end: ev.slotIndex };
+      runs.push(run);
+    }
+  }
+  return runs.map((r) => {
+    const slots = r.end - r.start + 1;
+    return {
+      id: `run-${day.dayKey}-${r.start}`,
+      top: r.start * 32,
+      height: slots * 32 - 1,
+      slots,
+      repeats: r.repeats,
+      editable: r.editable,
+      title: r.kind === 'open' ? 'Available' : (r.label || 'Reserved'),
+      timeRange: `${formatSlotTime(r.start)} – ${formatSlotTime(r.end + 1)}`,
+      style: RUN_STYLES[`${r.kind}-${r.repeats ? 'weekly' : 'once'}`],
+    };
+  });
 };
 
 const onEventClick = (event) => {
