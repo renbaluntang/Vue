@@ -64,8 +64,11 @@
 
       <!-- Main Body: Student Card + Topic Prep + Join CTAs -->
       <div class="relative z-10 mt-5 grid grid-cols-1 lg:grid-cols-[minmax(0,2.6fr)_minmax(0,4.4fr)_minmax(0,3fr)] gap-6 items-center">
-        <!-- Student Info Column -->
-        <div class="min-w-0 flex items-center gap-4">
+        <!-- Student Info Column. Between lg and xl (tablet landscape) this
+             column is too narrow for the photo and the name side by side, so
+             the photo sits on top, centred over the name, which gets the full
+             width. -->
+        <div class="min-w-0 flex items-center gap-4 lg:flex-col lg:gap-3 lg:text-center xl:flex-row xl:gap-4 xl:text-left">
           <button
             type="button"
             @click="openStudentModal(next, 'basic')"
@@ -94,7 +97,7 @@
               {{ next.membership }} &bull; {{ next.lessonClass || 'Online 1-on-1' }}
             </p>
 
-            <div class="flex items-center gap-2 mt-2">
+            <div class="flex items-center gap-2 mt-2 lg:justify-center xl:justify-start">
               <RouterLink
                 :to="{ path: '/chat', query: { student: next.studentId } }"
                 class="text-[11px] font-bold text-slate-300 hover:text-white flex items-center gap-1"
@@ -123,22 +126,28 @@
           </div>
         </div>
 
-        <!-- Join Meeting & Actions Column -->
+        <!-- Join Meeting & Actions Column. Every control here shares one fixed
+             height, radius and text size, and never wraps, so the two buttons
+             stay the same size at every viewport width. -->
         <div class="min-w-0 flex flex-col gap-2.5 justify-center border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6">
           <a
             v-if="next.meetLink"
             :href="next.meetLink"
             target="_blank"
             rel="noopener"
-            class="w-full inline-flex items-center justify-center gap-2.5 rounded-2xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black text-sm py-3 px-4 shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-[0.98] group"
+            class="w-full h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold text-sm px-3 whitespace-nowrap shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-[0.98] group"
           >
-            <GoogleMeetIcon size="lg" />
-            <span>Join Google Meet</span>
+            <!-- The icon gets the same soft shadow as the label, so both lift
+                 off the light green equally. -->
+            <GoogleMeetIcon class="[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.25))]" />
+            <!-- The actions column is narrowest between lg and xl, where the full
+                 label would be cut off, so "Google" drops out there. -->
+            <span class="truncate [text-shadow:0_1px_2px_rgba(0,0,0,0.25)]">Join <span class="lg:hidden xl:inline">Google </span>Meet</span>
           </a>
 
           <p
             v-else
-            class="inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-500/40 bg-rose-950/40 px-3 py-2.5 text-center text-xs font-medium text-rose-300"
+            class="w-full h-11 inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-950/40 px-3 whitespace-nowrap text-sm font-medium text-rose-300"
           >
             <i class="fa-solid fa-triangle-exclamation"></i>
             <span>No meeting link yet</span>
@@ -147,7 +156,7 @@
           <button
             type="button"
             @click="openStudentModal(next)"
-            class="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 text-xs font-bold py-2.5 px-3 transition active:scale-[0.98]"
+            class="w-full h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 text-sm font-bold px-3 whitespace-nowrap transition active:scale-[0.98]"
           >
             <i class="fa-solid fa-circle-info text-amber-400"></i>
             <span>Class Details</span>
@@ -185,15 +194,15 @@
       <!-- Metric 1: Today's Teaching Load -->
       <RouterLink
         to="/reservations"
-        class="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
+        class="rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
       >
         <div class="flex items-center justify-between gap-2">
           <p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Today's Load</p>
-          <span class="w-7 h-7 rounded-lg bg-sky-50 text-sky-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
+          <span class="w-6 h-6 rounded-md bg-sky-50 text-sky-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
             <i class="fa-solid fa-chalkboard-user"></i>
           </span>
         </div>
-        <div class="mt-1.5">
+        <div class="mt-1">
           <p class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums">
             {{ teacher.todaysReservations.length }}
             <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">
@@ -212,15 +221,15 @@
            book before the day ends, and when the next one starts. -->
       <RouterLink
         to="/calendar"
-        class="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
+        class="rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
       >
         <div class="flex items-center justify-between gap-2">
           <p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Open Today</p>
-          <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
+          <span class="w-6 h-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
             <i class="fa-regular fa-calendar-plus"></i>
           </span>
         </div>
-        <div class="mt-1.5 min-w-0">
+        <div class="mt-1 min-w-0">
           <p class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums">
             {{ openToday.hours }}<span class="text-base">h</span>
             <span class="ml-1.5 text-xs font-bold text-slate-500 uppercase tracking-wide">still open</span>
@@ -235,19 +244,19 @@
       <!-- Metric 3: Action Items & Corrections -->
       <RouterLink
         to="/lessons"
-        class="rounded-2xl border bg-white px-4 py-3 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
+        class="rounded-2xl border bg-white px-4 py-2.5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
         :class="teacher.attentionItems.length ? 'border-amber-300/80 bg-amber-50/20' : 'border-slate-200/80'"
       >
         <div class="flex items-center justify-between gap-2">
           <p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Action Queue</p>
           <span
-            class="w-7 h-7 rounded-lg flex items-center justify-center text-xs font-bold transition group-hover:scale-110"
+            class="w-6 h-6 rounded-md flex items-center justify-center text-xs font-bold transition group-hover:scale-110"
             :class="teacher.attentionItems.length ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'"
           >
             <i class="fa-solid fa-list-check"></i>
           </span>
         </div>
-        <div class="mt-1.5">
+        <div class="mt-1">
           <p
             class="text-xl sm:text-2xl font-black tracking-tight tabular-nums"
             :class="hasOverdueItem ? 'text-rose-600' : (teacher.attentionItems.length ? 'text-amber-800' : 'text-slate-900')"
@@ -265,30 +274,32 @@
       <!-- Metric 4: Weekly Utilization -->
       <RouterLink
         to="/calendar"
-        class="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
+        class="rounded-2xl border border-slate-200/80 bg-white px-4 py-2.5 shadow-xs transition hover:shadow-md hover:-translate-y-0.5 duration-200 flex flex-col justify-between group cursor-pointer"
       >
         <div class="flex items-center justify-between gap-2">
           <p class="text-[10px] sm:text-xs font-black uppercase tracking-wider text-slate-400">Week Roster</p>
-          <span class="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
+          <span class="w-6 h-6 rounded-md bg-emerald-50 text-emerald-600 flex items-center justify-center text-xs font-bold transition group-hover:scale-110">
             <i class="fa-solid fa-chart-pie"></i>
           </span>
         </div>
-        <div class="mt-1.5">
-          <div class="flex items-baseline justify-between">
-            <p class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums">
-              {{ weeklyBookingRate }}%
-              <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Booked</span>
-            </p>
-            <span class="text-[11px] font-bold text-slate-400 tabular-nums">
+        <div class="mt-1">
+          <p class="text-xl sm:text-2xl font-black text-slate-900 tracking-tight tabular-nums whitespace-nowrap">
+            {{ weeklyBookingRate }}%
+            <span class="text-xs font-bold text-slate-500 uppercase tracking-wide">Booked</span>
+          </p>
+          <!-- Mini capacity bar. The slot count sits beside it rather than
+               beside the figure, where it wrapped and made every card in the
+               row taller. -->
+          <div class="mt-1 flex items-center gap-2">
+            <div class="h-1.5 min-w-0 flex-1 bg-slate-100 rounded-full overflow-hidden">
+              <div
+                class="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
+                :style="{ width: `${weeklyBookingRate}%` }"
+              ></div>
+            </div>
+            <span class="shrink-0 text-[11px] font-bold text-slate-400 tabular-nums">
               {{ teacher.weeklyBooked }}/{{ teacher.weeklyOpen }} slots
             </span>
-          </div>
-          <!-- Mini capacity bar -->
-          <div class="mt-1.5 h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-            <div
-              class="h-full bg-gradient-to-r from-emerald-500 to-teal-500 rounded-full transition-all duration-500"
-              :style="{ width: `${weeklyBookingRate}%` }"
-            ></div>
           </div>
         </div>
       </RouterLink>

@@ -93,6 +93,14 @@ function handleSubmit() {
 
   submitting.value = true;
   setTimeout(() => {
+    // Signing in goes straight to the student portal. The base path is kept so
+    // this works both locally and under /Vue/ on GitHub Pages. Sign up still
+    // shows the "check your inbox" screen, since a new account has nothing to
+    // open yet.
+    if (isLogin.value) {
+      window.location.assign(`${import.meta.env.BASE_URL}student-portal`);
+      return;
+    }
     submitting.value = false;
     submitted.value = true;
   }, 900);

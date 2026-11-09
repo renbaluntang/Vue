@@ -570,8 +570,17 @@
                       <p class="m-0 truncate font-bold text-slate-800">{{ item.title }}</p>
                       <p class="m-0 truncate text-[11px] text-slate-500">{{ materialKind(item.kind).label }}<template v-if="item.subject"> · <SubjectCode :subject="item.subject" size="sm" /></template></p>
                     </div>
-                    <span v-if="onShelf(item)" class="shrink-0 text-[11px] font-bold text-emerald-700">
-                      <i class="fa-solid fa-check mr-0.5" aria-hidden="true"></i>On the shelf
+                    <span v-if="onShelf(item)" class="flex shrink-0 items-center gap-2 text-[11px] font-bold text-emerald-700">
+                      <span><i class="fa-solid fa-check mr-0.5" aria-hidden="true"></i>On the shelf</span>
+                      <!-- Only items given from this panel can be taken back here;
+                           older ones are removed from the shelf list above. -->
+                      <button
+                        v-if="givenFromLibrary[item.id]"
+                        type="button"
+                        @click="undoGive(item)"
+                        class="rounded-lg border border-slate-200 px-2 py-1 text-[11px] font-bold text-slate-600 transition hover:bg-slate-50 hover:text-slate-900"
+                        :aria-label="`Undo giving ${item.title}`"
+                      ><i class="fa-solid fa-rotate-left mr-1" aria-hidden="true"></i>Undo</button>
                     </span>
                     <button
                       v-else
@@ -658,6 +667,12 @@
           <i class="fa-solid fa-check" aria-hidden="true"></i>
         </span>
         <p class="m-0 min-w-0 flex-1 pt-1.5 text-xs font-semibold text-slate-700">{{ toast }}</p>
+        <button
+          v-if="toastUndo"
+          type="button"
+          @click="runToastUndo"
+          class="shrink-0 rounded-lg px-2.5 py-1.5 text-xs font-bold text-brighture-bronze hover:bg-amber-50"
+        >Undo</button>
         <button
           type="button"
           @click="toast = ''"
@@ -809,11 +824,23 @@ const suggested = computed(() => (levelCode.value ? school.libraryForLevel(level
 const onShelf = (item) => materials.value.some((m) => m.title === item.title && (m.url || '') === (item.url || ''));
 
 const toast = ref('');
+/* An optional action the toast offers as "Undo". It is cleared with the toast,
+   so an old undo can never fire after a newer message replaced it. */
+const toastUndo = ref(null);
 let toastTimer;
-const showToast = (text) => {
+const showToast = (text, undo = null) => {
   toast.value = text;
+  toastUndo.value = undo;
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { toast.value = ''; }, 3500);
+  // An undo gets a little longer on screen, so there is time to reach it.
+  toastTimer = setTimeout(() => { toast.value = ''; toastUndo.value = null; }, undo ? 6000 : 3500);
+};
+const runToastUndo = () => {
+  const undo = toastUndo.value;
+  toast.value = '';
+  toastUndo.value = null;
+  clearTimeout(toastTimer);
+  undo?.();
 };
 
 const giveFromLibrary = (item) => {
@@ -826,7 +853,25 @@ const giveFromLibrary = (item) => {
     // level, so it names the library without the level it was matched to.
     note: 'From the Brighture library',
   });
-  if (entry) showToast(`“${item.title}” is on ${firstName.value}'s shelf.`);
+  if (!entry) return;
+  givenFromLibrary.value = { ...givenFromLibrary.value, [item.id]: entry.id };
+  showToast(`“${item.title}” is on ${firstName.value}'s shelf.`, () => undoGive(item, { quiet: true }));
+};
+
+/* Library item id → the shelf entry it created, for items given while this
+   panel is open. Undo removes exactly that entry, not a look-alike the
+   student already had. */
+const givenFromLibrary = ref({});
+watch(studentId, () => { givenFromLibrary.value = {}; });
+
+const undoGive = (item, { quiet = false } = {}) => {
+  const entryId = givenFromLibrary.value[item.id];
+  if (!entryId) return;
+  teacher.removeMaterial(studentId.value, entryId);
+  const { [item.id]: _, ...rest } = givenFromLibrary.value;
+  givenFromLibrary.value = rest;
+  if (!quiet) showToast(`“${item.title}” is off ${firstName.value}'s shelf.`);
+  else { toast.value = ''; toastUndo.value = null; }
 };
 
 const levelModalFor = ref(null);

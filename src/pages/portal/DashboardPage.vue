@@ -253,7 +253,9 @@
 
                 <div class="min-w-0 pt-1">
                   <h3 class="flex min-w-0 text-xl sm:text-2xl [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:text-xl font-extrabold tracking-tight text-white">
-                    <SubjectCode :subject="user.nextUpcomingClass.subject" size="lg" />
+                    <!-- The heading names the subject in words only; the
+                         coloured code box would repeat what the name says. -->
+                    <span class="min-w-0 truncate">{{ parseSubject(user.nextUpcomingClass.subject).name }}</span>
                   </h3>
                   <p class="text-brighture-gold text-sm font-medium mt-1.5">
                     Topic: <strong class="text-white">{{ user.nextUpcomingClass.topic }}</strong>
@@ -282,7 +284,10 @@
                   @click="onEnterMeet"
                   class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:px-4 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:py-3 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:text-sm shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all text-center whitespace-nowrap"
                 >
-                  <GoogleMeetIcon size="lg" /> Enter Google Meet
+                  <!-- A soft shadow on the icon and label lifts them off the
+                       green, the same treatment as the teacher's join button. -->
+                  <GoogleMeetIcon size="lg" class="[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.25))]" />
+                  <span class="[text-shadow:0_1px_2px_rgba(0,0,0,0.25)]">Enter Google Meet</span>
                 </a>
                 <button
                   type="button"
@@ -966,7 +971,7 @@ import EditClassModal from '../../components/EditClassModal.vue';
 import RescheduleClassModal from '../../components/RescheduleClassModal.vue';
 import TeacherDataModal from '../../components/TeacherDataModal.vue';
 import SubjectCode from '../../components/SubjectCode.vue';
-import { parseSubjectCodes } from '@/pages/student-view-v4/constants';
+import { parseSubject, parseSubjectCodes } from '@/pages/student-view-v4/constants';
 import {
   REFERRAL_CODE,
   REFERRAL_TERMS,
