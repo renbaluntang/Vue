@@ -98,7 +98,7 @@
                 :class="[tab.icon, activeTab === tab.key ? tab.iconOn : 'text-slate-500']"
                 class="text-[11px]"
               ></i>
-              <span class="whitespace-nowrap">{{ tab.label }}</span>
+              <span class="tab-label whitespace-nowrap">{{ tab.label }}</span>
             </button>
           </div>
         </div>
@@ -1085,5 +1085,26 @@ const studentReservations = computed(() => {
    along the bottom and rounds over into the top. */
 .folder-tab {
   clip-path: path('M0 36 Q8 36 10 28 L15 8 Q17 0 25 0 L159 0 Q167 0 169 8 L174 28 Q176 36 184 36 Z');
+}
+/* On phones a row of full-width tabs runs off screen, and the hidden
+   scrollbar gives no hint that more are there. So only the open tab keeps its
+   label; the others shrink to an icon in a narrower tab of the same shape.
+   The label stays in the accessibility tree, so screen readers still name each
+   tab. Keep this in step with the other lesson panel. */
+@media (max-width: 639px) {
+  .folder-tab:not([aria-selected='true']) {
+    width: 4rem;
+    padding-left: 0;
+    padding-right: 0;
+    clip-path: path('M0 36 Q8 36 10 28 L15 8 Q17 0 25 0 L39 0 Q47 0 49 8 L54 28 Q56 36 64 36 Z');
+  }
+  .folder-tab:not([aria-selected='true']) .tab-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 }
 </style>

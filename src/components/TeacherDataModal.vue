@@ -33,10 +33,12 @@
             <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900">{{ teacher.name }}</h3>
             </div>
-            <div class="relative min-w-0 rounded-2xl rounded-tl-md border border-amber-400 bg-[#fffaf0] p-4 pl-11 text-left">
+            <div class="relative min-w-0 rounded-2xl rounded-tl-md border border-amber-400 bg-[#fffaf0] p-4 px-11 text-left">
               <span class="absolute -left-[7px] top-6 hidden h-3 w-3 rotate-45 border-b border-l border-amber-400 bg-[#fffaf0] sm:block" aria-hidden="true"></span>
               <i class="fa-solid fa-quote-left absolute left-4 top-4 text-lg text-amber-400" aria-hidden="true"></i>
               <p class="m-0 text-sm leading-relaxed text-slate-700">{{ selfIntro }}</p>
+              <!-- Closes the quote opened top-left, so the intro reads as their own words. -->
+              <i class="fa-solid fa-quote-right absolute bottom-4 right-4 text-lg text-amber-400" aria-hidden="true"></i>
             </div>
             <!-- Tinted so they stand out from the plain cards below; each opens the video pop-up. -->
             <div class="grid w-full grid-cols-2 gap-2">

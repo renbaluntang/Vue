@@ -110,7 +110,7 @@
               :style="{ zIndex: activeTab === tab.key ? tabs.length + 1 : tabs.length - i, '--tab-bg': tabShade(i) }"
             >
               <i :class="[tab.icon, activeTab === tab.key ? tab.iconOn : 'text-slate-500']" class="text-[11px]" aria-hidden="true"></i>
-              <span class="whitespace-nowrap">{{ tab.label }}</span>
+              <span class="tab-label whitespace-nowrap">{{ tab.label }}</span>
             </button>
           </div>
         </div>
@@ -349,9 +349,11 @@
                  with what they say about themselves. -->
             <div>
               <div class="flex min-w-0 flex-col gap-2">
-                <div class="relative min-w-0 rounded-2xl rounded-tl-md border border-amber-400 bg-[#fffaf0] p-4 pl-11 text-left">
+                <div class="relative min-w-0 rounded-2xl rounded-tl-md border border-amber-400 bg-[#fffaf0] p-4 px-11 text-left">
                   <i class="fa-solid fa-quote-left absolute left-4 top-4 text-lg text-amber-400" aria-hidden="true"></i>
                   <p class="m-0 text-sm leading-relaxed text-slate-700">{{ instructor.selfIntro }}</p>
+                  <!-- Closes the quote opened top-left, so the intro reads as their own words. -->
+                  <i class="fa-solid fa-quote-right absolute bottom-4 right-4 text-lg text-amber-400" aria-hidden="true"></i>
                 </div>
                 <div class="grid grid-cols-2 gap-2">
                   <button
@@ -727,5 +729,26 @@ const startsIn = computed(() => {
 }
 .folder-tab {
   clip-path: path('M0 36 Q8 36 10 28 L15 8 Q17 0 25 0 L159 0 Q167 0 169 8 L174 28 Q176 36 184 36 Z');
+}
+/* On phones a row of full-width tabs runs off screen, and the hidden
+   scrollbar gives no hint that more are there. So only the open tab keeps its
+   label; the others shrink to an icon in a narrower tab of the same shape.
+   The label stays in the accessibility tree, so screen readers still name each
+   tab. Keep this in step with the other lesson panel. */
+@media (max-width: 639px) {
+  .folder-tab:not([aria-selected='true']) {
+    width: 4rem;
+    padding-left: 0;
+    padding-right: 0;
+    clip-path: path('M0 36 Q8 36 10 28 L15 8 Q17 0 25 0 L39 0 Q47 0 49 8 L54 28 Q56 36 64 36 Z');
+  }
+  .folder-tab:not([aria-selected='true']) .tab-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
 }
 </style>
