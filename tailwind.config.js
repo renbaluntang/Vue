@@ -24,6 +24,13 @@ export default {
   				'Plus Jakarta Sans',
   				'Poppins',
   				'sans-serif'
+  			],
+  			// A reading serif for a student's own writing (Writing Correction),
+  			// so a passage reads as a page rather than as a chat bubble.
+  			paper: [
+  				'Newsreader',
+  				'Georgia',
+  				'serif'
   			]
   		},
   		colors: {

@@ -183,12 +183,12 @@
                      it, so the student never has to match one to the other. -->
                 <div
                   v-if="msg.correction"
-                  class="rounded-2xl border border-emerald-200 bg-emerald-50/80 p-3 text-left"
+                  class="rounded-2xl border border-slate-200 bg-white px-4 py-3.5 text-left sm:px-5"
                 >
-                  <p class="text-[10px] font-black uppercase tracking-wider text-emerald-700">
-                    Corrected version
+                  <p class="mb-2 text-xs font-semibold text-slate-500">
+                    Your correction, as {{ activeTask.studentName.split(' ')[0] }} sees it
                   </p>
-                  <p class="mt-1.5 whitespace-pre-wrap text-sm leading-relaxed text-slate-800">{{ msg.correction }}</p>
+                  <CorrectionMarkup :original="activeTask.messages[0]?.body" :corrected="msg.correction" size="sm" />
                 </div>
 
                 <div
@@ -212,7 +212,7 @@
               </span>
               <button
                 type="button"
-                @click="showCorrection = !showCorrection"
+                @click="toggleCorrection"
                 class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-bold transition"
                 :class="showCorrection
                   ? 'bg-emerald-50 text-emerald-700'
@@ -224,15 +224,38 @@
               </button>
             </div>
 
-            <div v-if="showCorrection" class="mb-2">
-              <label for="wr-correction" class="sr-only">Corrected version</label>
-              <textarea
-                id="wr-correction"
-                v-model="correction"
-                rows="4"
-                placeholder="Paste the corrected passage here."
-                class="w-full resize-none rounded-2xl border border-emerald-200 bg-emerald-50/50 p-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-emerald-400 focus:bg-white focus:ring-4 focus:ring-emerald-500/10"
-              ></textarea>
+            <!-- The correction starts as a copy of the student's passage. The
+                 teacher edits it in place, and the preview below shows the
+                 marked-up version the student will get, worked out from the
+                 difference. Nothing has to be struck through or coloured by hand. -->
+            <div v-if="showCorrection" class="mb-3 grid gap-2 lg:grid-cols-2">
+              <div class="min-w-0">
+                <div class="mb-1 flex items-center justify-between gap-2 px-1">
+                  <label for="wr-correction" class="text-xs font-semibold text-slate-600">Edit the passage</label>
+                  <button
+                    v-if="correction !== passage"
+                    type="button"
+                    @click="correction = passage"
+                    class="text-xs font-semibold text-slate-500 hover:text-slate-900"
+                  >Start over</button>
+                </div>
+                <textarea
+                  id="wr-correction"
+                  v-model="correction"
+                  rows="7"
+                  class="w-full resize-y rounded-xl border border-slate-200 bg-white px-3.5 py-3 font-paper text-[15px] leading-[1.7] text-slate-900 outline-none transition focus:border-slate-400 focus:ring-4 focus:ring-slate-900/5"
+                ></textarea>
+              </div>
+              <div class="min-w-0">
+                <p class="mb-1 px-1 text-xs font-semibold text-slate-600">
+                  What {{ activeTask.studentName.split(' ')[0] }} will see
+                  <span v-if="correctionChanges" class="ml-1 font-medium text-slate-500 tabular-nums">{{ correctionChanges }} {{ correctionChanges === 1 ? 'change' : 'changes' }}</span>
+                </p>
+                <div class="max-h-[13.5rem] overflow-y-auto rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3.5 py-3">
+                  <CorrectionMarkup v-if="correctionChanges" :original="passage" :corrected="correction" size="sm" />
+                  <p v-else class="m-0 text-xs text-slate-500">Edit the passage and your changes show here, marked up.</p>
+                </div>
+              </div>
             </div>
 
             <div class="relative">
@@ -282,6 +305,8 @@
 import { ref, computed, watch, nextTick } from 'vue';
 import AppImage from '../../components/AppImage.vue';
 import { useTeacherStore } from '../../stores/useTeacherStore';
+import CorrectionMarkup from '../../components/CorrectionMarkup.vue';
+import { diffWords, changeCount } from '@/lib/wordDiff';
 
 const teacher = useTeacherStore();
 
@@ -316,7 +341,21 @@ const correction = ref('');
 const showCorrection = ref(false);
 const scrollEl = ref(null);
 
-const canSend = computed(() => Boolean(reply.value.trim() || correction.value.trim()));
+/** The student's passage: always the first message of the ticket. */
+const passage = computed(() => activeTask.value?.messages[0]?.body ?? '');
+const correctionChanges = computed(() =>
+  (showCorrection.value ? changeCount(diffWords(passage.value, correction.value)) : 0));
+
+// An untouched copy of the passage is not a correction, so it can't be sent
+// on its own; it needs at least one change or a message alongside it.
+const hasCorrection = computed(() => correctionChanges.value > 0);
+const canSend = computed(() => Boolean(reply.value.trim() || hasCorrection.value));
+
+/** Opening the correction starts it from the student's passage, ready to edit. */
+const toggleCorrection = () => {
+  showCorrection.value = !showCorrection.value;
+  if (showCorrection.value && !correction.value.trim()) correction.value = passage.value;
+};
 
 const toBottom = () => {
   nextTick(() => {
@@ -335,7 +374,7 @@ watch(activeId, () => {
 
 const send = () => {
   if (!canSend.value || !activeTask.value) return;
-  teacher.sendWritingReply(activeTask.value.id, { body: reply.value, correction: correction.value });
+  teacher.sendWritingReply(activeTask.value.id, { body: reply.value, correction: hasCorrection.value ? correction.value : '' });
   reply.value = '';
   correction.value = '';
   showCorrection.value = false;
