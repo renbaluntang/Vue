@@ -69,6 +69,7 @@ const shiftAll = (db, days) => {
   (db.assessments ?? []).forEach((x) => { x.scheduledAt = s(x.scheduledAt); x.submittedAt = s(x.submittedAt); });
   (db.levelHistory ?? []).forEach((h) => { h.at = s(h.at); });
   (db.outbox ?? []).forEach((m) => { m.at = s(m.at); });
+  (db.classCopies ?? []).forEach((c) => { c.sentAt = s(c.sentAt); });
   if (db.levelReminder) db.levelReminder.at = s(db.levelReminder.at);
   return db;
 };
@@ -386,6 +387,32 @@ export const useSchoolStore = defineStore('school', () => {
     if (!list) return;
     const i = list.findIndex((m) => m.id === id);
     if (i !== -1) list.splice(i, 1);
+  };
+
+  // ── Class copies ──────────────────────────────────────────────────────
+  // A student's own copy of a library document. In production the backend
+  // copies the original into the shared drive and shares it; here the copy is
+  // only a record, so the presentation shows the flow without Google.
+  const classCopiesFor = (studentId) => (db.value.classCopies ?? [])
+    .filter((c) => c.studentId === studentId);
+  const classCopyOf = (studentId, itemId) => (db.value.classCopies ?? [])
+    .find((c) => c.studentId === studentId && c.itemId === itemId) ?? null;
+  /** One copy per student per document: sending again returns the existing one. */
+  const sendClassCopy = (studentId, itemId, teacherId) => {
+    const existing = classCopyOf(studentId, itemId);
+    if (existing) return existing;
+    if (!db.value.classCopies) db.value.classCopies = [];
+    const id = uid('cc');
+    const entry = {
+      id,
+      studentId,
+      itemId,
+      url: `https://docs.google.com/document/d/sample-copy-${id}/edit`,
+      sentBy: { id: teacherId, name: teacher(teacherId).name },
+      sentAt: new Date().toISOString(),
+    };
+    db.value.classCopies.push(entry);
+    return entry;
   };
 
   // ── Level check ───────────────────────────────────────────────────────
@@ -761,6 +788,7 @@ export const useSchoolStore = defineStore('school', () => {
     walletFor, adjustWallet,
     writing, writingForStudent, writingForTeacher, findTicket, submitWriting, replyWriting, completeWriting, WRITING_COST,
     materialsFor, addMaterial, removeMaterial,
+    classCopiesFor, classCopyOf, sendClassCopy,
     subjectCode, prepFor, materialsForLesson, setLessonPrep, markMaterialReviewed,
     threadsForTeacher, threadsForStudent, threadBetween, unreadIn, sendMessage, markThreadRead, toggleReaction,
     exams, examsForTeacher, examsForStudent, findExam, saveExam, deleteExam,

@@ -670,6 +670,7 @@ const navItems = [
   { path: '/writing', label: 'Writing', shortLabel: 'Writing', icon: 'fa-solid fa-pen-nib', badge: 'writing' },
   { path: '/assessments', label: 'Assessments', shortLabel: 'Assess', icon: 'fa-solid fa-clipboard-check', badge: 'assessments' },
   { path: '/exams', label: 'Tests & Exams', shortLabel: 'Exams', icon: 'fa-solid fa-file-pen' },
+  { path: '/materials', label: 'Materials', shortLabel: 'Materials', icon: 'fa-solid fa-folder-open' },
   { path: '/chat', label: 'Messages', shortLabel: 'Chat', icon: 'fa-solid fa-comments', badge: 'chat' },
   { path: '/analytics', label: 'Analytics', shortLabel: 'Stats', icon: 'fa-solid fa-chart-line' },
 ];

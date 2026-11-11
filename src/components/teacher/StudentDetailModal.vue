@@ -153,40 +153,40 @@
             </p>
           </div>
 
-          <!-- Pre-class materials: what the student should look at first, and
-               how much of it they have opened. The teacher picks the list. -->
+          <!-- Pre-class materials: what the student should look at first. The
+               teacher picks the list. Whether the student has opened each one
+               is shown on the material itself, a tick with when, rather than a
+               progress bar and a heading badge that said the same thing. -->
           <div v-if="lessonRecord" class="rounded-2xl border border-slate-100 bg-[#f8fafc] p-4">
             <div class="flex flex-wrap items-center justify-between gap-2">
               <p class="m-0 text-[10px] font-bold uppercase tracking-wider text-slate-400">Pre-class material</p>
-              <span
-                v-if="prep.total"
-                class="rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
-                :class="prep.reviewed === prep.total ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-800'"
-              >
-                {{ prep.reviewed ? `${firstName} has opened it` : `${firstName} hasn’t opened it yet` }}
-              </span>
-              <span v-else class="text-[11px] font-semibold text-slate-400">Nothing set for this lesson</span>
-            </div>
-            <div v-if="prep.total" class="mt-2 h-1.5 overflow-hidden rounded-full bg-white">
-              <div
-                class="h-full rounded-full transition-all duration-300"
-                :class="prep.reviewed === prep.total ? 'bg-emerald-500' : 'bg-amber-400'"
-                :style="{ width: `${(prep.reviewed / prep.total) * 100}%` }"
-              ></div>
+              <span v-if="!prep.total" class="text-[11px] font-semibold text-slate-400">Nothing set for this lesson</span>
             </div>
 
             <ul v-if="prep.total" class="m-0 mt-3 list-none space-y-1.5 p-0">
-              <li v-for="item in prep.items" :key="item.id" class="flex items-center gap-2.5 text-xs">
+              <li
+                v-for="item in prep.items"
+                :key="item.id"
+                class="flex items-center gap-2.5 rounded-xl border bg-white p-2 text-xs"
+                :class="item.reviewedAt ? 'border-emerald-100' : 'border-slate-200'"
+              >
                 <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ring-1" :class="materialKind(item.kind).chip">
                   <i :class="materialKind(item.kind).icon" class="text-[11px]" aria-hidden="true"></i>
                 </span>
                 <span class="min-w-0 flex-1 truncate font-semibold text-slate-800">{{ item.title }}</span>
                 <span
-                  class="shrink-0 text-[11px] font-bold"
-                  :class="item.reviewedAt ? 'text-emerald-700' : 'text-slate-400'"
+                  v-if="item.reviewedAt"
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-bold text-emerald-700"
                 >
-                  <template v-if="item.reviewedAt"><i class="fa-solid fa-check mr-0.5" aria-hidden="true"></i>Reviewed {{ reviewedLabel(item.reviewedAt) }}</template>
-                  <template v-else>Not opened yet</template>
+                  <i class="fa-solid fa-circle-check" aria-hidden="true"></i>
+                  {{ firstName }} opened it {{ reviewedLabel(item.reviewedAt) }}
+                </span>
+                <span
+                  v-else
+                  class="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-amber-50 px-2 py-0.5 text-[11px] font-bold text-amber-800"
+                >
+                  <i class="fa-regular fa-circle" aria-hidden="true"></i>
+                  Not opened yet
                 </span>
               </li>
             </ul>

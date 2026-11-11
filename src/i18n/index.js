@@ -26,6 +26,11 @@ const messages = {
       count: '{n} items',
       open: 'Open',
       empty: 'Your instructors have not shared any materials yet. Anything they send will appear here.',
+      copiesTitle: 'Your class documents',
+      copiesHint: 'Your own copies to write in. You and your instructors can edit them.',
+      copyFrom: 'From {name} · {date}',
+      openDoc: 'Open in Google Docs',
+      otherTitle: 'Other shared materials',
     },
     guide: {
       step: 'Step {n} of {total}',
@@ -80,6 +85,11 @@ const messages = {
       count: '{n} 件',
       open: '開く',
       empty: 'まだ教材は共有されていません。講師が送った教材はここに表示されます。',
+      copiesTitle: 'あなたのクラス用ドキュメント',
+      copiesHint: '書き込み用のあなた専用のコピーです。あなたと講師が編集できます。',
+      copyFrom: '{name} より · {date}',
+      openDoc: 'Google ドキュメントで開く',
+      otherTitle: 'その他の共有教材',
     },
     guide: {
       step: '{total} ステップ中 {n} 番目',

@@ -14,7 +14,7 @@
 import { seedMaterials } from '@/lib/lessonMaterials';
 import { manilaAt } from '@/lib/schoolTime';
 
-export const SEED_VERSION = 6;
+export const SEED_VERSION = 8;
 
 /** Ids of the signed-in user on each side of the prototype. */
 export const CURRENT_STUDENT_ID = 21;
@@ -22,13 +22,15 @@ export const CURRENT_TEACHER_ID = 184;
 
 const photo = (id) => `https://images.unsplash.com/photo-${id}?w=300&auto=format&fit=crop&q=80`;
 
+// Each student's Google account, which copies of class documents are shared
+// with. Kenji has not added one yet, so nothing can be shared with him.
 export const seedStudents = () => ({
-  21: { id: 21, isNew: false, name: 'Taro Yamada', photo: photo('1535713875002-d1d0cf377fde'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
-  34: { id: 34, isNew: false, name: 'Aiko Tanaka', photo: photo('1517841905240-472988babdf9'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
+  21: { id: 21, isNew: false, name: 'Taro Yamada', email: 'taro.yamada@gmail.com', photo: photo('1535713875002-d1d0cf377fde'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
+  34: { id: 34, isNew: false, name: 'Aiko Tanaka', email: 'aiko.tanaka@gmail.com', photo: photo('1517841905240-472988babdf9'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
   12: { id: 12, isNew: true, name: 'Kenji Sato', photo: photo('1500648767791-00dcc994a43e'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo' },
-  45: { id: 45, isNew: false, name: 'Mika Kobayashi', photo: photo('1494790108377-be9c29b29330'), membership: 'Regular', category: 'Online', timezone: 'Europe/London' },
-  58: { id: 58, isNew: false, name: 'Daiki Suzuki', photo: photo('1507003211169-0a1dd7228f2d'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
-  63: { id: 63, isNew: true, name: 'Yuka Morita', photo: photo('1544005313-94ddf0286df2'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo' },
+  45: { id: 45, isNew: false, name: 'Mika Kobayashi', email: 'mika.kobayashi@gmail.com', photo: photo('1494790108377-be9c29b29330'), membership: 'Regular', category: 'Online', timezone: 'Europe/London' },
+  58: { id: 58, isNew: false, name: 'Daiki Suzuki', email: 'daiki.suzuki@gmail.com', photo: photo('1507003211169-0a1dd7228f2d'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
+  63: { id: 63, isNew: true, name: 'Yuka Morita', email: 'yuka.morita@gmail.com', photo: photo('1544005313-94ddf0286df2'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo' },
 });
 
 /** Keyed by the teacher-image id the rest of the app already uses. */
@@ -463,6 +465,29 @@ export const seedLibrary = () => [
   { id: 'lib-8', title: 'IELTS Task 2 — advanced cohesion', kind: 'pdf', subject: '[RW] Reading & Writing', level: 'A', url: 'https://example.com/lib/ielts-cohesion.pdf' },
 ];
 
+/**
+ * Copies of library documents a teacher has sent a student. Each is the
+ * student's own Google Doc in the shared drive, which they and every teacher
+ * can edit; the original is never shared. Taro already has the first two
+ * Daily Conversation lessons and one pronunciation sheet.
+ */
+export const seedClassCopies = (anchor) => {
+  const at = (day, time) => manilaAt(anchor, day, time);
+  const copy = (id, itemId, day, time) => ({
+    id,
+    studentId: CURRENT_STUDENT_ID,
+    itemId,
+    url: `https://docs.google.com/document/d/sample-copy-${id}/edit`,
+    sentBy: { id: CURRENT_TEACHER_ID, name: 'Jirvy Dela Torre' },
+    sentAt: at(day, time),
+  });
+  return [
+    copy('cc-1', 'dc-a1', -21, '20:40'),
+    copy('cc-2', 'dc-a2', -14, '20:35'),
+    copy('cc-3', 'pp-ar-spelling', -7, '21:05'),
+  ];
+};
+
 export const buildSeed = (anchor) => ({
   version: SEED_VERSION,
   anchor,
@@ -480,6 +505,7 @@ export const buildSeed = (anchor) => ({
   assessments: seedAssessments(anchor),
   levelHistory: seedLevelHistory(anchor),
   library: seedLibrary(),
+  classCopies: seedClassCopies(anchor),
   outbox: [],
   levelReminder: null,
 });
