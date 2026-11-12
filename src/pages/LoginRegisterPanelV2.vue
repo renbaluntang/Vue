@@ -202,9 +202,12 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
         <div class="lg:sticky lg:top-6 lg:col-span-8 lg:flex lg:h-[calc(100dvh-3rem)] lg:items-center lg:self-start">
           <div class="relative hidden w-full flex-col justify-center p-6 lg:flex short:p-4 xshort:p-2">
             <!-- Collage and headline share one measure so their left edges line up.
-                 The measure steps up with the screen width so the collage fills
-                 most of the height on laptops and large monitors alike. -->
+                 The measure steps up with the screen width, and is also capped
+                 at 85% of the screen height: a 1440x900 MacBook Air gives 768px,
+                 the spacing we want, and wide-but-short monitors keep that same
+                 room above and below instead of filling edge to edge. -->
             <div class="mx-auto w-full max-w-2xl xl:max-w-3xl wide:max-w-4xl short:max-w-2xl xshort:max-w-xl">
+            <div class="mx-auto w-full max-w-[85dvh]">
               <!-- Middle Hero Graphic Collage (Facebook style floating interactive layers) -->
               <div class="relative w-full">
                 <!-- Decorative ambient background blur behind collage -->
@@ -293,6 +296,7 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
               </div>
             </div>
           </div>
+            </div>
         </div>
 
         <!-- Right Login/Register Card (4 columns) matching Image 2 closely.
