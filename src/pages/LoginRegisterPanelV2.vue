@@ -1,5 +1,5 @@
 <script setup>
-import { computed, reactive, ref } from "vue";
+import { computed, reactive, ref, onMounted, onBeforeUnmount } from "vue";
 import {
   ArrowRight,
   CheckCircle2,
@@ -28,6 +28,22 @@ const HERO_COPY = {
     subtext: "Create your free account in minutes, match with an instructor, and receive real-time tracked feedback from your very first lesson.",
   },
 };
+
+// The card's height follows its form, measured as it changes, so switching
+// between Sign In and Sign Up eases the card taller or shorter rather than
+// snapping. A plain height:auto can't be transitioned, hence the observer.
+const cardBody = ref(null);
+const cardHeight = ref(0);
+let cardObserver;
+onMounted(() => {
+  if (!cardBody.value) return;
+  cardObserver = new ResizeObserver(([entry]) => {
+    // +2 for the card's 1px top and bottom border.
+    cardHeight.value = Math.ceil(entry.borderBoxSize?.[0]?.blockSize ?? entry.target.offsetHeight) + 2;
+  });
+  cardObserver.observe(cardBody.value);
+});
+onBeforeUnmount(() => cardObserver?.disconnect());
 
 const mode = ref("login");
 const showPassword = ref(false);
@@ -171,16 +187,24 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
   -->
   <main
     v-else
-    class="relative isolate flex min-h-dvh w-full items-center justify-center overflow-x-hidden px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pb-6 sm:pt-6"
+    class="relative isolate flex min-h-dvh w-full items-center justify-center overflow-x-clip px-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-[max(0.75rem,env(safe-area-inset-top))] sm:px-6 sm:pb-6 sm:pt-6"
   >
-    <div class="w-full max-w-7xl">
+    <!-- A touch wider than 7xl so the collage can reach 80% of the height on
+         large screens too. -->
+    <div class="w-full max-w-[1440px]">
       <div class="grid grid-cols-1 items-center gap-6 lg:grid-cols-12 lg:gap-10">
 
-        <!-- Left Hero Section with Collage (8 columns — the collage leads, FB-style) -->
-        <div class="lg:col-span-8">
-          <div class="relative hidden flex-col justify-center p-6 lg:flex xl:p-10 short:p-4 xshort:p-2">
-            <!-- Collage and headline share one measure so their left edges line up -->
-            <div class="mx-auto w-full max-w-xl xl:max-w-2xl short:max-w-xl xshort:max-w-lg">
+        <!-- Left Hero Section with Collage (8 columns — the collage leads, FB-style).
+             On desktop it is sticky and one screen tall, so when a long Sign Up
+             form makes the page scroll, only the card moves; the collage stays
+             centred where it is. (main uses overflow-x-clip, not hidden,
+             because hidden would make it a scroll container and break sticky.) -->
+        <div class="lg:sticky lg:top-6 lg:col-span-8 lg:flex lg:h-[calc(100dvh-3rem)] lg:items-center lg:self-start">
+          <div class="relative hidden w-full flex-col justify-center p-6 lg:flex short:p-4 xshort:p-2">
+            <!-- Collage and headline share one measure so their left edges line up.
+                 The measure steps up with the screen width so the collage fills
+                 most of the height on laptops and large monitors alike. -->
+            <div class="mx-auto w-full max-w-2xl xl:max-w-3xl wide:max-w-4xl short:max-w-2xl xshort:max-w-xl">
               <!-- Middle Hero Graphic Collage (Facebook style floating interactive layers) -->
               <div class="relative w-full">
                 <!-- Decorative ambient background blur behind collage -->
@@ -271,9 +295,16 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
           </div>
         </div>
 
-        <!-- Right Login/Register Card (4 columns) matching Image 2 closely -->
+        <!-- Right Login/Register Card (4 columns) matching Image 2 closely.
+             The card is as tall as its form: compact for Sign In, taller for
+             Sign Up. Its height eases between the two instead of jumping, and
+             nothing scrolls inside it. -->
         <div class="flex items-center justify-center lg:col-span-4">
-          <div class="w-full max-w-[420px] rounded-[1.75rem] border border-slate-200 bg-white p-5 shadow-[0_16px_40px_-12px_rgba(0,0,0,0.08)] sm:p-7 short:p-5 xshort:p-4">
+          <div
+            class="w-full max-w-[420px] overflow-hidden rounded-[1.75rem] border border-slate-200 bg-white shadow-[0_16px_40px_-12px_rgba(0,0,0,0.08)] transition-[height] duration-300 ease-out motion-reduce:transition-none"
+            :style="cardHeight ? { height: `${cardHeight}px` } : null"
+          >
+            <div ref="cardBody" class="p-5 sm:p-7 short:p-5 xshort:p-4">
 
             <!-- Card Header — Logo -->
             <div class="flex items-center justify-center">
@@ -281,7 +312,7 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
                 <img
                   :src="brightureLogo"
                   alt="Brighture"
-                  class="h-7 w-auto transition-all duration-200 group-hover:opacity-75 group-hover:scale-[1.03]"
+                  class="h-10 w-auto transition-all duration-200 group-hover:opacity-75 group-hover:scale-[1.03] xshort:h-8"
                 />
               </a>
             </div>
@@ -654,6 +685,7 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-amber-
               </button>
             </p>
 
+            </div>
           </div>
         </div>
 

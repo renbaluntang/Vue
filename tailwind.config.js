@@ -10,7 +10,9 @@ export default {
   			},
   			xshort: {
   				raw: '(max-height: 720px)'
-  			}
+  			},
+  			// Between xl and 2xl: a 14" MacBook Pro (1512px) counts as wide.
+  			wide: '1500px'
   		},
   		fontFamily: {
   			sans: [

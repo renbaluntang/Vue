@@ -22,20 +22,20 @@
         >
           Login / Register V2 (New)
         </a>
-        <a
-          :href="withBase('/student-portal')"
-          class="inline-flex items-center justify-center rounded-2xl border border-indigo-300 bg-indigo-50 px-5 py-4 text-center text-sm font-semibold text-indigo-950 transition hover:bg-indigo-100"
-        >
-          Student Portal
-        </a>
-        <!-- Teachers get their own sign-in page, separate from the student
-             login above, and a direct link into the portal for testing. -->
+        <!-- Teachers get their own sign-in page, so it sits in the top row
+             with the student logins; the portals themselves are the row below. -->
         <a
           :href="withBase('/teacher-portal/login')"
           class="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-300 bg-white px-5 py-4 text-center text-sm font-semibold text-emerald-900 transition hover:bg-emerald-50"
         >
           <i class="fa-solid fa-chalkboard-user text-emerald-600" aria-hidden="true"></i>
           Teacher Login
+        </a>
+        <a
+          :href="withBase('/student-portal')"
+          class="inline-flex items-center justify-center rounded-2xl border border-indigo-300 bg-indigo-50 px-5 py-4 text-center text-sm font-semibold text-indigo-950 transition hover:bg-indigo-100"
+        >
+          Student Portal
         </a>
         <a
           :href="withBase('/teacher-portal')"

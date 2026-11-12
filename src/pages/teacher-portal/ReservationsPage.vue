@@ -72,9 +72,6 @@
               eager
               class="h-14 w-14 sm:h-16 sm:w-16 rounded-2xl object-cover ring-2 ring-brighture-gold/80 shadow-md"
             />
-            <span class="absolute -bottom-1 -right-1 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-[10px] text-slate-950 font-black ring-2 ring-slate-900">
-              <i class="fa-solid fa-check" aria-hidden="true"></i>
-            </span>
           </div>
 
           <div class="min-w-0">
@@ -112,7 +109,7 @@
             :href="teacher.nextReservation.meetLink"
             target="_blank"
             rel="noopener"
-            class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-4 py-2.5 text-xs font-black text-slate-950 shadow-md transition-all active:scale-95 whitespace-nowrap"
+            class="inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-4 py-2.5 text-xs font-black text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] shadow-md transition-all active:scale-95 whitespace-nowrap"
           >
             <GoogleMeetIcon size="sm" />
             <span>Join Room</span>
@@ -695,7 +692,7 @@
                         :href="row.meetLink"
                         target="_blank"
                         rel="noopener"
-                        class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-3 py-2 text-xs font-black text-slate-950 shadow-2xs transition hover:scale-105 active:scale-95"
+                        class="inline-flex items-center gap-1.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 px-3 py-2 text-xs font-black text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] shadow-2xs transition hover:scale-105 active:scale-95"
                         title="Open Google Meet room"
                       >
                         <GoogleMeetIcon size="sm" />
@@ -813,7 +810,7 @@
                 :href="row.meetLink"
                 target="_blank"
                 rel="noopener"
-                class="flex-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 py-2 px-3 text-center text-xs font-extrabold text-slate-950 transition active:scale-95 shadow-2xs"
+                class="flex-1 rounded-xl bg-emerald-500 hover:bg-emerald-400 py-2 px-3 text-center text-xs font-extrabold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] transition active:scale-95 shadow-2xs"
               >
                 <GoogleMeetIcon size="sm" /> Join Meet
               </a>
@@ -914,7 +911,7 @@
                 :href="row.meetLink"
                 target="_blank"
                 rel="noopener"
-                class="flex-1 rounded-xl border border-transparent bg-emerald-500 py-3 px-3 text-center text-xs font-extrabold text-slate-950 transition hover:bg-emerald-400 active:scale-95 shadow-2xs"
+                class="flex-1 rounded-xl border border-transparent bg-emerald-500 py-3 px-3 text-center text-xs font-extrabold text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] transition hover:bg-emerald-400 active:scale-95 shadow-2xs"
               >
                 <GoogleMeetIcon size="sm" /> Join Meet
               </a>

@@ -129,13 +129,13 @@
         <!-- Join Meeting & Actions Column. Every control here shares one fixed
              height, radius and text size, and never wraps, so the two buttons
              stay the same size at every viewport width. -->
-        <div class="min-w-0 flex flex-col gap-2.5 justify-center border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6">
+        <div class="min-w-0 flex flex-col gap-2 justify-center border-t lg:border-t-0 lg:border-l border-white/10 pt-4 lg:pt-0 lg:pl-6">
           <a
             v-if="next.meetLink"
             :href="next.meetLink"
             target="_blank"
             rel="noopener"
-            class="w-full h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold text-sm px-3 whitespace-nowrap shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-[0.98] group"
+            class="w-full h-9 inline-flex items-center justify-center gap-2 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-white font-bold text-xs sm:text-sm px-3 whitespace-nowrap shadow-lg shadow-emerald-500/25 transition-all duration-200 active:scale-[0.98] group"
           >
             <!-- The icon gets the same soft shadow as the label, so both lift
                  off the light green equally. -->
@@ -147,7 +147,7 @@
 
           <p
             v-else
-            class="w-full h-11 inline-flex items-center justify-center gap-2 rounded-xl border border-rose-500/40 bg-rose-950/40 px-3 whitespace-nowrap text-sm font-medium text-rose-300"
+            class="w-full h-9 inline-flex items-center justify-center gap-2 rounded-lg border border-rose-500/40 bg-rose-950/40 px-3 whitespace-nowrap text-xs sm:text-sm font-medium text-rose-300"
           >
             <i class="fa-solid fa-triangle-exclamation"></i>
             <span>No meeting link yet</span>
@@ -156,7 +156,7 @@
           <button
             type="button"
             @click="openStudentModal(next)"
-            class="w-full h-11 inline-flex items-center justify-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 text-sm font-bold px-3 whitespace-nowrap transition active:scale-[0.98]"
+            class="w-full h-9 inline-flex items-center justify-center gap-2 rounded-lg bg-white/10 hover:bg-white/15 border border-white/15 text-slate-200 text-xs sm:text-sm font-bold px-3 whitespace-nowrap transition active:scale-[0.98]"
           >
             <i class="fa-solid fa-circle-info text-amber-400"></i>
             <span>Class Details</span>

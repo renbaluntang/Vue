@@ -81,7 +81,7 @@
             :class="isSidebarCollapsed ? 'justify-center mx-auto w-12 h-12 p-0' : 'justify-between w-full px-4 py-3'"
           >
             <div class="flex items-center gap-3">
-              <i :class="[item.icon]" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
+              <i :class="[item.icon]" class="w-5 text-center text-lg text-slate-400 group-hover:text-slate-600 transition-transform group-hover:scale-110"></i>
               <span :class="isSidebarCollapsed ? 'sr-only' : ''">{{ t(item.label) }}</span>
             </div>
             <span
@@ -118,7 +118,7 @@
               ]"
             >
               <span class="flex items-center gap-3">
-                <i :class="[item.icon, (isSidebarCollapsed && groupHasActiveChild(item)) ? '!text-brighture-ink' : '']" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
+                <i :class="[item.icon, (isSidebarCollapsed && groupHasActiveChild(item)) ? '!text-brighture-ink' : 'text-slate-400 group-hover:text-slate-600']" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
                 <span :class="isSidebarCollapsed ? 'sr-only' : ''">{{ t(item.label) }}</span>
               </span>
               <i
@@ -149,7 +149,7 @@
                     : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
                 ]"
               >
-                <i :class="[child.icon, isCurrentRoute(child.path) ? '!text-brighture-ink' : '']" class="w-4 text-center text-sm"></i>
+                <i :class="[child.icon, isCurrentRoute(child.path) ? '!text-brighture-ink' : 'text-slate-400 group-hover:text-slate-600']" class="w-4 text-center text-sm"></i>
                 <span>{{ t(child.label) }}</span>
               </RouterLink>
             </div>
@@ -167,7 +167,7 @@
                     : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
                 ]"
               >
-                <i :class="[child.icon, isCurrentRoute(child.path) ? '!text-brighture-ink' : '']" class="w-4 text-center text-sm"></i>
+                <i :class="[child.icon, isCurrentRoute(child.path) ? '!text-brighture-ink' : 'text-slate-400 group-hover:text-slate-600']" class="w-4 text-center text-sm"></i>
                 <span>{{ t(child.label) }}</span>
               </RouterLink>
             </div>
@@ -189,7 +189,7 @@
             ]"
           >
             <div class="flex items-center gap-3">
-              <i :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : '']" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
+              <i :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : 'text-slate-400 group-hover:text-slate-600']" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
               <span :class="isSidebarCollapsed ? 'sr-only' : ''">{{ t(item.label) }}</span>
             </div>
             <!-- Count badge (unread messages / tests to take). On the rail it
@@ -416,7 +416,7 @@
             ]"
           >
             <span class="flex items-center gap-3">
-              <i :class="[item.icon]" class="w-5 text-center text-lg transition-transform group-hover:scale-110"></i>
+              <i :class="[item.icon]" class="w-5 text-center text-lg text-slate-400 group-hover:text-slate-600 transition-transform group-hover:scale-110"></i>
               <span>{{ t(item.label) }}</span>
             </span>
             <i
@@ -438,7 +438,7 @@
                 : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
               ]"
             >
-              <i :class="[child.icon, isCurrentRoute(child.path) ? '!text-brighture-ink' : '']" class="w-4 text-center text-sm"></i>
+              <i :class="[child.icon, isCurrentRoute(child.path) ? '!text-brighture-ink' : 'text-slate-400 group-hover:text-slate-600']" class="w-4 text-center text-sm"></i>
               <span>{{ t(child.label) }}</span>
             </RouterLink>
           </div>
@@ -458,7 +458,7 @@
         >
           <div class="flex items-center gap-3">
             <i
-              :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : '']"
+              :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : 'text-slate-400 group-hover:text-slate-600']"
               class="w-5 text-center text-lg"
             ></i>
             <span>{{ t(item.label) }}</span>
@@ -727,7 +727,7 @@
           ]"
         >
           <i
-            :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : '']"
+            :class="[item.icon, isCurrentRoute(item.path) ? '!text-brighture-ink' : 'text-slate-400 group-hover:text-slate-600']"
             class="mb-0.5 text-lg leading-none"
           ></i>
           <span class="text-[10px] tracking-tight truncate">{{ item.shortLabel }}</span>
@@ -872,35 +872,35 @@ const onGroupClick = (item) => {
 
 
 const navItems = [
-  { path: '/', label: 'nav.dashboard', icon: 'fa-solid fa-chart-pie text-sky-500' },
-  { path: '/booking', label: 'nav.book', icon: 'fa-solid fa-calendar-days text-indigo-500' },
-  { path: '/history', label: 'nav.history', icon: 'fa-solid fa-clock-rotate-left text-violet-500' },
-  { path: '/writing', label: 'nav.writing', icon: 'fa-solid fa-pen-nib text-rose-500' },
-  { path: '/messages', label: 'nav.messages', icon: 'fa-solid fa-comments text-sky-500', badge: 'messages', badgeLabel: 'unread' },
-  { path: '/exams', label: 'nav.exams', icon: 'fa-solid fa-file-pen text-orange-500', badge: 'exams', badgeLabel: 'to do' },
-  { path: '/materials', label: 'nav.materials', icon: 'fa-solid fa-folder-open text-teal-500' },
-  { path: '/feedback', label: 'nav.feedback', icon: 'fa-solid fa-clipboard-list text-indigo-500' },
-  { path: '/analytics', label: 'nav.analytics', icon: 'fa-solid fa-chart-line text-emerald-500' },
+  { path: '/', label: 'nav.dashboard', icon: 'fa-solid fa-chart-pie' },
+  { path: '/booking', label: 'nav.book', icon: 'fa-solid fa-calendar-days' },
+  { path: '/history', label: 'nav.history', icon: 'fa-solid fa-clock-rotate-left' },
+  { path: '/writing', label: 'nav.writing', icon: 'fa-solid fa-pen-nib' },
+  { path: '/messages', label: 'nav.messages', icon: 'fa-solid fa-comments', badge: 'messages', badgeLabel: 'unread' },
+  { path: '/exams', label: 'nav.exams', icon: 'fa-solid fa-file-pen', badge: 'exams', badgeLabel: 'to do' },
+  { path: '/materials', label: 'nav.materials', icon: 'fa-solid fa-folder-open' },
+  { path: '/feedback', label: 'nav.feedback', icon: 'fa-solid fa-clipboard-list' },
+  { path: '/analytics', label: 'nav.analytics', icon: 'fa-solid fa-chart-line' },
   // The ledger and the top-up are two views of the same balance, so they sit
   // together behind one expandable row rather than as two peers.
   {
     key: 'points',
     label: 'nav.pointsGroup',
-    icon: 'fa-solid fa-coins text-amber-500',
+    icon: 'fa-solid fa-coins',
     children: [
-      { path: '/points', label: 'nav.points', icon: 'fa-solid fa-clock-rotate-left text-amber-500' },
-      { path: '/purchase', label: 'nav.purchase', icon: 'fa-solid fa-cart-shopping text-teal-500' },
+      { path: '/points', label: 'nav.points', icon: 'fa-solid fa-clock-rotate-left' },
+      { path: '/purchase', label: 'nav.purchase', icon: 'fa-solid fa-cart-shopping' },
     ],
   },
-  { path: '/refer', label: 'nav.refer', icon: 'fa-solid fa-user-plus text-violet-500' },
+  { path: '/refer', label: 'nav.refer', icon: 'fa-solid fa-user-plus' },
   // No '/profile' here on purpose — it lives above Logout at the bottom.
 ];
 
 const mobileBottomNavItems = [
-  { path: '/', shortLabel: 'Dashboard', icon: 'fa-solid fa-chart-pie text-sky-500' },
-  { path: '/booking', shortLabel: 'Book Class', icon: 'fa-solid fa-calendar-days text-indigo-500' },
-  { path: '/analytics', shortLabel: 'Badges', icon: 'fa-solid fa-medal text-amber-500' },
-  { path: '/history', shortLabel: 'History', icon: 'fa-solid fa-clock-rotate-left text-violet-500' },
+  { path: '/', shortLabel: 'Dashboard', icon: 'fa-solid fa-chart-pie' },
+  { path: '/booking', shortLabel: 'Book Class', icon: 'fa-solid fa-calendar-days' },
+  { path: '/analytics', shortLabel: 'Badges', icon: 'fa-solid fa-medal' },
+  { path: '/history', shortLabel: 'History', icon: 'fa-solid fa-clock-rotate-left' },
   // No Settings or Profile tab: on a phone both live at the foot of the ☰
   // drawer, as they do at the foot of the desktop sidebar.
 ];

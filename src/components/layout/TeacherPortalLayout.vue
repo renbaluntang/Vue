@@ -67,7 +67,7 @@
           :class="[
             isSidebarCollapsed ? 'justify-center mx-auto w-10 h-10 p-0' : 'justify-between px-3.5 py-2.5',
             isCurrentRoute(item.path)
-              ? 'bg-brighture-gold text-brighture-ink'
+              ? 'bg-gradient-to-br from-[#FFE57A] via-brighture-gold to-[#F29C00] shadow-md shadow-brighture-amber/40 text-brighture-ink'
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           ]"
         >
@@ -250,7 +250,7 @@
           class="flex items-center justify-between px-3.5 py-2.5 rounded-lg text-sm font-semibold transition-colors"
           :class="[
             isCurrentRoute(item.path)
-              ? 'bg-brighture-gold text-brighture-ink'
+              ? 'bg-gradient-to-br from-[#FFE57A] via-brighture-gold to-[#F29C00] shadow-md shadow-brighture-amber/40 text-brighture-ink'
               : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'
           ]"
         >
@@ -350,20 +350,27 @@
         v-if="teacher.nextReservation && !isDashboardRoute && !nextLessonDismissed"
         class="bg-slate-900 border-b border-slate-800 text-white px-3 sm:px-6 py-1.5 text-xs font-semibold flex flex-nowrap items-center gap-2 sm:gap-3 flex-shrink-0 z-30"
       >
-        <p class="min-w-0 flex-1 truncate leading-5">
+        <!-- The lesson text opens the class details, so the strip is a way
+             into the lesson from any page, not just a reminder. -->
+        <button
+          type="button"
+          @click="nextLessonOpen = true"
+          class="min-w-0 flex-1 truncate rounded-md text-left leading-5 transition-colors hover:text-brighture-gold focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+          title="Open class details"
+        >
           <strong class="text-[11px] font-extrabold uppercase tracking-wide text-slate-300">
             <span class="hidden sm:inline">Next lesson in </span>{{ teacher.countdownLabel(teacher.nextReservation.minutesUntil) }}
           </strong>
           <span class="mx-1.5 text-slate-600">•</span>
           {{ teacher.nextReservation.studentName }}
           <span class="hidden sm:inline text-slate-400">— {{ teacher.nextReservation.subject }}</span>
-        </p>
+        </button>
         <a
           v-if="teacher.nextReservation.meetLink"
           :href="teacher.nextReservation.meetLink"
           target="_blank"
           rel="noopener"
-          class="shrink-0 inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black text-[11px] sm:text-xs transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
+          class="shrink-0 inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] font-black text-[11px] sm:text-xs transition-all hover:scale-105 active:scale-95 whitespace-nowrap"
         >
           <GoogleMeetIcon size="sm" />
           <span class="hidden sm:inline">Start Lesson</span>
@@ -382,6 +389,12 @@
           <i class="fa-solid fa-xmark text-xs"></i>
         </button>
       </div>
+
+      <StudentDetailModal
+        v-if="nextLessonOpen && teacher.nextReservation"
+        :student="nextLessonStudent"
+        @close="nextLessonOpen = false"
+      />
 
       <!-- backdrop-blur makes this header its own stacking context, so the menus
            inside it can never rise above whatever z-index the header itself
@@ -486,7 +499,7 @@
           class="relative flex flex-col items-center justify-center flex-1 py-1 text-center transition"
           :class="[
             isCurrentRoute(item.path)
-              ? 'bg-brighture-gold text-brighture-ink rounded-lg font-bold'
+              ? 'bg-gradient-to-br from-[#FFE57A] via-brighture-gold to-[#F29C00] shadow-md shadow-brighture-amber/40 text-brighture-ink rounded-lg font-bold'
               : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
           ]"
         >
@@ -507,7 +520,7 @@
           aria-haspopup="dialog"
           class="flex flex-col items-center justify-center flex-1 py-1 text-center transition"
           :class="isCurrentRoute('/profile')
-            ? 'bg-brighture-gold text-brighture-ink rounded-lg font-bold'
+            ? 'bg-gradient-to-br from-[#FFE57A] via-brighture-gold to-[#F29C00] shadow-md shadow-brighture-amber/40 text-brighture-ink rounded-lg font-bold'
             : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'"
         >
           <i class="fa-solid fa-gear mb-0.5 text-base leading-none" :class="isCurrentRoute('/profile') ? '!text-brighture-ink' : 'text-slate-500'"></i>
@@ -648,6 +661,7 @@ import { useRoute } from 'vue-router';
 import RouteProgress from '../RouteProgress.vue';
 import AwayOverlay from '../teacher/AwayOverlay.vue';
 import CalendarLinkModal from '../teacher/CalendarLinkModal.vue';
+import StudentDetailModal from '../teacher/StudentDetailModal.vue';
 import TimezoneToolbar from '../teacher/TimezoneToolbar.vue';
 import { getTimeZoneInfo, normalizeTimeZone } from '../../lib/timezoneUtils';
 import { useTeacherStore } from '../../stores/useTeacherStore';
@@ -703,6 +717,23 @@ const isDashboardRoute = computed(() => route.path === '/');
 
 /** Hidden for this visit only — the lesson is still on the books. */
 const nextLessonDismissed = ref(false);
+
+/** The class details panel opened from the strip's lesson text. */
+const nextLessonOpen = ref(false);
+// The panel wants the same shape the dashboard hands it: a reservation row
+// with the student fields filled in and a membership to show.
+const nextLessonStudent = computed(() => {
+  const row = teacher.nextReservation;
+  if (!row) return null;
+  return {
+    ...row,
+    studentId: row.studentId || row.id,
+    studentName: row.studentName || row.student,
+    studentPhoto: row.studentPhoto || row.photo,
+    category: row.category || row.membership || 'Regular',
+    lessonClass: row.lessonClass || 'Online 1-on-1',
+  };
+});
 
 const currentPageTitle = computed(() => {
   const current = navItems.find((item) => isCurrentRoute(item.path));
