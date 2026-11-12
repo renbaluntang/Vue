@@ -1,7 +1,7 @@
 <script setup>
 import { ref, computed } from "vue";
 import PlanCheckout from "./points-purchase/PlanCheckout.vue";
-import brightureLogo from "@/assets/logo-black.svg";
+import brightureLogo from "@/assets/logo.png";
 import { REFERRAL_CODE, referralUrl, referralShareMessage } from "@/lib/referral";
 import { SUBSCRIPTION_PLANS, ONE_TIME_PLANS, TOP_UP_RATE, TOP_UP_PRESETS } from "@/lib/plans";
 

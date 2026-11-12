@@ -2,8 +2,7 @@
 import { computed, reactive, ref } from "vue";
 import { ArrowRight, CheckCircle2, Eye, EyeOff, Lock, Mail, User } from "lucide-vue-next";
 import heroPhoto from "@/assets/hero-lesson.jpg";
-import brightureIcon from "@/assets/icon-black.svg";
-import brightureLogo from "@/assets/logo-black.svg";
+import brightureLogo from "@/assets/logo.png";
 
 const HERO_COPY = {
   login: {
@@ -118,7 +117,7 @@ const strengthColors = ["bg-rose-400", "bg-rose-400", "bg-amber-400", "bg-bright
 
   <main v-if="submitted" class="relative isolate flex h-dvh items-center justify-center overflow-hidden px-4">
     <div class="w-full max-w-sm rounded-2xl border border-amber-100/70 bg-white/65 p-7 text-center shadow-[0_8px_32px_-8px_rgba(180,140,60,0.18)] backdrop-blur-2xl">
-      <img :src="brightureIcon" alt="" aria-hidden="true" class="mx-auto h-9 w-9" />
+      <img :src="brightureLogo" alt="Brighture" class="mx-auto h-10 w-auto" />
       <div class="mx-auto mt-4 flex h-13 w-13 items-center justify-center rounded-full bg-amber-100/60">
         <CheckCircle2 class="h-7 w-7 text-brighture-bronze" />
       </div>

@@ -3,7 +3,7 @@ import { reactive, ref } from 'vue';
 import { useRouter } from 'vue-router';
 import { ArrowRight, Eye, EyeOff, LockKeyhole, Mail } from 'lucide-vue-next';
 import teacherTeam from '@/assets/teacher-team-cutout.png';
-import brightureLogo from '@/assets/logo-black.svg';
+import brightureLogo from '@/assets/logo.png';
 
 const router = useRouter();
 const appHome = import.meta.env.BASE_URL;

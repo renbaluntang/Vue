@@ -756,9 +756,8 @@ import { CURRENT_STUDENT_ID } from '../../lib/schoolSeed';
 import RouteProgress from '../../components/RouteProgress.vue';
 import LanguageSwitch from '@/components/LanguageSwitch.vue';
 import NavigationTour from '../../components/NavigationTour.vue';
-import brightureLogo from '@/assets/logo-black.svg';
+import brightureLogo from '@/assets/logo.png';
 import { isDark, toggleTheme } from '@/lib/theme';
-import brightureIcon from '@/assets/icon-black.svg';
 
 const { t } = useI18n();
 const route = useRoute();

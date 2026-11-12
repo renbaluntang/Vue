@@ -15,7 +15,7 @@ import {
   Ticket,
 } from "lucide-vue-next";
 import heroPhoto from "@/assets/hero-lesson.jpg";
-import brightureLogo from "@/assets/logo-black.svg";
+import brightureLogo from "@/assets/logo.png";
 import studentAvatar from "@/assets/speech-fluency-student.png";
 
 const HERO_COPY = {

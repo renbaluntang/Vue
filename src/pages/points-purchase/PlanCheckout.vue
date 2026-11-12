@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onUnmounted } from "vue";
-import brightureLogo from "@/assets/logo-black.svg";
+import brightureLogo from "@/assets/logo.png";
 
 const props = defineProps({
   /** Built by the plan page — see `checkoutSummary` in PointsPurchase.vue. */

@@ -43,7 +43,7 @@ export default {
   			'primary-dark': '#2d6c8f',
   			sidebar: '#1e2a30',
   			brighture: {
-  				// Straight from logo-black.svg
+  				// Straight from the Brighture logo
   				ink: '#1A1A1A',
   				gold: '#FFCD00',
   				'gold-deep': '#FFBD00',

@@ -172,7 +172,7 @@ import RouteProgress from '@/components/RouteProgress.vue';
 import ZoneSwitch from '@/pages/admin-portal/components/ZoneSwitch.vue';
 import { useSchoolStore } from '@/stores/useSchoolStore';
 import { toast, dismissToast, showToast } from '@/pages/admin-portal/adminUi';
-import logo from '@/assets/logo-black.svg';
+import logo from '@/assets/logo.png';
 
 const route = useRoute();
 const school = useSchoolStore();
