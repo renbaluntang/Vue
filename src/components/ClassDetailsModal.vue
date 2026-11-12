@@ -441,6 +441,23 @@
                   <span class="truncate">{{ m.title }}</span>
                 </a>
               </div>
+              <!-- The recording, when the teacher recorded it. No link once it
+                   is older than 30 days. -->
+              <a
+                v-if="pastRecording(past) === 'recorded'"
+                :href="school.findLesson(past.id).recording.url"
+                target="_blank"
+                rel="noopener"
+                class="mt-2 inline-flex items-center gap-1.5 rounded-lg bg-slate-900 px-2.5 py-1.5 text-[11px] font-bold text-white hover:bg-slate-800"
+              >
+                <i class="fa-solid fa-circle-play text-[11px]" aria-hidden="true"></i> Watch the recording
+              </a>
+              <p v-else-if="pastRecording(past) === 'processing'" class="m-0 mt-2 text-[11px] text-slate-500">
+                <i class="fa-solid fa-video mr-1 text-slate-400" aria-hidden="true"></i>The recording is being processed and will appear here soon.
+              </p>
+              <p v-else-if="pastRecording(past) === 'expired'" class="m-0 mt-2 text-[11px] text-slate-400">
+                <i class="fa-solid fa-video mr-1" aria-hidden="true"></i>The recording link has expired (kept for 30 days).
+              </p>
               <p v-if="past.yourRating" class="m-0 mt-2 text-[11px] font-semibold text-amber-700">
                 <i class="fa-solid fa-star text-[10px]" aria-hidden="true"></i> You rated {{ past.yourRating }}/5
               </p>
@@ -537,6 +554,8 @@ import { materialKind } from '@/lib/lessonMaterials';
 import { assessmentTypeOf, LEVEL_CHECK_CANCEL_MINUTES } from '@/lib/brelas';
 import { useUserStore } from '@/stores/useUserStore';
 import { useSchoolStore } from '@/stores/useSchoolStore';
+import { CURRENT_STUDENT_ID } from '@/lib/schoolSeed';
+import { recordingState } from '@/lib/lessonRecording';
 import {
   INSTRUCTORS, SUBJECT_LABELS,
   parseSubjectCodes, getTeacherProfile, pointsForDuration,
@@ -679,6 +698,9 @@ const instructorFacts = computed(() => [
 const history = computed(() => (user.pastLessons ?? []).filter(
   (p) => p.teacherName === props.lesson?.teacherName && p.status === 'completed'
 ));
+
+/** Recording state of a past class, from the shared store. */
+const pastRecording = (past) => recordingState(school.findLesson(past.id), school.student(CURRENT_STUDENT_ID), school.now);
 
 /** Materials this instructor has shared with the student. */
 const materials = computed(() => (user.lessonMaterials ?? []).filter((m) => m.addedBy === props.lesson?.teacherName));

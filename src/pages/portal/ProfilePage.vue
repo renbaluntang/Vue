@@ -304,6 +304,39 @@
       </div>
     </div>
 
+    <!-- Lesson recording permission. Saved the moment it changes, not with
+         the form, because teachers check it right before a lesson. -->
+    <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-xs">
+      <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0">
+          <h2 id="recording-consent-label" class="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-2 h-5 rounded-full bg-brighture-gold"></span> Lesson recording
+          </h2>
+          <p class="text-sm text-slate-600 mt-2 max-w-xl leading-relaxed">
+            Allow your teachers to record your lessons in Google Meet. Only you, your teacher and Brighture staff can watch a recording, and its link stays in your lesson history for 30 days.
+          </p>
+          <p class="text-xs text-slate-500 mt-2">
+            <template v-if="recordingConsent">Recording is allowed. You can turn it off at any time; lessons already recorded are not affected.</template>
+            <template v-else>Recording is off. Your teachers see "Do not record" on your lessons.</template>
+          </p>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          :aria-checked="recordingConsent"
+          aria-labelledby="recording-consent-label"
+          class="relative mt-1 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brighture-gold/40"
+          :class="recordingConsent ? 'bg-emerald-500' : 'bg-slate-300'"
+          @click="toggleRecordingConsent"
+        >
+          <span
+            class="inline-block h-5 w-5 rounded-full bg-white shadow transition"
+            :class="recordingConsent ? 'translate-x-6' : 'translate-x-1'"
+          ></span>
+        </button>
+      </div>
+    </div>
+
     <!-- 4. Learning Preferences & Goals Card -->
     <div
       class="bg-white border rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 transition-all duration-300"
@@ -799,6 +832,15 @@ const toastMessage = ref(null);
 const toastType = ref('success');
 const photoPickerOpen = ref(false);
 const school = useSchoolStore();
+
+// Whether teachers may record this student's lessons; lives in the shared
+// store so the teacher portal shows the change straight away.
+const recordingConsent = computed(() => !!school.student(CURRENT_STUDENT_ID).recordingConsent);
+const toggleRecordingConsent = () => {
+  const next = !recordingConsent.value;
+  school.setRecordingConsent(CURRENT_STUDENT_ID, next);
+  showToast(next ? 'Recording allowed. Your teachers will see it on your lessons.' : 'Recording turned off. Your teachers will see "Do not record".', 'success');
+};
 
 // Modal states
 const showChangePasswordModal = ref(false);

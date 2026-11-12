@@ -34,6 +34,15 @@
                 <p class="m-0 text-xs text-slate-300 font-medium mt-0.5 truncate">
                   {{ membership }} · {{ record.category || student.category || student.lessonClass || 'Online' }}
                 </p>
+                <!-- Whether this student has allowed recording. Shown on every
+                     tab, since the teacher decides in Meet, not here. -->
+                <p
+                  class="m-0 mt-1.5 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold"
+                  :class="record.recordingConsent ? 'bg-emerald-400/15 text-emerald-200' : 'bg-white/10 text-slate-300'"
+                >
+                  <i :class="record.recordingConsent ? 'fa-solid fa-video' : 'fa-solid fa-video-slash'" class="text-[10px]" aria-hidden="true"></i>
+                  {{ record.recordingConsent ? 'Recording allowed' : 'Do not record' }}
+                </p>
               </div>
             </div>
 
@@ -232,6 +241,27 @@
             </div>
           </div>
 
+          <!-- Recording is the teacher's call in Meet, so the panel says what
+               the student allowed and where a recording will end up. -->
+          <div
+            class="flex items-start gap-3 rounded-2xl border p-4 text-xs leading-relaxed"
+            :class="record.recordingConsent ? 'border-slate-100 bg-[#f8fafc] text-slate-600' : 'border-amber-200 bg-amber-50/70 text-amber-900'"
+          >
+            <i
+              :class="record.recordingConsent ? 'fa-solid fa-video text-slate-400' : 'fa-solid fa-video-slash text-amber-600'"
+              class="mt-0.5 text-sm"
+              aria-hidden="true"
+            ></i>
+            <p v-if="record.recordingConsent" class="m-0">
+              <span class="font-bold text-slate-900">{{ firstName }} allows recording.</span>
+              If you record in Meet, it's filed to {{ myRecordingFolder }} after the lesson.
+            </p>
+            <p v-else class="m-0">
+              <span class="font-bold">{{ firstName }} hasn't allowed recording.</span>
+              Don't record this lesson. A recording would be held for admin review.
+            </p>
+          </div>
+
           <!-- Row 4: Start Lesson Button (Green with camera icon) -->
           <div>
             <a
@@ -381,13 +411,14 @@
               </div>
 
               <div class="overflow-x-auto rounded-2xl border border-slate-100 bg-white">
-                <table class="w-full min-w-[580px] text-xs">
+                <table class="w-full min-w-[660px] text-xs">
                   <thead>
                     <tr class="text-left border-b border-slate-100 bg-[#f8fafc]">
                       <th class="py-2.5 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Date</th>
                       <th class="py-2.5 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Instructor</th>
                       <th class="py-2.5 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Subject</th>
                       <th class="py-2.5 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Feedback</th>
+                      <th class="py-2.5 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Recording</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-slate-100">
@@ -408,9 +439,25 @@
                         <span v-if="log.feedback">{{ log.feedback }}</span>
                         <span v-else class="italic text-slate-400">No feedback written yet.</span>
                       </td>
+                      <td class="py-3 px-3 whitespace-nowrap">
+                        <a
+                          v-if="log.recording === 'recorded'"
+                          :href="log.recordingUrl"
+                          target="_blank"
+                          rel="noopener"
+                          class="inline-flex items-center gap-1.5 font-bold text-[#8A6600] hover:underline"
+                          :title="log.recordingName"
+                        >
+                          <i class="fa-solid fa-circle-play text-[11px]" aria-hidden="true"></i> Watch
+                        </a>
+                        <span v-else-if="log.recording === 'processing'" class="text-slate-500">Processing</span>
+                        <span v-else-if="log.recording === 'expired'" class="text-slate-400" title="Links are shown for 30 days">Link expired</span>
+                        <span v-else-if="log.recording === 'none'" class="text-slate-400">Not recorded</span>
+                        <span v-else class="text-slate-300">—</span>
+                      </td>
                     </tr>
                     <tr v-if="!filteredLogs.length">
-                      <td colspan="4" class="py-6 px-3 text-center text-slate-400">No lessons logged yet.</td>
+                      <td colspan="5" class="py-6 px-3 text-center text-slate-400">No lessons logged yet.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -425,7 +472,7 @@
               </div>
 
               <div class="overflow-x-auto rounded-2xl border border-slate-100 bg-white">
-                <table class="w-full min-w-[580px] text-xs">
+                <table class="w-full min-w-[660px] text-xs">
                   <thead>
                     <tr class="text-left border-b border-slate-100 bg-[#f8fafc]">
                       <th class="py-2.5 px-3 text-[11px] font-bold uppercase tracking-wider text-slate-400">Appointed Date</th>
@@ -697,6 +744,8 @@ import { levelInfo } from '@/lib/brelas';
 import studentImage from '@/assets/student-1.svg';
 import { MATERIAL_KIND_OPTIONS, materialKind } from '@/lib/lessonMaterials';
 import { MANILA, stampIn, utcLabel, minutesUntil, dateIn, clockIn } from '@/lib/schoolTime';
+import { recordingState, recordingFolder, recordingFileName } from '@/lib/lessonRecording';
+import { CURRENT_TEACHER_ID } from '@/lib/schoolSeed';
 import { useTeacherStore } from '../../stores/useTeacherStore';
 import { useSchoolStore } from '../../stores/useSchoolStore';
 
@@ -1023,6 +1072,9 @@ const studentProfile = computed(() => {
   };
 });
 
+/** Where this teacher's recordings are filed, for the lesson the panel is open on. */
+const myRecordingFolder = computed(() => recordingFolder(school.teacher(CURRENT_TEACHER_ID), record.value));
+
 const LOG_STATUS = { completed: 'Completed', 'no-show': 'No show (student)', cancelled: 'Cancelled' };
 
 // Every lesson the student has had, with any instructor, newest first.
@@ -1040,6 +1092,9 @@ const studentLogs = computed(() => {
       status: l.status,
       statusLabel: LOG_STATUS[l.status],
       feedback: l.status === 'cancelled' ? (l.cancelReason || '') : l.feedback,
+      recording: recordingState(l, record.value, now),
+      recordingUrl: l.recording?.url ?? '',
+      recordingName: l.recording ? recordingFileName(l, record.value) : '',
     }));
 });
 

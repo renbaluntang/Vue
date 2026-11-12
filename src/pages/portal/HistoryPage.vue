@@ -125,6 +125,17 @@
             </span>
             <span v-else>Rate teacher</span>
           </button>
+          <!-- The lesson's recording, while its link is still shown. -->
+          <a
+            v-if="recordingOf(lesson) === 'recorded'"
+            :href="school.findLesson(lesson.id).recording.url"
+            target="_blank"
+            rel="noopener"
+            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 hover:border-slate-300 transition"
+          >
+            <i class="fa-solid fa-circle-play text-[11px] text-slate-500" aria-hidden="true"></i> Watch recording
+          </a>
+          <span v-else-if="recordingOf(lesson) === 'processing'" class="text-[11px] font-semibold text-slate-400">Recording processing</span>
           <button
             type="button"
             @click="openLesson = lesson"
@@ -319,8 +330,15 @@ import SubjectCode from '../../components/SubjectCode.vue';
 import { computed, ref } from 'vue';
 import { useUserStore } from '../../stores/useUserStore';
 import { materialKind } from '@/lib/lessonMaterials';
+import { useSchoolStore } from '@/stores/useSchoolStore';
+import { CURRENT_STUDENT_ID } from '@/lib/schoolSeed';
+import { recordingState } from '@/lib/lessonRecording';
 
 const user = useUserStore();
+const school = useSchoolStore();
+
+/** 'recorded' | 'processing' | 'expired' | 'none' for a past class. */
+const recordingOf = (lesson) => recordingState(school.findLesson(lesson.id), school.student(CURRENT_STUDENT_ID), school.now);
 
 const FILTERS = [
   { value: 'all', label: 'All' },

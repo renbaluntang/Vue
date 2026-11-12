@@ -14,7 +14,7 @@
 import { seedMaterials } from '@/lib/lessonMaterials';
 import { manilaAt } from '@/lib/schoolTime';
 
-export const SEED_VERSION = 8;
+export const SEED_VERSION = 9;
 
 /** Ids of the signed-in user on each side of the prototype. */
 export const CURRENT_STUDENT_ID = 21;
@@ -24,13 +24,15 @@ const photo = (id) => `https://images.unsplash.com/photo-${id}?w=300&auto=format
 
 // Each student's Google account, which copies of class documents are shared
 // with. Kenji has not added one yet, so nothing can be shared with him.
+// recordingConsent: the student has allowed teachers to record their lessons.
+// Aiko has said no; the two trial students have not been asked yet.
 export const seedStudents = () => ({
-  21: { id: 21, isNew: false, name: 'Taro Yamada', email: 'taro.yamada@gmail.com', photo: photo('1535713875002-d1d0cf377fde'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
-  34: { id: 34, isNew: false, name: 'Aiko Tanaka', email: 'aiko.tanaka@gmail.com', photo: photo('1517841905240-472988babdf9'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
-  12: { id: 12, isNew: true, name: 'Kenji Sato', photo: photo('1500648767791-00dcc994a43e'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo' },
-  45: { id: 45, isNew: false, name: 'Mika Kobayashi', email: 'mika.kobayashi@gmail.com', photo: photo('1494790108377-be9c29b29330'), membership: 'Regular', category: 'Online', timezone: 'Europe/London' },
-  58: { id: 58, isNew: false, name: 'Daiki Suzuki', email: 'daiki.suzuki@gmail.com', photo: photo('1507003211169-0a1dd7228f2d'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' },
-  63: { id: 63, isNew: true, name: 'Yuka Morita', email: 'yuka.morita@gmail.com', photo: photo('1544005313-94ddf0286df2'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo' },
+  21: { id: 21, isNew: false, name: 'Taro Yamada', email: 'taro.yamada@gmail.com', photo: photo('1535713875002-d1d0cf377fde'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo', recordingConsent: true },
+  34: { id: 34, isNew: false, name: 'Aiko Tanaka', email: 'aiko.tanaka@gmail.com', photo: photo('1517841905240-472988babdf9'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo', recordingConsent: false },
+  12: { id: 12, isNew: true, name: 'Kenji Sato', photo: photo('1500648767791-00dcc994a43e'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo', recordingConsent: false },
+  45: { id: 45, isNew: false, name: 'Mika Kobayashi', email: 'mika.kobayashi@gmail.com', photo: photo('1494790108377-be9c29b29330'), membership: 'Regular', category: 'Online', timezone: 'Europe/London', recordingConsent: true },
+  58: { id: 58, isNew: false, name: 'Daiki Suzuki', email: 'daiki.suzuki@gmail.com', photo: photo('1507003211169-0a1dd7228f2d'), membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo', recordingConsent: true },
+  63: { id: 63, isNew: true, name: 'Yuka Morita', email: 'yuka.morita@gmail.com', photo: photo('1544005313-94ddf0286df2'), membership: 'Trial', category: 'Free Conversation', timezone: 'Asia/Tokyo', recordingConsent: false },
 });
 
 /** Keyed by the teacher-image id the rest of the app already uses. */
@@ -59,8 +61,11 @@ const CS = '[CS] Counseling Session';
  */
 export const seedLessons = (anchor) => {
   const at = (day, time) => manilaAt(anchor, day, time);
-  const base = { duration: 30, points: 5, substitution: false, meetLink: '', note: '', topic: '', feedback: '', hiddenNote: '', feedbackSubmitted: false, teacherScore: null, studentRating: null, studentComment: '', cancelReason: '', refunded: false };
+  const base = { recording: null, duration: 30, points: 5, substitution: false, meetLink: '', note: '', topic: '', feedback: '', hiddenNote: '', feedbackSubmitted: false, teacherScore: null, studentRating: null, studentComment: '', cancelReason: '', refunded: false };
   const L = (o) => ({ ...base, ...o });
+  // A recording the backend has filed. Taro allows recording; l-104 was not
+  // recorded, and l-415 is past the 30 days the portal shows a link for.
+  const rec = (id) => ({ url: `https://drive.google.com/file/d/rec-${id}/view` });
   return [
     // ── Booked ──────────────────────────────────────────────────────────
     L({ id: 'r-501', studentId: 21, teacherId: 184, start: at(0, '18:00'), status: 'booked', subject: SF, topic: 'Cross-Border Negotiations & Pitching', meetLink: 'https://meet.google.com/abc-defg-hij', note: 'I want to focus on cross-border negotiation phrasing. Please correct my intonation.',
@@ -77,7 +82,7 @@ export const seedLessons = (anchor) => {
     L({ id: 'r-513', studentId: 21, teacherId: 176, start: at(5, '20:00'), duration: 50, points: 9, status: 'booked', subject: RW, topic: 'Business Email Drafting', meetLink: 'https://meet.google.com/klm-nopq-tuv', note: 'Can we review a follow-up email to a client after a missed deadline?' }),
 
     // ── Past, with Jirvy ────────────────────────────────────────────────
-    L({ id: 'l-410', studentId: 21, teacherId: 184, start: at(-1, '18:00'), status: 'completed', subject: SF, topic: 'Counter-offers and closing a deal', prepMaterialIds: ['m-2101'], feedbackSubmitted: true, teacherScore: 5, studentRating: 5, studentComment: 'Very clear explanations, I could follow every correction.', feedback: `Strong session, Taro. Your counter-offer phrasing was natural and confident.
+    L({ id: 'l-410', recording: rec('l-410'), studentId: 21, teacherId: 184, start: at(-1, '18:00'), status: 'completed', subject: SF, topic: 'Counter-offers and closing a deal', prepMaterialIds: ['m-2101'], feedbackSubmitted: true, teacherScore: 5, studentRating: 5, studentComment: 'Very clear explanations, I could follow every correction.', feedback: `Strong session, Taro. Your counter-offer phrasing was natural and confident.
 
 Next time:
 1. Pause before your key pitch point so it lands.
@@ -85,26 +90,26 @@ Next time:
     L({ id: 'l-409', studentId: 34, teacherId: 184, start: at(-1, '15:00'), status: 'completed', subject: PP, topic: 'Short vowels in context', studentRating: 5 }),
     L({ id: 'l-408', studentId: 12, teacherId: 184, start: at(-2, '11:00'), status: 'completed', subject: DC, topic: 'Trial lesson: introductions', studentRating: 4, studentComment: 'Friendly and patient.' }),
     L({ id: 'l-407', studentId: 45, teacherId: 184, start: at(-3, '13:00'), status: 'no-show', subject: RW, topic: 'IELTS Task 2 essay structure', feedbackSubmitted: true }),
-    L({ id: 'l-101', studentId: 21, teacherId: 184, start: at(-14, '18:00'), status: 'completed', subject: SF, topic: 'International Marketing & Market Fit', prepMaterialIds: [], feedbackSubmitted: true, teacherScore: 5, feedback: `Taro showed strong vocabulary in strategic discussion today.
+    L({ id: 'l-101', recording: rec('l-101'), studentId: 21, teacherId: 184, start: at(-14, '18:00'), status: 'completed', subject: SF, topic: 'International Marketing & Market Fit', prepMaterialIds: [], feedbackSubmitted: true, teacherScore: 5, feedback: `Taro showed strong vocabulary in strategic discussion today.
 
 Key takeaways:
 1. Improved cadence when delivering conclusions.
 2. Use linking phrases like "In light of that" or "Consequently" instead of repeatedly saying "And so".` }),
-    L({ id: 'l-105', studentId: 21, teacherId: 184, start: at(-25, '19:00'), duration: 50, points: 9, status: 'completed', subject: EP, topic: 'IELTS Speaking Part 2 — long turn', feedbackSubmitted: true, teacherScore: 4.9, feedback: 'Your two-minute long turn is now well structured. Watch the filler pause before examples — try "for instance" to buy the same time.' }),
+    L({ id: 'l-105', recording: rec('l-105'), studentId: 21, teacherId: 184, start: at(-25, '19:00'), duration: 50, points: 9, status: 'completed', subject: EP, topic: 'IELTS Speaking Part 2 — long turn', feedbackSubmitted: true, teacherScore: 4.9, feedback: 'Your two-minute long turn is now well structured. Watch the filler pause before examples — try "for instance" to buy the same time.' }),
 
     // ── Taro's past lessons with other instructors ──────────────────────
-    L({ id: 'l-102', studentId: 21, teacherId: 178, start: at(-17, '19:00'), duration: 50, points: 9, status: 'completed', subject: PP, topic: 'Short vowels vs long vowels', prepMaterialIds: ['m-2102'], feedbackSubmitted: true, teacherScore: 4.8, feedback: `Good effort distinguishing /ɪ/ and /iː/ (ship vs sheep) and /æ/ vs /ʌ/ (cat vs cut).
+    L({ id: 'l-102', recording: rec('l-102'), studentId: 21, teacherId: 178, start: at(-17, '19:00'), duration: 50, points: 9, status: 'completed', subject: PP, topic: 'Short vowels vs long vowels', prepMaterialIds: ['m-2102'], feedbackSubmitted: true, teacherScore: 4.8, feedback: `Good effort distinguishing /ɪ/ and /iː/ (ship vs sheep) and /æ/ vs /ʌ/ (cat vs cut).
 
 Homework: read the five tongue twisters aloud for three minutes before sleep.` }),
     L({ id: 'l-103', studentId: 21, teacherId: 175, start: at(-18, '18:00'), status: 'cancelled', subject: DC, topic: 'Open topic & fluency', refunded: true, cancelReason: 'Cancelled more than 3 hours before the start time — 5 points were refunded in full.' }),
     L({ id: 'l-104', studentId: 21, teacherId: 176, start: at(-21, '18:00'), status: 'completed', subject: DC, topic: 'Weekend activities & travel in Kyoto', feedbackSubmitted: true, teacherScore: 5, feedback: 'Great casual flow and natural reactions. You asked engaging follow-up questions without prompting.' }),
-    L({ id: 'l-106', studentId: 21, teacherId: 178, start: at(-28, '18:30'), status: 'completed', subject: LS, topic: 'Following fast native speech', feedbackSubmitted: true, teacherScore: 4.7, feedback: 'You caught most reduced forms ("gonna", "wanna"). Next time we will work on numbers and dates at speed.' }),
+    L({ id: 'l-106', recording: rec('l-106'), studentId: 21, teacherId: 178, start: at(-28, '18:30'), status: 'completed', subject: LS, topic: 'Following fast native speech', feedbackSubmitted: true, teacherScore: 4.7, feedback: 'You caught most reduced forms ("gonna", "wanna"). Next time we will work on numbers and dates at speed.' }),
 
     // ── Level checks ────────────────────────────────────────────────────
     // Yuka's free trial yesterday: taught, assessment still to write.
     L({ id: 'l-420', studentId: 63, teacherId: 184, start: at(-1, '10:00'), points: 0, status: 'completed', subject: TA, topic: 'Trial lesson', note: 'I want to speak more naturally on my trip to Cebu.' }),
     // Taro's counseling session a month ago: assessed (see seedAssessments).
-    L({ id: 'l-415', studentId: 21, teacherId: 184, start: at(-30, '19:00'), status: 'completed', subject: CS, topic: 'Progress check', feedbackSubmitted: true, teacherScore: 5 }),
+    L({ id: 'l-415', recording: rec('l-415'), studentId: 21, teacherId: 184, start: at(-30, '19:00'), status: 'completed', subject: CS, topic: 'Progress check', feedbackSubmitted: true, teacherScore: 5 }),
     // Aiko's next counseling session, booked.
     L({ id: 'r-520', studentId: 34, teacherId: 184, start: at(3, '18:00'), status: 'booked', subject: CS, topic: 'Counseling session', meetLink: 'https://meet.google.com/csx-aiko-tnk', note: 'I would like advice on which subjects to take next.' }),
   ];

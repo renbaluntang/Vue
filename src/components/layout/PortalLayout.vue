@@ -113,7 +113,7 @@
                 'relative flex items-center rounded-2xl text-sm font-bold transition-all duration-150 group',
                 isSidebarCollapsed ? 'justify-center mx-auto w-12 h-12 p-0' : 'justify-between w-full px-4 py-3',
                 groupHasActiveChild(item)
-                  ? (isSidebarCollapsed ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-md shadow-brighture-amber/40' : 'text-brighture-ink bg-brighture-cream')
+                  ? (isSidebarCollapsed ? 'bg-gradient-to-br from-[#FFE066] via-brighture-gold to-[#F5A000] text-brighture-ink shadow-md shadow-brighture-amber/40' : 'text-brighture-ink bg-brighture-cream')
                   : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
               ]"
             >
@@ -145,7 +145,7 @@
                 class="flex items-center gap-2.5 rounded-xl px-2.5 py-2 text-[13px] font-bold transition"
                 :class="[
                   isCurrentRoute(child.path)
-                    ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink'
+                    ? 'bg-gradient-to-br from-[#FFE066] via-brighture-gold to-[#F5A000] text-brighture-ink'
                     : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
                 ]"
               >
@@ -163,7 +163,7 @@
                 class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150"
                 :class="[
                   isCurrentRoute(child.path)
-                    ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40'
+                    ? 'bg-gradient-to-br from-[#FFE066] via-brighture-gold to-[#F5A000] text-brighture-ink shadow-sm shadow-brighture-amber/40'
                     : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
                 ]"
               >
@@ -184,7 +184,7 @@
             :class="[
               isSidebarCollapsed ? 'justify-center mx-auto w-12 h-12 p-0' : 'justify-between px-4 py-3',
               isCurrentRoute(item.path)
-                ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-md shadow-brighture-amber/40'
+                ? 'bg-gradient-to-br from-[#FFE066] via-brighture-gold to-[#F5A000] text-brighture-ink shadow-md shadow-brighture-amber/40'
                 : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
             ]"
           >
@@ -434,7 +434,7 @@
               class="flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150"
               :class="[
                 isCurrentRoute(child.path)
-                ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40'
+                ? 'bg-gradient-to-br from-[#FFE066] via-brighture-gold to-[#F5A000] text-brighture-ink shadow-sm shadow-brighture-amber/40'
                 : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'
               ]"
             >
@@ -452,7 +452,7 @@
           class="flex items-center justify-between px-4 py-3 rounded-2xl text-sm font-bold transition"
           :class="[
             isCurrentRoute(item.path)
-              ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-md shadow-brighture-amber/40'
+              ? 'bg-gradient-to-br from-[#FFE066] via-brighture-gold to-[#F5A000] text-brighture-ink shadow-md shadow-brighture-amber/40'
               : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
           ]"
         >
@@ -501,7 +501,7 @@
               @click="isMobileMenuOpen = false; isUserMenuOpen = false"
               class="flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-[13px] font-bold transition-all duration-150"
               :class="isCurrentRoute('/profile')
-                ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40'
+                ? 'bg-gradient-to-br from-[#FFE066] via-brighture-gold to-[#F5A000] text-brighture-ink shadow-sm shadow-brighture-amber/40'
                 : 'text-slate-600 hover:bg-brighture-cream hover:text-brighture-ink'"
             >
               <i class="fa-solid fa-user-gear w-4 text-center text-sm" :class="isCurrentRoute('/profile') ? 'text-brighture-ink' : 'text-slate-400'"></i>
@@ -722,7 +722,7 @@
           class="flex flex-col items-center justify-center flex-1 py-1 text-center transition"
           :class="[
             isCurrentRoute(item.path)
-              ? 'bg-gradient-to-r from-brighture-gold to-brighture-gold-deep text-brighture-ink shadow-sm shadow-brighture-amber/40 rounded-xl'
+              ? 'bg-gradient-to-br from-[#FFE066] via-brighture-gold to-[#F5A000] text-brighture-ink shadow-sm shadow-brighture-amber/40 rounded-xl'
               : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
           ]"
         >

@@ -70,6 +70,7 @@ const shiftAll = (db, days) => {
   (db.levelHistory ?? []).forEach((h) => { h.at = s(h.at); });
   (db.outbox ?? []).forEach((m) => { m.at = s(m.at); });
   (db.classCopies ?? []).forEach((c) => { c.sentAt = s(c.sentAt); });
+  Object.values(db.students ?? {}).forEach((st) => { st.recordingConsentAt = s(st.recordingConsentAt); });
   if (db.levelReminder) db.levelReminder.at = s(db.levelReminder.at);
   return db;
 };
@@ -166,6 +167,17 @@ export const useSchoolStore = defineStore('school', () => {
   const lessonsForTeacher = (teacherId) => lessons.value.filter((l) => l.teacherId === teacherId);
   const lessonsForStudent = (studentId) => lessons.value.filter((l) => l.studentId === studentId);
   const findLesson = (id) => db.value.lessons.find((l) => l.id === id);
+
+  /**
+   * The student's answer to "may teachers record my lessons". Kept with when
+   * it was given, since permission is what the recording step checks.
+   */
+  const setRecordingConsent = (studentId, allowed) => {
+    const st = db.value.students[studentId];
+    if (!st) return;
+    st.recordingConsent = !!allowed;
+    st.recordingConsentAt = new Date().toISOString();
+  };
 
   /** Whether the teacher already has a booked lesson overlapping this window. */
   const teacherBusy = (teacherId, startIso, duration, ignoreId = null) => {
@@ -789,6 +801,7 @@ export const useSchoolStore = defineStore('school', () => {
     writing, writingForStudent, writingForTeacher, findTicket, submitWriting, replyWriting, completeWriting, WRITING_COST,
     materialsFor, addMaterial, removeMaterial,
     classCopiesFor, classCopyOf, sendClassCopy,
+    setRecordingConsent,
     subjectCode, prepFor, materialsForLesson, setLessonPrep, markMaterialReviewed,
     threadsForTeacher, threadsForStudent, threadBetween, unreadIn, sendMessage, markThreadRead, toggleReaction,
     exams, examsForTeacher, examsForStudent, findExam, saveExam, deleteExam,
