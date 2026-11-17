@@ -320,7 +320,7 @@ const contacts = computed(() => {
 
   return [...ids].map((teacherId) => {
     const thread = threads.find((t) => t.teacherId === teacherId) ?? null;
-    const t = school.teacher(teacherId);
+    const t = school.teacherForStudent(teacherId);
     return {
       teacherId,
       name: t.name,
@@ -374,7 +374,7 @@ const closeThread = () => {
   if (route.query.teacher) router.replace({ query: { ...route.query, teacher: undefined } });
 };
 
-const activeTeacher = computed(() => (activeId.value ? school.teacher(activeId.value) : null));
+const activeTeacher = computed(() => (activeId.value ? school.teacherForStudent(activeId.value) : null));
 const activeThread = computed(() =>
   school.threadsForStudent(ME).find((t) => t.teacherId === activeId.value) ?? null);
 const activeMessages = computed(() => activeThread.value?.messages ?? []);

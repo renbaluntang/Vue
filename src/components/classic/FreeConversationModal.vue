@@ -62,8 +62,8 @@
         <div class="bg-blue-50 border border-blue-100 rounded-xl p-4 mt-4">
           <p class="text-xs text-blue-500 font-bold uppercase tracking-wider mb-1">Assigned Teacher</p>
           <div class="flex items-center justify-center gap-2">
-            <img :src="teacherImage('Jane Pasanting')" alt="Jane Pasanting" class="w-8 h-8 rounded-full object-cover" />
-            <span class="font-bold text-slate-700">Jane Pasanting</span>
+            <img :src="teacherImage('Jane Pasanting')" alt="Jane" class="w-8 h-8 rounded-full object-cover" />
+            <span class="font-bold text-slate-700">Jane</span>
           </div>
         </div>
 

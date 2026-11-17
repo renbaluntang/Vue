@@ -42,9 +42,6 @@
             <i class="fa-solid fa-camera text-sm mb-0.5"></i>
             <span>Edit</span>
           </div>
-          <div class="sidebar-rank absolute -top-2.5 left-1/2 -translate-x-1/2 bg-gradient-to-r from-amber-500 via-brighture-gold to-amber-500 text-white text-[10px] font-black px-3 py-0.5 rounded-full shadow-sm uppercase tracking-wider whitespace-nowrap">
-            {{ user.stats.rank }}
-          </div>
         </RouterLink>
 
         <h2 class="text-lg font-black text-slate-900 tracking-tight">{{ user.fullName }}</h2>
@@ -1006,7 +1003,9 @@ const nextClassTone = computed(() => {
     lead: 'text-slate-300',
     dot: 'text-slate-600',
     body: 'text-slate-200',
-    join: 'bg-emerald-500 text-slate-950 hover:bg-emerald-400',
+    // White on emerald is only about 2.5:1, so the shadow lifts the label off
+    // the green, matching the teacher portal's Meet buttons.
+    join: 'bg-emerald-500 text-white [text-shadow:0_1px_2px_rgba(0,0,0,0.3)] hover:bg-emerald-400',
     close: 'text-slate-400 hover:bg-slate-800 hover:text-white',
   };
 });
@@ -1050,13 +1049,10 @@ const nowTime = computed(() => new Intl.DateTimeFormat('en-US', {
   .sidebar-profile { padding: 1rem 1rem 0.875rem; }
   .sidebar-profile .sidebar-avatar { width: 4rem; height: 4rem; border-width: 3px; }
   .sidebar-profile .sidebar-badges { display: none; }
-  /* Wider than the photo it sits on, otherwise. */
-  .sidebar-profile .sidebar-rank { font-size: 8px; padding-inline: 0.5rem; }
 }
 
 @media (max-height: 700px) {
   .sidebar-profile .sidebar-avatar { width: 3rem; height: 3rem; border-width: 2px; }
-  .sidebar-profile .sidebar-rank { display: none; }
 }
 
 @media (max-height: 560px) {

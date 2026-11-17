@@ -68,8 +68,8 @@
         <div class="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 mt-4">
           <p class="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">Assigned Teacher</p>
           <div class="flex items-center justify-center gap-2">
-            <img :src="teacherImage('Jane Pasanting')" alt="Jane Pasanting" class="w-8 h-8 rounded-full object-cover border border-slate-200" />
-            <span class="font-bold text-slate-800">Jane Pasanting</span>
+            <img :src="teacherImage('Jane Pasanting')" alt="Jane" class="w-8 h-8 rounded-full object-cover border border-slate-200" />
+            <span class="font-bold text-slate-800">Jane</span>
           </div>
         </div>
 

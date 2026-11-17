@@ -171,10 +171,6 @@
             </span>
           </div>
           <div class="flex items-center gap-3">
-            <RouterLink to="/booking" class="text-xs font-bold text-brighture-bronze hover:text-brighture-bronze">
-              + Book Another Class
-            </RouterLink>
-            <span class="text-slate-300">•</span>
             <RouterLink to="/history" class="text-xs font-bold text-slate-500 hover:text-slate-700">
               Past Lessons History →
             </RouterLink>
@@ -243,25 +239,25 @@
                     eager
                     class="w-20 h-20 sm:w-24 sm:h-24 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:h-20 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:w-20 mx-auto rounded-full border-2 border-brighture-amber/70 transition group-hover:border-brighture-gold/50 group-hover:scale-105"
                   />
-                  <span class="mt-2 block truncate text-xs font-bold text-white transition group-hover:text-brighture-gold">
-                    {{ user.nextUpcomingClass.teacherName }}
-                  </span>
-                  <span class="block text-[11px] font-semibold text-brighture-gold transition group-hover:text-brighture-gold">
-                    View profile →
-                  </span>
                 </button>
 
+                <!-- Who first, then what and when: the teacher's name is the
+                     heading (and opens their profile, like the photo), the
+                     subject sits under it, then the time. -->
                 <div class="min-w-0 pt-1">
                   <h3 class="flex min-w-0 text-xl sm:text-2xl [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:text-xl font-extrabold tracking-tight text-white">
-                    <!-- The heading names the subject in words only; the
-                         coloured code box would repeat what the name says. -->
-                    <span class="min-w-0 truncate">{{ parseSubject(user.nextUpcomingClass.subject).name }}</span>
+                    <button
+                      type="button"
+                      @click="openTeacherDetails({ name: user.nextUpcomingClass.teacherName, photo: user.nextUpcomingClass.teacherPhoto, specialty: '[SF] Speech Fluency, [LS1], [DC]', rating: '4.98', major: 'B.A. in English Linguistics', expertise: '[SF] Speech Fluency & [EP] Exam Prep' })"
+                      class="min-w-0 truncate text-left transition hover:text-brighture-gold focus:outline-none focus-visible:underline"
+                      title="View teacher profile"
+                    >
+                      {{ user.nextUpcomingClass.teacherName }}
+                    </button>
                   </h3>
-                  <p class="text-brighture-gold text-sm font-medium mt-1.5">
-                    Topic: <strong class="text-white">{{ user.nextUpcomingClass.topic }}</strong>
+                  <p class="mt-1.5 flex min-w-0 items-center text-sm font-semibold text-slate-200">
+                    <SubjectCode :subject="user.nextUpcomingClass.subject" size="sm" />
                   </p>
-                  <!-- The time sits with the subject and topic so the class reads
-                       as one block: what, about what, and when. -->
                   <p class="mt-1.5 flex items-center gap-1.5 text-sm font-semibold text-slate-300">
                     <i class="fa-regular fa-clock text-xs text-slate-400" aria-hidden="true"></i>
                     {{ user.nextUpcomingClass.timeFull }}
@@ -328,7 +324,7 @@
                   <th class="w-[21%] py-3 px-2.5 sm:px-3">Date &amp; time</th>
                   <th class="w-[24%] py-3 px-2.5 sm:px-3">Online teacher</th>
                   <th class="w-[25%] py-3 px-2.5 sm:px-3">Subject &amp; class</th>
-                  <th class="w-[30%] py-3 px-2.5 sm:px-3">Actions</th>
+                  <th class="w-[30%] py-3 px-2.5 sm:px-3 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 text-sm">
@@ -374,27 +370,16 @@
                   </td>
                   <td class="py-3.5 px-2.5 sm:px-3 align-middle">
                     <div class="min-w-0 truncate font-bold text-slate-700"><SubjectCode :subject="lesson.subject" size="sm" /></div>
-                    <div class="mt-0.5 truncate text-[11px] font-medium uppercase tracking-wide text-slate-400">{{ lesson.classType }}</div>
                   </td>
-                  <!-- Keep the primary actions obvious; rescheduling stays in class details.
-                       Two equal columns with each label centred, so Details lines
-                       up from row to row even where there is no Meet link yet. -->
+                  <!-- Only the featured class above gets a Meet button; these come
+                       later, so their link waits in class details until it's their
+                       turn. Rescheduling stays in class details too. -->
                   <td class="py-3 px-2.5 sm:px-3 align-middle">
-                    <div class="grid grid-cols-2 items-center gap-1.5">
-                      <span v-if="!lesson.meetLink" aria-hidden="true"></span>
-                      <a
-                        v-else
-                        :href="lesson.meetLink"
-                        target="_blank"
-                        class="inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-emerald-100 bg-emerald-50 px-2.5 py-2 text-[11px] font-bold text-slate-700 shadow-2xs transition-colors hover:border-emerald-200 hover:bg-emerald-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] whitespace-nowrap cursor-pointer"
-                      >
-                        <GoogleMeetIcon size="md" />
-                        <span>Join Meet</span>
-                      </a>
+                    <div class="flex items-center justify-end">
                       <button
                         type="button"
                         @click="detailsLesson = lesson"
-                        class="inline-flex min-h-9 w-full items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-bold text-slate-700 shadow-2xs transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] cursor-pointer"
+                        class="inline-flex min-h-9 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white px-2.5 py-2 text-[11px] font-bold text-slate-700 shadow-2xs transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 active:scale-[0.98] cursor-pointer"
                         title="View class details"
                       >
                         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
@@ -440,8 +425,7 @@
                   <div class="min-w-0 flex-1">
                     <p class="m-0 truncate text-sm font-bold text-slate-900">{{ lesson.teacherName }}</p>
                     <div class="mt-1 flex min-w-0 items-center gap-1.5 text-xs text-slate-500">
-                      <SubjectCode :subject="lesson.subject" size="sm" icon-on-mobile />
-                      <span v-if="lesson.classType" class="min-w-0 truncate">{{ lesson.classType }}</span>
+                      <SubjectCode :subject="lesson.subject" size="sm" />
                     </div>
                     <div v-if="lesson.isSubstitute || lesson.isNext" class="mt-1.5 flex flex-wrap gap-1">
                       <span
@@ -508,19 +492,10 @@
                   </div>
                 </div>
 
-                <!-- Actions: joining first and full width, then one row of three.
-                     Reschedule's column is a little wider so its word fits on
-                     a 360px phone. -->
+                <!-- Actions: one row of three. No Meet button here: only the
+                     featured class above gets one. Reschedule's column is a
+                     little wider so its word fits on a 360px phone. -->
                 <div class="space-y-2 pt-1">
-                  <a
-                    v-if="lesson.meetLink"
-                    :href="lesson.meetLink"
-                    target="_blank"
-                    @click.stop
-                    class="flex w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-xs transition hover:bg-emerald-500 active:scale-[0.98]"
-                  >
-                    <GoogleMeetIcon size="md" /> Join Meet
-                  </a>
                   <div class="grid grid-cols-[1fr_1.25fr_1fr] gap-1.5">
                     <button
                       type="button"
@@ -1260,7 +1235,7 @@ const handleBookFromTeacherModal = (teacher) => {
 const quickInstructors = ref([
   {
     id: 1,
-    name: 'Jirvy Dela Torre',
+    name: 'Jirvy',
     photo: imageForKey(184),
     specialty: '[SF], [LS1], [DC], [PP101], [PP102], [PP201], [PP202], [FC]',
     rating: '4.98',
@@ -1271,7 +1246,7 @@ const quickInstructors = ref([
   },
   {
     id: 2,
-    name: 'Jane Pasanting',
+    name: 'Jane',
     photo: imageForKey(178),
     specialty: '[DC] Daily Conversation, [PP101], [PP102]',
     rating: '4.95',
@@ -1282,7 +1257,7 @@ const quickInstructors = ref([
   },
   {
     id: 3,
-    name: 'Analyn Yosores',
+    name: 'Analyn',
     photo: imageForKey(176),
     specialty: '[RW] Reading & Writing, [SC], [EP]',
     rating: '4.92',
@@ -1293,7 +1268,7 @@ const quickInstructors = ref([
   },
   {
     id: 4,
-    name: 'Sandra Auman',
+    name: 'Sandra',
     photo: imageForKey(175),
     specialty: '[SF] Speech Fluency, [PP201], [SC]',
     rating: '4.89',

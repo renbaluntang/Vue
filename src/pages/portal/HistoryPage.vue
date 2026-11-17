@@ -247,77 +247,145 @@
       </div>
     </div>
 
-    <!-- Rate teacher -->
+    <!-- Rate teacher. Pinned near the top like every other pop-up, so the
+         dialog doesn't jump when the comment box grows. -->
     <div
       v-if="ratingTarget"
-      class="fixed inset-0 z-[60] flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-in fade-in duration-200"
+      class="fixed inset-0 z-[60] flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 pt-6 backdrop-blur-xs animate-in fade-in duration-200 sm:pt-12"
       @click.self="ratingTarget = null"
+      @keydown.esc="ratingTarget = null"
     >
       <div
         role="dialog"
         aria-modal="true"
         aria-labelledby="rate-teacher-title"
-        class="w-full max-w-sm overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-2xl animate-in zoom-in-95"
+        class="relative w-full max-w-md overflow-hidden rounded-[1.75rem] bg-white shadow-[0_24px_64px_-16px_rgba(15,23,42,0.45)] ring-1 ring-slate-900/5 animate-in zoom-in-95"
       >
-        <div class="p-6 text-center">
-          <AppImage
-            :src="ratingTarget.teacherPhoto"
-            :alt="ratingTarget.teacherName"
-            eager
-            class="mx-auto h-16 w-16 rounded-full ring-2 ring-white outline outline-1 outline-slate-200"
-          />
-          <h2 id="rate-teacher-title" class="mt-3 text-lg font-extrabold text-slate-900">
-            Rate {{ ratingTarget.teacherName }}
+        <button
+          type="button"
+          @click="ratingTarget = null"
+          class="absolute right-3 top-3 z-10 flex h-9 w-9 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+          aria-label="Close"
+        >
+          <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+        </button>
+
+        <!-- A warm cream band behind the photo ties the dialog to the brand
+             without colouring the whole surface. -->
+        <div class="bg-gradient-to-b from-brighture-cream to-white px-6 pb-2 pt-8 text-center sm:px-8">
+          <div class="relative mx-auto w-fit">
+            <AppImage
+              :src="ratingTarget.teacherPhoto"
+              :alt="ratingTarget.teacherName"
+              eager
+              class="h-20 w-20 rounded-full object-cover ring-4 ring-white shadow-[0_6px_20px_-6px_rgba(138,102,0,0.45)]"
+            />
+          </div>
+          <h2 id="rate-teacher-title" class="mt-4 text-xl font-extrabold tracking-tight text-brighture-ink">
+            How was your lesson with {{ firstName(ratingTarget.teacherName) }}?
           </h2>
-          <p class="mt-1 flex flex-wrap items-center justify-center gap-1.5 text-xs font-semibold text-slate-500">
+          <p class="mt-1.5 flex flex-wrap items-center justify-center gap-1.5 text-xs font-semibold text-slate-500">
             <SubjectCode :subject="ratingTarget.subject" size="sm" /><span aria-hidden="true">·</span><span>{{ ratingTarget.date }}</span>
           </p>
+        </div>
 
-          <!-- Stars -->
-          <div class="mt-5 flex items-center justify-center gap-1.5" role="radiogroup" aria-label="Rating out of five">
+        <div class="px-6 pb-6 sm:px-8">
+          <!-- Stars. Hovering previews the rating across every star up to the
+               pointer; choosing one replays a short fill from left to right so
+               the pick feels set rather than merely recoloured. Arrow keys
+               move the rating like any radio group. -->
+          <div
+            :key="`stars-${shakeKey}`"
+            class="mt-5 flex items-center justify-center gap-1"
+            :class="shakeKey ? 'stars-shake' : ''"
+            role="radiogroup"
+            :aria-invalid="missingStars"
+            :aria-describedby="missingStars ? 'rate-teacher-warning' : undefined"
+            aria-label="Rating out of five"
+            @mouseleave="hoverStars = 0"
+            @keydown.right.prevent="stepStars(1)"
+            @keydown.up.prevent="stepStars(1)"
+            @keydown.left.prevent="stepStars(-1)"
+            @keydown.down.prevent="stepStars(-1)"
+          >
             <button
               v-for="star in 5"
               :key="star"
+              :ref="(el) => (starButtons[star - 1] = el)"
               type="button"
               role="radio"
               :aria-checked="draftStars === star"
-              :aria-label="`${star} of 5`"
-              @click="draftStars = star"
-              class="rounded-lg p-1 text-3xl leading-none transition hover:scale-110 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
-              :class="star <= draftStars ? 'text-brighture-gold-deep' : 'text-slate-200 hover:text-brighture-gold/60'"
+              :aria-label="`${star} of 5, ${STAR_LABELS[star]}`"
+              :tabindex="star === (draftStars || 1) ? 0 : -1"
+              @mouseenter="hoverStars = star"
+              @click="pickStars(star)"
+              class="group/star rounded-xl p-1.5 leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
             >
-              <i class="fa-solid fa-star" aria-hidden="true"></i>
+              <i
+                :key="star <= draftStars ? `on-${popKey}` : 'off'"
+                class="fa-solid fa-star block text-[2.5rem] transition-[color,transform] duration-150 ease-out group-hover/star:scale-110 motion-reduce:transition-none"
+                :class="[
+                  star <= shownStars ? 'star-on' : 'text-slate-200',
+                  star <= draftStars && popKey ? 'star-pop' : '',
+                ]"
+                :style="star <= draftStars && popKey ? { animationDelay: `${(star - 1) * 45}ms` } : null"
+                aria-hidden="true"
+              ></i>
             </button>
           </div>
-          <p class="mt-2 h-4 text-xs font-bold text-slate-500">{{ STAR_LABELS[draftStars] ?? '' }}</p>
-
-          <textarea
-            v-model="draftComment"
-            rows="3"
-            maxlength="300"
-            placeholder="Anything you want to say about this lesson? (optional)"
-            class="mt-4 w-full resize-none rounded-2xl border border-slate-200 bg-white px-3.5 py-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-brighture-amber focus:ring-4 focus:ring-brighture-gold/20"
-          ></textarea>
-        </div>
-
-        <div class="flex items-center justify-end gap-2.5 border-t border-slate-100 bg-slate-50 p-4">
-          <button
-            @click="ratingTarget = null"
-            class="rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-xs font-bold text-slate-700 transition hover:bg-slate-50"
+          <!-- Submitting without a star swaps the hint for a warning in the
+               same spot, so nothing below shifts. -->
+          <p
+            v-if="missingStars && !shownStars"
+            id="rate-teacher-warning"
+            class="mt-2 flex h-5 items-center justify-center gap-1.5 text-center text-sm font-bold text-rose-600"
+            role="alert"
           >
-            Cancel
-          </button>
-          <button
-            :disabled="!draftStars"
-            @click="submitRating"
-            :class="`rounded-xl px-5 py-2.5 text-xs font-bold transition ${
-              draftStars
-                ? 'bg-brighture-gold text-brighture-ink shadow-xs hover:bg-brighture-gold-deep'
-                : 'cursor-not-allowed bg-slate-200 text-slate-400'
-            }`"
-          >
-            {{ ratingTarget.yourRating ? 'Update rating' : 'Submit rating' }}
-          </button>
+            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+            Choose a star rating before you submit
+          </p>
+          <p v-else class="mt-2 h-5 text-center text-sm font-bold" :class="shownStars ? 'text-brighture-bronze' : 'text-slate-400'" aria-live="polite">
+            {{ STAR_LABELS[shownStars] ?? 'Tap a star to rate' }}
+          </p>
+
+          <label for="rate-teacher-comment" class="mt-5 block text-xs font-bold text-slate-700">
+            {{ commentPrompt }} <span class="font-semibold text-slate-400">(optional)</span>
+          </label>
+          <div class="relative mt-1.5">
+            <textarea
+              id="rate-teacher-comment"
+              v-model="draftComment"
+              rows="3"
+              maxlength="300"
+              placeholder="Your message to the instructor"
+              class="w-full resize-none rounded-2xl border border-slate-200 bg-slate-50/60 px-4 pb-6 pt-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-brighture-amber focus:bg-white focus:ring-4 focus:ring-brighture-gold/20"
+            ></textarea>
+            <span class="pointer-events-none absolute bottom-2.5 right-3.5 text-[11px] font-semibold tabular-nums text-slate-400">
+              {{ draftComment.length }}/300
+            </span>
+          </div>
+
+          <!-- Equal halves. Submit stays clickable without a rating so the
+               student gets told why instead of facing a dead button. -->
+          <div class="mt-5 grid grid-cols-2 gap-2.5">
+            <button
+              type="button"
+              @click="ratingTarget = null"
+              class="h-11 rounded-xl border border-slate-200 bg-white text-sm font-bold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              @click="submitRating"
+              class="h-11 rounded-xl border text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold focus-visible:ring-offset-2"
+              :class="draftStars
+                ? 'border-transparent bg-gradient-to-br from-[#FFE066] via-brighture-gold to-[#F5A000] text-brighture-ink shadow-md shadow-brighture-amber/30 hover:brightness-105'
+                : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-200/70'"
+            >
+              {{ ratingTarget.yourRating ? 'Update rating' : 'Submit rating' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -360,15 +428,56 @@ const STAR_LABELS = {
 const ratingTarget = ref(null);
 const draftStars = ref(0);
 const draftComment = ref('');
+// The star under the pointer, so the row previews a rating before it's chosen.
+const hoverStars = ref(0);
+// Bumped on every pick so the chosen stars re-mount and replay their fill.
+// Zero on open, so a saved rating shows without animating.
+const popKey = ref(0);
+const starButtons = ref([]);
+// Set when Submit is pressed with no stars; cleared as soon as one is picked.
+const missingStars = ref(false);
+// Bumped on each empty submit so the star row re-mounts and replays its shake.
+const shakeKey = ref(0);
+
+const shownStars = computed(() => hoverStars.value || draftStars.value);
+
+const firstName = (name = '') => name.split(' ')[0];
+
+// The question follows the rating, so a low score asks what to fix and a
+// high one asks what worked.
+const commentPrompt = computed(() => {
+  if (!draftStars.value) return 'Anything you want to say about this lesson?';
+  return draftStars.value <= 3 ? 'What could have been better?' : 'What did you enjoy most?';
+});
 
 const openRating = (lesson) => {
   ratingTarget.value = lesson;
   draftStars.value = lesson.yourRating ?? 0;
   draftComment.value = lesson.yourComment ?? '';
+  hoverStars.value = 0;
+  popKey.value = 0;
+  missingStars.value = false;
+  shakeKey.value = 0;
+};
+
+const pickStars = (star) => {
+  draftStars.value = star;
+  popKey.value += 1;
+  missingStars.value = false;
+};
+
+const stepStars = (delta) => {
+  const next = Math.min(5, Math.max(1, (draftStars.value || 0) + delta));
+  pickStars(next);
+  starButtons.value[next - 1]?.focus();
 };
 
 const submitRating = () => {
-  if (!draftStars.value) return;
+  if (!draftStars.value) {
+    missingStars.value = true;
+    shakeKey.value += 1;
+    return;
+  }
   user.rateLesson(ratingTarget.value.id, draftStars.value, draftComment.value);
   ratingTarget.value = null;
 };
@@ -384,3 +493,49 @@ const filteredLessons = computed(() =>
     : user.pastLessons.filter((lesson) => lesson.status === activeFilter.value)
 );
 </script>
+
+<style scoped>
+/* Filled stars run from light to deep gold, top to bottom, so they read as
+   lit rather than flat yellow. */
+.star-on {
+  background: linear-gradient(180deg, #ffe066 0%, #ffcd00 45%, #f5a000 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 2px 3px rgba(224, 168, 0, 0.35));
+  /* The star glyph pokes out of its line box and a clipped background only
+     paints inside the box, so pad it (and pull the margin back) or the tips
+     get cut off and the gold stars look shorter than the grey ones. */
+  padding: 0.12em 0;
+  margin: -0.12em 0;
+}
+
+/* One short bounce when a star is chosen; it plays once and stops. */
+.star-pop {
+  animation: star-pop 360ms cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+@keyframes star-pop {
+  0% { transform: scale(0.6); }
+  60% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* A short sideways shake when Submit is pressed without a rating. */
+.stars-shake {
+  animation: stars-shake 380ms ease-in-out;
+}
+
+@keyframes stars-shake {
+  0%, 100% { transform: translateX(0); }
+  20% { transform: translateX(-6px); }
+  40% { transform: translateX(6px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(4px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .star-pop,
+  .stars-shake { animation: none; }
+}
+</style>

@@ -37,7 +37,7 @@
               <div class="min-w-0 flex-1">
                 <p class="text-sm font-bold text-slate-900">{{ itemLabel(copy.item) }}</p>
                 <p class="mt-0.5 text-[11px] font-semibold text-slate-500">
-                  {{ t('materials.copyFrom', { name: copy.sentBy.name, date: dateIn(copy.sentAt, TOKYO) }) }}
+                  {{ t('materials.copyFrom', { name: school.nicknameOf(copy.sentBy.name), date: dateIn(copy.sentAt, TOKYO) }) }}
                 </p>
               </div>
               <a

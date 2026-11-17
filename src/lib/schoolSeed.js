@@ -14,7 +14,7 @@
 import { seedMaterials } from '@/lib/lessonMaterials';
 import { manilaAt } from '@/lib/schoolTime';
 
-export const SEED_VERSION = 9;
+export const SEED_VERSION = 10;
 
 /** Ids of the signed-in user on each side of the prototype. */
 export const CURRENT_STUDENT_ID = 21;
@@ -38,11 +38,12 @@ export const seedStudents = () => ({
 /** Keyed by the teacher-image id the rest of the app already uses. */
 export const seedTeachers = () => ({
   // canAssess: an admin has flagged them to run level checks (TA / CS / FA).
-  184: { id: 184, name: 'Jirvy Dela Torre', canAssess: true },
-  178: { id: 178, name: 'Jane Pasanting', canAssess: false },
-  176: { id: 176, name: 'Analyn Yosores', canAssess: true },
-  175: { id: 175, name: 'Sandra Auman', canAssess: true },
-  139: { id: 139, name: 'Nash Tatoy', canAssess: true },
+  // nickname: what students see. Staff screens keep the full name.
+  184: { id: 184, name: 'Jirvy Dela Torre', nickname: 'Jirvy', canAssess: true },
+  178: { id: 178, name: 'Jane Pasanting', nickname: 'Jane', canAssess: false },
+  176: { id: 176, name: 'Analyn Yosores', nickname: 'Analyn', canAssess: true },
+  175: { id: 175, name: 'Sandra Auman', nickname: 'Sandra', canAssess: true },
+  139: { id: 139, name: 'Nash Tatoy', nickname: 'Nash', canAssess: true },
 });
 
 const SF = '[SF] Speech Fluency';

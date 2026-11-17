@@ -428,7 +428,7 @@ const rows = computed(() =>
   school.examsForStudent(ME).map((exam) => {
     const sub = school.submissionFor(exam.id, ME);
     const max = school.examMaxScore(exam);
-    return { exam, sub, max, teacher: school.teacher(exam.teacherId), status: statusOf(sub, max) };
+    return { exam, sub, max, teacher: school.teacherForStudent(exam.teacherId), status: statusOf(sub, max) };
   }).sort((a, b) => {
     // To-do first, then newest.
     if (!!a.sub !== !!b.sub) return a.sub ? 1 : -1;
@@ -453,7 +453,7 @@ const view = ref('list');
 const activeId = ref(null);
 const activeExam = computed(() => school.examsForStudent(ME).find((e) => e.id === activeId.value) ?? null);
 const activeSub = computed(() => (activeId.value ? school.submissionFor(activeId.value, ME) : null));
-const activeTeacher = computed(() => school.teacher(activeExam.value?.teacherId));
+const activeTeacher = computed(() => school.teacherForStudent(activeExam.value?.teacherId));
 const mcqCount = computed(() => activeExam.value?.questions.filter((q) => q.type === 'mcq').length ?? 0);
 const essayCount = computed(() => activeExam.value?.questions.filter((q) => q.type === 'essay').length ?? 0);
 

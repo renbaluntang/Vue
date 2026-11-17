@@ -365,7 +365,9 @@ export const useUserStore = defineStore('user', () => {
   ]);
 
   // ── Lessons ───────────────────────────────────────────────────────────
-  const teacherOf = (id) => school.teacher(id);
+  // Students see teachers by nickname, so every row built here carries it as
+  // teacherName; the full name stays on the teacher portal and admin side.
+  const teacherOf = (id) => school.teacherForStudent(id);
   const myLessons = computed(() => school.lessonsForStudent(STUDENT_ID));
 
   /** A booked lesson in the dashboard's row shape. */
@@ -588,8 +590,11 @@ export const useUserStore = defineStore('user', () => {
     school.submitWriting({ studentId: STUDENT_ID, title: (title ?? '').trim() || 'Untitled passage', body });
 
   // ── Materials ─────────────────────────────────────────────────────────
-  // The same shelf the instructor sees against this student's name.
-  const lessonMaterials = computed(() => school.materialsFor(STUDENT_ID));
+  // The same shelf the instructor sees against this student's name. addedBy is
+  // stored as the teacher's full name, so it is swapped for the nickname here.
+  const lessonMaterials = computed(() =>
+    school.materialsFor(STUDENT_ID).map((m) => ({ ...m, addedBy: m.addedBy && school.nicknameOf(m.addedBy) }))
+  );
 
   /** Newest first, and grouped by subject for the materials page. */
   const materialsBySubject = computed(() => {

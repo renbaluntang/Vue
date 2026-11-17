@@ -159,8 +159,21 @@ export const useSchoolStore = defineStore('school', () => {
   const student = (id) => db.value.students[id] ?? { id, name: `Student ${id}`, photo: '', membership: 'Regular', category: 'Online', timezone: 'Asia/Tokyo' };
   const teacher = (id) => {
     const t = db.value.teachers[id];
-    return { id, name: t?.name ?? 'Unassigned', photo: imageForKey(id) };
+    return { id, name: t?.name ?? 'Unassigned', nickname: t?.nickname || t?.name || 'Unassigned', photo: imageForKey(id) };
   };
+
+  /**
+   * A teacher as students see them: `name` is the nickname, and the full name
+   * stays on `fullName` for matching records that store it (materials).
+   */
+  const teacherForStudent = (id) => {
+    const t = teacher(id);
+    return { ...t, fullName: t.name, name: t.nickname };
+  };
+
+  /** The nickname behind a stored full name, for text saved before display. */
+  const nicknameOf = (fullName) =>
+    Object.values(db.value.teachers).find((t) => t.name === fullName)?.nickname || fullName;
 
   // ── Lessons ───────────────────────────────────────────────────────────
   const lessons = computed(() => [...db.value.lessons].sort((a, b) => a.start.localeCompare(b.start)));
@@ -259,7 +272,7 @@ export const useSchoolStore = defineStore('school', () => {
       if (!taEligible(studentId)) return null;
       points = 0;
     }
-    if (points && !adjustWallet(studentId, -points, { reason: 'Lesson booked', detail: `${subject} with ${teacher(teacherId).name}`, type: 'debit' })) return null;
+    if (points && !adjustWallet(studentId, -points, { reason: 'Lesson booked', detail: `${subject} with ${teacher(teacherId).nickname}`, type: 'debit' })) return null;
     const lesson = {
       id: uid('r'), studentId, teacherId, start, duration, points, subject, topic, note,
       status: 'booked', substitution: false,
@@ -306,7 +319,7 @@ export const useSchoolStore = defineStore('school', () => {
     const i = db.value.lessons.findIndex((l) => l.id === id && l.status === 'booked');
     if (i === -1) return false;
     const [l] = db.value.lessons.splice(i, 1);
-    if (l.points) adjustWallet(l.studentId, l.points, { reason: 'Booking undone', detail: `${l.subject} with ${teacher(l.teacherId).name}`, type: 'refund' });
+    if (l.points) adjustWallet(l.studentId, l.points, { reason: 'Booking undone', detail: `${l.subject} with ${teacher(l.teacherId).nickname}`, type: 'refund' });
     return true;
   };
 
@@ -794,7 +807,7 @@ export const useSchoolStore = defineStore('school', () => {
 
   return {
     db, now, resetDemo,
-    student, teacher,
+    student, teacher, teacherForStudent, nicknameOf,
     lessons, lessonsForTeacher, lessonsForStudent, findLesson, teacherBusy, isTeacherSlotOpen, teacherSlotState,
     bookLesson, cancelLesson, undoBooking, rescheduleLesson, updateLesson, submitFeedback, rateLesson,
     walletFor, adjustWallet,

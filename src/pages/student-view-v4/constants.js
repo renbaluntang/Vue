@@ -1,10 +1,11 @@
 import studentImage from "@/assets/student-1.svg";
 import { TEACHER_IMAGES, imageForKey } from "@/lib/teacherImages";
+import { seedTeachers } from "@/lib/schoolSeed";
 
 // Real Brighture instructors. `imageKey` is this teacher's own portrait key, so
 // the photo can never drift onto the wrong name. Subjects and point costs are
 // taken from the live booking page ("LS" there is this app's [LS1]).
-export const INSTRUCTORS = [
+const INSTRUCTOR_RECORDS = [
   {
     id: 1,
     name: "Jirvy Dela Torre",
@@ -52,6 +53,16 @@ export const INSTRUCTORS = [
     specialty: "[LS1], [PP101], [PP201], [TA], [EP]",
   },
 ];
+
+// This catalogue is only shown to students, and students see teachers by
+// nickname. The nickname comes from the same teacher records the shared store
+// seeds, matched on imageKey; the full name stays on fullName.
+const NICKNAMES = seedTeachers();
+export const INSTRUCTORS = INSTRUCTOR_RECORDS.map((i) => ({
+  ...i,
+  fullName: i.name,
+  name: NICKNAMES[i.imageKey]?.nickname || i.name,
+}));
 
 // Display names for the exact subject codes requested:
 export const SUBJECT_LABELS = {
