@@ -161,12 +161,6 @@ const getSubjectCategoryBadge = (code) => {
   return { name: "General", icon: "fa-solid fa-book text-slate-500", badgeBg: "bg-slate-100 text-slate-700" };
 };
 
-const getCleanExpertise = (teacher) => {
-  const raw = getTeacherProfile(teacher).expertise || "";
-  // Strip code prefixes like [SF], [LS1], etc. so it's readable
-  return raw.replace(/\[[A-Z0-9]+\]\s*/gi, "").trim();
-};
-
 watch(
   favorites,
   (value) => {
@@ -643,35 +637,30 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
           </div>
         </div>
 
-        <!-- Row 2: Subject & Category Filter + Favorites -->
-        <div class="mt-3 border-t border-slate-100 px-5 py-3 sm:px-6">
+        <!-- Row 2: subject filters, then the result count, reset and
+             favourites on the same line, so the filter card stays short. -->
+        <div class="mt-3 border-t border-slate-100 px-5 py-2.5 sm:px-6">
           <SubjectFilterBar
             v-model="subjectFilter"
             v-model:favorites-only="favoritesOnly"
             :favorites-count="favorites.length"
             :exclude-codes="excludedCodes"
-          />
-        </div>
-
-        <!-- Bottom: count + reset -->
-        <div class="flex items-center justify-between border-t border-slate-100 px-5 py-3 sm:px-6">
-          <span class="inline-flex items-center gap-1.5 text-[11px] text-slate-500">
-            <span class="inline-flex h-5 min-w-[20px] items-center justify-center rounded-full bg-slate-100 px-1.5 text-[10px] font-bold text-slate-600">
-              {{ filteredInstructors.length }}
-            </span>
-            of {{ INSTRUCTORS.length }} instructors
-          </span>
-          <button
-            v-if="search || subjectFilter !== 'ALL' || favoritesOnly || selectedDayKey || selectedTime"
-            type="button"
-            @click="resetFilters"
-            class="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-3 py-1 text-[11px] font-semibold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50"
           >
-            <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.5">
-              <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-            Reset filters
-          </button>
+            <template #end>
+              <span class="whitespace-nowrap text-[11px] font-medium tabular-nums text-slate-400">
+                <strong class="font-bold text-slate-600">{{ filteredInstructors.length }}</strong> of {{ INSTRUCTORS.length }}
+              </span>
+              <button
+                v-if="search || subjectFilter !== 'ALL' || favoritesOnly || selectedDayKey || selectedTime"
+                type="button"
+                @click="resetFilters"
+                class="inline-flex h-8 items-center gap-1 rounded-xl px-2 text-[11px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+              >
+                <i class="fa-solid fa-rotate-left text-[10px]" aria-hidden="true"></i>
+                Reset
+              </button>
+            </template>
+          </SubjectFilterBar>
         </div>
       </header>
 
@@ -698,12 +687,6 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                   </button>
                 </h3>
 
-                <!-- Experience Tag -->
-                <div class="inline-flex items-center rounded-full bg-slate-50 border border-slate-200/80 px-2.5 py-1 text-xs">
-                  <span class="text-slate-500 font-medium">
-                    {{ (teacher.lessonCount || 850).toLocaleString() }}+ lessons taught
-                  </span>
-                </div>
               </div>
 
               <!-- Rates & Action Pill -->
@@ -763,54 +746,20 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                   </div>
                 </button>
 
-                <!-- Video Buttons (Distinct Icons & Clarifying Labels) -->
-                <div class="flex w-full max-w-[200px] flex-col gap-2">
-                  <button
-                    type="button"
-                    @click.stop="openVideo(teacher, 'intro')"
-                    class="inline-flex w-full touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
-                    title="A short video about them"
-                  >
-                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-red-600 text-[9px]"><i class="fa-solid fa-play" aria-hidden="true"></i></span>
-                    <span>Get to know {{ teacher.name.split(' ')[0] }}</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    @click.stop="openVideo(teacher, 'demo')"
-                    class="inline-flex w-full touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
-                    title="A few minutes of a real class"
-                  >
-                    <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-[10px]"><i class="fa-solid fa-clapperboard" aria-hidden="true"></i></span>
-                    <span>See {{ teacher.name.split(' ')[0] }} teach</span>
-                  </button>
-                </div>
               </div>
 
               <!-- Right Column: Organized Teacher Details -->
               <div class="space-y-3.5">
-                <!-- Academic Background & Teaching Focus Info Grid -->
-                <div class="grid gap-2.5 sm:grid-cols-2">
-                  <div class="rounded-xl border border-slate-200/70 bg-slate-50/70 p-3.5 shadow-2xs">
-                    <div class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                      <svg class="h-3.5 w-3.5 text-amber-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z" />
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
-                      </svg>
-                      <span>Academic Background</span>
-                    </div>
-                    <p class="mt-1 text-xs font-bold text-slate-800 m-0 leading-snug">{{ getTeacherProfile(teacher).major }}</p>
-                  </div>
-
-                  <div class="rounded-xl border border-slate-200/70 bg-slate-50/70 p-3.5 shadow-2xs">
-                    <div class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-500">
-                      <svg class="h-3.5 w-3.5 text-indigo-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <span>Primary Specialization</span>
-                    </div>
-                    <p class="mt-1 text-xs font-semibold text-slate-700 m-0 leading-snug">{{ getCleanExpertise(teacher) }}</p>
-                  </div>
+                <!-- Teacher Introduction Quote Box -->
+                <div class="relative rounded-2xl border border-slate-200/80 bg-gradient-to-r from-amber-50/30 via-slate-50/80 to-white p-3.5 pl-4 shadow-2xs">
+                  <div class="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-amber-400" />
+                  <p class="m-0 text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1">
+                    <i class="fa-solid fa-comments text-sky-600" aria-hidden="true"></i>
+                    <span>Teacher Introduction</span>
+                  </p>
+                  <p class="m-0 text-xs leading-relaxed text-slate-700 italic line-clamp-3 font-normal">
+                    "{{ getTeacherProfile(teacher).selfIntro }}"
+                  </p>
                 </div>
 
                 <!-- Subjects Taught Badges with Clear Names & Category Pills -->
@@ -841,26 +790,33 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                   </div>
                 </div>
 
-                <!-- Teacher Introduction Quote Box -->
-                <div class="relative rounded-2xl border border-slate-200/80 bg-gradient-to-r from-amber-50/30 via-slate-50/80 to-white p-3.5 pl-4 shadow-2xs">
-                  <div class="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-amber-400" />
-                  <p class="m-0 text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1">
-                    <i class="fa-solid fa-comments text-sky-600" aria-hidden="true"></i>
-                    <span>Teacher Introduction</span>
-                  </p>
-                  <p class="m-0 text-xs leading-relaxed text-slate-700 italic line-clamp-3 font-normal">
-                    "{{ getTeacherProfile(teacher).selfIntro }}"
-                  </p>
-                </div>
               </div>
             </div>
           </div>
 
           <!-- Card Footer CTA Bar -->
-          <div class="mt-5 flex flex-col items-center justify-between gap-3 border-t border-slate-100 pt-4 sm:flex-row">
-            <div class="flex items-center gap-2 text-xs text-slate-600 font-medium">
-              <span class="flex h-2 w-2 rounded-full bg-emerald-500"></span>
-              <span>Available for instant booking — Choose from upcoming timetable</span>
+          <div class="mt-5 flex flex-col items-center justify-between gap-3 sm:flex-row">
+            <!-- Video buttons, in the footer beside the booking button. -->
+            <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
+              <button
+                type="button"
+                @click.stop="openVideo(teacher, 'intro')"
+                class="inline-flex min-w-0 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
+                title="A short video about them"
+              >
+                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-red-600 text-[9px]"><i class="fa-solid fa-play" aria-hidden="true"></i></span>
+                <span>Get to know {{ teacher.name.split(' ')[0] }}</span>
+              </button>
+
+              <button
+                type="button"
+                @click.stop="openVideo(teacher, 'demo')"
+                class="inline-flex min-w-0 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
+                title="A few minutes of a real class"
+              >
+                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-[10px]"><i class="fa-solid fa-clapperboard" aria-hidden="true"></i></span>
+                <span>See {{ teacher.name.split(' ')[0] }} teach</span>
+              </button>
             </div>
 
             <div class="flex items-center gap-2 w-full sm:w-auto">

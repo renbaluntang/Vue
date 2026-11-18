@@ -315,6 +315,10 @@ onUnmounted(() => {
 
       </div>
 
+      <!-- Right side: whatever the page adds (such as a result count),
+           then the favourites toggle. -->
+      <div class="ml-auto flex shrink-0 items-center gap-2.5">
+      <slot name="end" />
       <!-- Favorites Toggle (if enabled) -->
       <button
         v-if="showFavoritesButton"
@@ -338,6 +342,7 @@ onUnmounted(() => {
           {{ favoritesCount }}
         </span>
       </button>
+      </div>
 
     </div>
 

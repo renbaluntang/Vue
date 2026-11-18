@@ -48,41 +48,103 @@
       </div>
     </div>
 
-    <!-- Top of the page: this week's progress, with the two quick actions
-         beside it on wide screens (xl) and under it below that. -->
+    <!-- Top of the page: the latest school announcements, with the two
+         quick actions beside them on wide screens (xl) and under them below
+         that. -->
     <section class="flex flex-col xl:flex-row gap-5 xl:gap-6 items-stretch xl:items-center">
-      <!-- The week is the dashboard's one primary metric; the rest is supporting evidence. -->
-      <section aria-label="Learning progress" class="min-w-0 w-full flex-1 border-y border-slate-200 py-3.5 sm:py-4 grid grid-cols-1 lg:grid-cols-[minmax(0,1.6fr)_repeat(3,minmax(0,0.6fr))] gap-4 lg:gap-0">
-        <div class="lg:pr-8">
-          <div class="flex items-end justify-between gap-4">
-            <div>
-              <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Weekly class goal</p>
-              <p class="mt-1 text-3xl sm:text-4xl font-black tracking-[-0.06em] tabular-nums text-slate-950 leading-none">
-                {{ user.stats.weeklyGoalMet }}<span class="text-slate-300">/{{ user.stats.weeklyGoalTotal }}</span>
-              </p>
+      <!-- A board of the newest posts from the blog's Announcement category.
+           Each row opens the post on the blog in a new tab. Colour stays in
+           the date chips and the pinned row, so the list reads calmly. -->
+      <section aria-labelledby="announcements-title" @mouseenter="annPaused = true" @mouseleave="annPaused = false" @focusin="annPaused = true" @focusout="annPaused = false" class="ann-board min-w-0 w-full flex-1 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <header class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
+          <div class="flex min-w-0 items-center gap-3">
+            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brighture-cream text-brighture-bronze ring-1 ring-inset ring-amber-200/70">
+              <i class="fa-solid fa-bullhorn text-sm" aria-hidden="true"></i>
+            </span>
+            <div class="min-w-0">
+              <h2 id="announcements-title" class="m-0 text-[15px] font-extrabold leading-tight tracking-tight text-slate-900">Announcements</h2>
+              <p class="ann-sub m-0 mt-0.5 truncate text-xs font-medium text-slate-400">News from the Brighture blog</p>
             </div>
-            <p class="max-w-[13rem] text-right text-xs leading-4 font-medium text-slate-500">
-              {{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet }} more class{{ user.stats.weeklyGoalTotal - user.stats.weeklyGoalMet === 1 ? '' : 'es' }} completes your target for {{ weekRangeLabel }}.
-            </p>
           </div>
-          <div class="mt-2.5 h-1.5 overflow-hidden rounded-full bg-slate-100" aria-hidden="true">
-            <div class="h-full rounded-full bg-[#FFCD00]" :style="{ width: `${(user.stats.weeklyGoalMet / user.stats.weeklyGoalTotal) * 100}%` }"></div>
+          <div class="flex shrink-0 items-center gap-3">
+          <!-- One dot per post; the filled one is the post on top. -->
+          <div class="ann-dots items-center gap-1" role="group" aria-label="Choose announcements">
+            <button
+              v-for="(post, i) in latestAnnouncements"
+              :key="post.id"
+              type="button"
+              @click="annStart = i"
+              class="h-1.5 rounded-full transition-all"
+              :class="i === annStart ? 'w-4 bg-brighture-gold' : 'w-1.5 bg-slate-200 hover:bg-slate-300'"
+              :aria-label="`Show ${post.title}`"
+              :aria-current="i === annStart ? 'true' : null"
+            ></button>
           </div>
+          <a
+            :href="ANNOUNCEMENTS_URL"
+            target="_blank"
+            rel="noopener"
+            class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+          >
+            View all
+            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]" aria-hidden="true"></i>
+          </a>
+          </div>
+        </header>
+        <!-- A sliding strip: every card sits in one row and the row glides
+             left by one card, so the second card moves smoothly into the
+             first card's place. Two cards show at a time, one on a phone.
+             The first two cards are repeated at the end, so the strip can
+             run on past the last post and then quietly jump back to the
+             start. -->
+        <div class="p-3 sm:p-4">
+        <div class="overflow-hidden">
+        <ul
+          class="ann-track m-0 flex list-none gap-3 p-0"
+          :class="annAnimate ? 'ann-track--animate' : ''"
+          :style="{ '--ann-i': annIndex }"
+          aria-live="off"
+          @transitionend.self="onAnnSlid"
+        >
+          <li
+            v-for="(post, i) in annTrack"
+            :key="`${post.id}-${i}`"
+            class="ann-slide min-w-0 shrink-0"
+            :aria-hidden="i >= latestAnnouncements.length ? 'true' : null"
+          >
+            <a
+              :href="post.url"
+              :tabindex="i >= latestAnnouncements.length ? -1 : null"
+              target="_blank"
+              rel="noopener"
+              class="group flex h-full items-center gap-3 rounded-xl border p-2 pr-3 transition"
+              :class="post.pinned
+                ? 'border-amber-200/80 bg-gradient-to-r from-brighture-cream to-white hover:border-amber-300'
+                : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50/60'"
+            >
+              <!-- The thumbnail the blog shows for the post. -->
+              <span class="ann-thumb block aspect-video shrink-0 overflow-hidden rounded-lg bg-slate-100">
+                <img
+                  :src="post.image"
+                  alt=""
+                  class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
+                />
+              </span>
+              <div class="min-w-0 flex-1">
+                <p class="ann-title m-0 line-clamp-2 text-sm font-semibold leading-snug text-slate-800 transition group-hover:text-slate-950">{{ post.title }}</p>
+                <p class="m-0 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-slate-400">
+                  <time :datetime="post.date" class="whitespace-nowrap tabular-nums">{{ formatPostDate(post.date) }}</time>
+                  <span v-if="post.pinned" class="inline-flex items-center gap-1 whitespace-nowrap font-bold text-brighture-bronze">
+                    <i class="fa-solid fa-thumbtack text-[9px]" aria-hidden="true"></i>
+                    Pinned
+                  </span>
+                  <span v-else-if="isNewPost(post.date)" class="rounded-full bg-emerald-50 px-1.5 py-px font-bold text-emerald-700">New</span>
+                </p>
+              </div>
+            </a>
+          </li>
+        </ul>
         </div>
-        <div class="lg:border-l lg:border-slate-200 lg:px-6">
-          <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Lessons completed</p>
-          <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.totalLessons }}</p>
-          <p class="mt-0.5 text-xs text-slate-500">all time</p>
-        </div>
-        <div class="lg:border-l lg:border-slate-200 lg:px-6">
-          <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Attendance</p>
-          <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.stats.attendanceRate }}%</p>
-          <p class="mt-0.5 text-xs text-slate-500">last 90 days</p>
-        </div>
-        <div class="lg:border-l lg:border-slate-200 lg:pl-6">
-          <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-slate-500">Points available</p>
-          <p class="mt-0.5 text-xl font-extrabold tabular-nums tracking-tight text-slate-950">{{ user.profile.pointsBalance }}</p>
-          <RouterLink to="/points" class="mt-0.5 inline-block text-xs font-bold text-slate-600 hover:text-slate-950">View point history →</RouterLink>
         </div>
       </section>
 
@@ -178,7 +240,7 @@
         </div>
         <div class="min-w-0 xl:col-start-1 xl:flex xl:flex-col">
       <!-- Unified Card Container -->
-      <div class="xl:flex-1 bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden">
+      <div class="relative bg-white border border-slate-200/80 rounded-3xl shadow-sm overflow-hidden">
         <!-- 1. FEATURED NEXT IMMEDIATE CLASS (SPOTLIGHT) -->
         <div
           v-if="user.nextUpcomingClass"
@@ -298,26 +360,29 @@
         </div>
 
         <!-- 2. SUBSEQUENT SCHEDULED LESSONS -->
-        <div class="sched p-4 sm:p-6 bg-white space-y-4">
-          <!-- Title over a plain count, so neither has to wrap beside the other on a phone. -->
-          <div class="flex items-center justify-between gap-3 pb-3 border-b border-slate-100/80">
-            <div class="min-w-0">
-              <h3 class="m-0 text-base font-black text-slate-900 leading-tight">Upcoming lessons</h3>
-              <p class="m-0 mt-0.5 text-xs font-medium text-slate-500">
-                {{ scheduledLessons.length }} {{ scheduledLessons.length === 1 ? 'lesson' : 'lessons' }} after this one
-              </p>
-            </div>
-            <RouterLink
-              to="/booking"
-              class="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-3 py-1.5 text-xs font-bold text-brighture-bronze transition hover:bg-amber-100"
-            >
-              <i class="fa-solid fa-plus text-[10px]" aria-hidden="true"></i>
-              <span>Book another</span>
-            </RouterLink>
+        <div class="sched relative px-4 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-4 bg-white space-y-3">
+          <!-- Demo only: there is no backend, so these let a presenter add or
+               remove a class to show the list at different lengths. They stay
+               invisible on the card's left edge until hovered or focused. -->
+          <div class="absolute left-0 top-1/2 z-10 flex -translate-y-1/2 flex-col gap-1 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100" aria-label="Demo controls">
+            <button type="button" @click="demoAddClass" class="inline-flex h-6 w-5 items-center justify-center rounded-r-md bg-slate-800 text-[10px] text-white hover:bg-slate-700" title="Demo: add a class" aria-label="Demo: add a class">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            </button>
+            <button type="button" @click="demoRemoveClass" :disabled="!scheduledLessons.length" class="inline-flex h-6 w-5 items-center justify-center rounded-r-md bg-slate-800 text-[10px] text-white hover:bg-slate-700 disabled:opacity-40" title="Demo: remove a class" aria-label="Demo: remove a class">
+              <i class="fa-solid fa-minus" aria-hidden="true"></i>
+            </button>
+          </div>
+
+          <!-- One compact line: the title, with the count beside it. -->
+          <div class="flex items-baseline gap-2">
+            <h3 class="m-0 text-sm font-extrabold text-slate-900 leading-tight">Upcoming lessons</h3>
+            <span class="text-xs font-medium tabular-nums text-slate-400">
+              {{ scheduledLessons.length ? `${scheduledLessons.length} after this one` : 'Nothing else booked' }}
+            </span>
           </div>
 
           <!-- Desktop Table View -->
-          <div class="sched__table">
+          <div v-if="scheduledLessons.length" class="sched__table">
             <table class="w-full table-fixed text-left border-collapse">
               <thead>
                 <tr class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-100">
@@ -393,7 +458,7 @@
           </div>
 
           <!-- Narrow / Mobile View: Restructured 2-line Thumb-Sized Stacked List (Never Horizontal Scroll or Chunky Disjointed Cards) -->
-          <div class="sched__rows border border-slate-200/90 rounded-2xl overflow-hidden bg-white divide-y divide-slate-100 shadow-2xs">
+          <div v-if="scheduledLessons.length" class="sched__rows border border-slate-200/90 rounded-2xl overflow-hidden bg-white divide-y divide-slate-100 shadow-2xs">
             <div
               v-for="lesson in scheduledLessons"
               :key="lesson.id"
@@ -529,21 +594,47 @@
             </div>
           </div>
 
-          <p v-if="!scheduledLessons.length" class="py-6 text-center text-sm font-medium text-slate-400">
-            Nothing else booked yet.
-            <RouterLink to="/booking" class="font-bold text-brighture-bronze hover:underline">
-              Book another class →
-            </RouterLink>
-          </p>
+          <div v-else class="flex flex-col items-center gap-2 py-6 text-center">
+            <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+              <i class="fa-regular fa-calendar text-base" aria-hidden="true"></i>
+            </span>
+            <p class="m-0 text-sm font-bold text-slate-700">No upcoming classes</p>
+            <p class="m-0 text-xs font-medium text-slate-400">Classes you book after this one will show here.</p>
+          </div>
         </div>
 
-        <!-- Booking policies stay readable without competing with the lesson list. -->
-        <div class="border-t border-slate-100 bg-slate-50/80 p-4 sm:p-5">
-          <h4 class="text-xs font-extrabold text-slate-700">Booking policies</h4>
-          <div class="mt-1.5 space-y-1 text-[11px] leading-relaxed text-slate-500 sm:text-xs">
-            <p><strong class="font-bold text-slate-700">Cancelling a class:</strong> free until 3 hours before it starts, and your points come back.</p>
-            <p><strong class="font-bold text-slate-700">Trial lesson or counseling:</strong> cancel until {{ LEVEL_CHECK_CANCEL_MINUTES }} minutes before, and your points come back.</p>
-            <p><strong class="font-bold text-slate-700">Changing a class:</strong> edit the subject or your message until 2 hours before.</p>
+        <!-- Policies sit on the card's bottom edge. The lesson list above
+             takes any spare height, so no blank band opens under this row
+             when the card stretches to the referral card's height. The rules
+             open in a pop-up above the row instead of expanding the card. -->
+        <div ref="policiesWrap" class="relative border-t border-slate-100 bg-slate-50/60 px-4 py-2.5 sm:px-6">
+          <button
+            type="button"
+            @click="policiesOpen = !policiesOpen"
+            class="inline-flex items-center gap-2 rounded-full py-1 text-xs font-bold text-slate-500 transition hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+            :class="policiesOpen ? 'text-slate-800' : ''"
+            :aria-expanded="policiesOpen"
+            aria-controls="booking-policies"
+          >
+            <i class="fa-solid fa-circle-info text-[13px] text-slate-400" aria-hidden="true"></i>
+            Booking & cancellation policies
+          </button>
+          <div
+            v-if="policiesOpen"
+            id="booking-policies"
+            role="dialog"
+            aria-label="Booking & cancellation policies"
+            class="absolute bottom-full left-4 z-30 mb-2 w-[min(20rem,calc(100vw-3rem))] rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-lg sm:left-6"
+          >
+            <p class="m-0 flex items-center gap-2 text-sm font-extrabold text-slate-900">
+              <i class="fa-solid fa-shield-halved text-xs text-slate-400" aria-hidden="true"></i>
+              Booking & cancellation policies
+            </p>
+            <ul class="m-0 mt-3 list-none space-y-2.5 p-0 text-xs leading-relaxed text-slate-500">
+              <li><strong class="block font-bold text-slate-700">Cancelling a class</strong>Free until 3 hours before start time (points refunded).</li>
+              <li><strong class="block font-bold text-slate-700">Trial lesson or counseling</strong>Free until {{ LEVEL_CHECK_CANCEL_MINUTES }} minutes before start time.</li>
+              <li><strong class="block font-bold text-slate-700">Changing a class</strong>Update the subject or lesson notes until 2 hours before.</li>
+            </ul>
           </div>
         </div>
       </div>
@@ -752,77 +843,80 @@
       </div>
     </section>
 
-    <!-- QUICK EASY CLASS BOOKING SECTION (WITH EXACT SUBJECTS) -->
-    <section class="bg-white border border-slate-200 rounded-xl p-6 sm:p-8 space-y-5">
+    <!-- FEATURED INSTRUCTORS SECTION -->
+    <section class="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-7 space-y-4 shadow-sm">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
           <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
-            <i class="fa-solid fa-calendar-days text-[#E0A800]" aria-hidden="true"></i> Quick Online Class Booking
+            <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span> Featured Instructors
           </h2>
-          <p class="text-xs text-slate-500 mt-0.5">Click any instructor photo to view full profile & voice sample.</p>
+          <p class="text-xs text-slate-500 mt-0.5">Explore instructor profiles, ratings, and specialties.</p>
         </div>
         <RouterLink
           to="/booking"
-          class="inline-flex items-center gap-1.5 text-xs font-bold px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 transition"
+          class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-600 hover:text-slate-900 transition self-start sm:self-auto"
         >
-          View Full Schedule Calendar (14 Days) →
+          <span>View 14-day booking calendar</span>
+          <i class="fa-solid fa-arrow-right text-[10px]"></i>
         </RouterLink>
       </div>
 
-      <!-- Quick Instructors Grid (Click photo -> Open Teacher Data Modal) -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <!-- Clean, unified instructor cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5">
         <div
           v-for="instructor in quickInstructors"
           :key="instructor.id"
-          class="border border-slate-200 rounded-lg p-4 hover:border-slate-400 transition-colors flex flex-col justify-between bg-white group"
+          @click="openTeacherDetails(instructor)"
+          class="group relative flex flex-col justify-between rounded-xl border border-slate-200/80 bg-white p-4 transition-all duration-200 hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md cursor-pointer"
         >
-          <div class="flex items-start gap-3">
-            <!-- CLICKABLE TEACHER PHOTO -->
-            <div
-              @click="openTeacherDetails(instructor)"
-              class="relative cursor-pointer flex-shrink-0"
-              title="Click to view instructor profile"
-            >
-              <AppImage
-                :src="instructor.photo"
-                :alt="instructor.name"
-                class="w-12 h-12 rounded-lg border border-slate-200 group-hover:scale-105 transition"
-              />
+          <div>
+            <div class="flex items-center gap-3">
+              <div class="relative shrink-0">
+                <AppImage
+                  :src="instructor.photo"
+                  :alt="instructor.name"
+                  class="h-12 w-12 rounded-full object-cover ring-2 ring-slate-100 group-hover:ring-amber-200 transition-all"
+                />
+              </div>
+              <div class="min-w-0 flex-1">
+                <div class="flex items-center justify-between gap-1">
+                  <h3 class="truncate text-sm font-extrabold text-slate-900 group-hover:text-brighture-bronze transition-colors">
+                    {{ instructor.name }}
+                  </h3>
+                  <span class="inline-flex items-center gap-1 text-xs font-bold text-amber-600 shrink-0">
+                    <i class="fa-solid fa-star text-[10px] text-amber-500"></i>
+                    {{ instructor.rating }}
+                  </span>
+                </div>
+                <p class="mt-0.5 text-[11px] font-medium text-emerald-700 flex items-center gap-1">
+                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
+                  {{ instructor.nextAvailable }}
+                </p>
+              </div>
             </div>
 
-            <div class="min-w-0 flex-1">
-              <h3
-                @click="openTeacherDetails(instructor)"
-                class="text-sm font-bold text-slate-900 truncate hover:text-brighture-bronze cursor-pointer"
+            <!-- Subject Badges (First 3 + count if more) -->
+            <div class="mt-3 flex flex-wrap gap-1">
+              <SubjectCode
+                v-for="code in parseSubjectCodes(instructor.specialty).slice(0, 3)"
+                :key="code"
+                :subject="code"
+                :show-name="false"
+                size="sm"
+                variant="neutral"
+              />
+              <span
+                v-if="parseSubjectCodes(instructor.specialty).length > 3"
+                class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-500 bg-slate-100"
               >
-                {{ instructor.name }}
-              </h3>
-              <!-- Boxes only: the names would wrap this compact card onto several lines. -->
-              <p class="mt-0.5 flex flex-wrap gap-1 text-[11px] text-slate-500">
-                <SubjectCode
-                  v-for="code in parseSubjectCodes(instructor.specialty)"
-                  :key="code"
-                  :subject="code"
-                  :show-name="false"
-                  size="sm"
-                />
-              </p>
+                +{{ parseSubjectCodes(instructor.specialty).length - 3 }}
+              </span>
             </div>
           </div>
 
-          <div class="mt-4 flex gap-2">
-            <button
-              @click="openTeacherDetails(instructor)"
-              class="flex-1 inline-flex items-center justify-center px-2 py-2 rounded-lg bg-white border border-slate-200 text-slate-700 font-bold text-xs whitespace-nowrap hover:bg-slate-100 transition"
-            >
-              View Info
-            </button>
-            <RouterLink
-              to="/booking"
-              class="flex-1 inline-flex items-center justify-center px-2 py-2 rounded-lg bg-[#FFCD00] border border-transparent text-black font-bold text-xs whitespace-nowrap hover:bg-[#FFD933] transition"
-            >
-              Book →
-            </RouterLink>
+          <div class="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-600 group-hover:text-slate-950 transition-colors">
+            <span>View Profile & Bio</span>
+            <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 group-hover:translate-x-0.5 group-hover:text-slate-950 transition-all"></i>
           </div>
         </div>
       </div>
@@ -832,10 +926,11 @@
     <section class="space-y-4">
       <div class="flex items-center justify-between">
         <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
-          <span class="w-2 h-5 rounded-full bg-brighture-gold"></span> In-Progress Writing Corrections
+          <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span> In-Progress Writing Corrections
         </h2>
-        <RouterLink to="/writing" class="text-xs font-bold text-brighture-bronze hover:text-brighture-bronze">
-          Open Writing Chat →
+        <RouterLink to="/writing" class="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+          <span>Open writing chat</span>
+          <i class="fa-solid fa-arrow-right text-[10px]"></i>
         </RouterLink>
       </div>
 
@@ -845,12 +940,12 @@
           class="md:col-span-2 rounded-xl border border-dashed border-slate-200 bg-white p-5 text-center text-sm font-medium text-slate-400"
         >
           No corrections in progress.
-          <RouterLink to="/writing" class="font-bold text-brighture-bronze hover:underline">Submit a passage →</RouterLink>
+          <RouterLink to="/writing" class="font-bold text-slate-700 hover:underline">Submit a passage →</RouterLink>
         </p>
         <div
           v-for="task in writingTasks"
           :key="task.id"
-          class="bg-white border border-slate-200 rounded-xl p-5 hover:border-slate-400 transition-colors group cursor-pointer flex flex-col justify-between"
+          class="bg-white border border-slate-200/90 rounded-xl p-5 hover:border-slate-300 hover:shadow-sm transition-all group cursor-pointer flex flex-col justify-between"
           @click="$router.push('/writing')"
         >
           <div>
@@ -870,7 +965,7 @@
               </span>
               <span class="text-xs font-semibold text-slate-600">{{ task.teacherName || 'Waiting for an assessor' }}</span>
             </div>
-            <span class="text-xs font-bold text-brighture-bronze group-hover:translate-x-1 transition-transform">Reply Chat →</span>
+            <i class="fa-solid fa-chevron-right text-xs text-slate-400 group-hover:text-slate-800 group-hover:translate-x-0.5 transition-all"></i>
           </div>
         </div>
       </div>
@@ -937,7 +1032,8 @@ import { useRouter } from 'vue-router';
 import coinsImage from '@/assets/coins.svg';
 import { useUserStore } from '../../stores/useUserStore';
 import { useSchoolStore, DEMO_RESET_AT_KEY } from '../../stores/useSchoolStore';
-import { TOKYO, partsIn } from '../../lib/schoolTime';
+import { CURRENT_STUDENT_ID } from '@/lib/schoolSeed';
+import { announcements, ANNOUNCEMENTS_URL } from '@/lib/announcements';
 import FreeConversationModal from '../../components/FreeConversationModal.vue';
 import ClassDetailsModal from '../../components/ClassDetailsModal.vue';
 import CancelClassModal from '../../components/CancelClassModal.vue';
@@ -961,21 +1057,6 @@ const school = useSchoolStore();
 
 // Booked lessons come from the shared store, so the teacher portal sees the same list.
 const upcomingLessons = computed(() => user.upcomingLessons);
-
-// "Oct 12–18": the Monday-to-Sunday week (JST) the weekly goal counts.
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-const weekRangeLabel = computed(() => {
-  const p = partsIn(new Date(school.now).toISOString(), TOKYO);
-  const today = new Date(Date.UTC(p.year, p.month, p.day));
-  const monday = new Date(today);
-  monday.setUTCDate(today.getUTCDate() - ((today.getUTCDay() + 6) % 7));
-  const sunday = new Date(monday);
-  sunday.setUTCDate(monday.getUTCDate() + 6);
-  const start = `${MONTHS[monday.getUTCMonth()]} ${monday.getUTCDate()}`;
-  return monday.getUTCMonth() === sunday.getUTCMonth()
-    ? `${start}–${sunday.getUTCDate()}`
-    : `${start}–${MONTHS[sunday.getUTCMonth()]} ${sunday.getUTCDate()}`;
-});
 
 const showFreeConversationModal = ref(false);
 const referralCodeCopied = ref(false);
@@ -1028,6 +1109,27 @@ const readReferralHidden = () => {
 
 const referralHidden = ref(readReferralHidden());
 const referralCloseAsk = ref(false);
+
+// The policies popover closes on a click anywhere outside it or on Escape,
+// like any other menu.
+const policiesOpen = ref(false);
+const policiesWrap = ref(null);
+const onPoliciesPointer = (event) => {
+  if (policiesOpen.value && policiesWrap.value && !policiesWrap.value.contains(event.target)) {
+    policiesOpen.value = false;
+  }
+};
+const onPoliciesKey = (event) => {
+  if (event.key === 'Escape') policiesOpen.value = false;
+};
+onMounted(() => {
+  document.addEventListener('pointerdown', onPoliciesPointer);
+  document.addEventListener('keydown', onPoliciesKey);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onPoliciesPointer);
+  document.removeEventListener('keydown', onPoliciesKey);
+});
 
 // A reset in another tab or portal does not reload this one, so pick it up
 // from the storage event instead.
@@ -1109,10 +1211,81 @@ const showRenewalReminder = computed(() => {
 });
 const selectedTeacherForModal = ref(null);
 
+// The announcement board shows the five newest posts; View all opens the rest
+// on the blog.
+const latestAnnouncements = announcements.slice(0, 5);
+
+// The board shows two of them and moves on by one every eight seconds. It
+// holds still while the pointer or keyboard focus is on it, so a post never
+// slides away mid-click, and it does not move on its own for people who ask
+// for reduced motion; the dots still step through by hand.
+const annIndex = ref(0);
+const annAnimate = ref(true);
+const annPaused = ref(false);
+const annTrack = [...latestAnnouncements, ...latestAnnouncements.slice(0, 2)];
+// The dots show which post leads; clicking one slides straight to it.
+const annStart = computed({
+  get: () => annIndex.value % latestAnnouncements.length,
+  set: (i) => { annAnimate.value = true; annIndex.value = i; },
+});
+// After sliding onto the repeated cards at the end, jump back to the real
+// ones without animating. They look the same, so nobody sees the jump.
+const onAnnSlid = () => {
+  if (annIndex.value < latestAnnouncements.length) return;
+  annAnimate.value = false;
+  annIndex.value -= latestAnnouncements.length;
+  requestAnimationFrame(() => requestAnimationFrame(() => { annAnimate.value = true; }));
+};
+let annTimer = null;
+onMounted(() => {
+  // Fetch every thumbnail up front, so a card never slides in with an
+  // empty picture while its image is still loading.
+  latestAnnouncements.forEach((post) => { new Image().src = post.image; });
+  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  annTimer = setInterval(() => {
+    if (!annPaused.value) { annAnimate.value = true; annIndex.value += 1; }
+  }, 8000);
+});
+onBeforeUnmount(() => clearInterval(annTimer));
+const postParts = (iso) => {
+  const [y, m, d] = iso.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d));
+};
+// Posts from the last two weeks get a small New tag.
+const isNewPost = (iso) => school.now - postParts(iso).getTime() < 14 * 24 * 3600 * 1000;
+const formatPostDate = (iso) => postParts(iso)
+  .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
 // The spotlight already shows the next class, so the table lists the ones after it.
 const scheduledLessons = computed(() =>
   upcomingLessons.value.filter((lesson) => lesson.id !== user.nextUpcomingClass?.id)
 );
+
+// Demo controls. Adding books a free class a day after the latest one, with
+// the first teacher who is free then, so it never touches the points wallet.
+// Removing takes back the latest class outright, as if it was never booked.
+const DEMO_SUBJECTS = ['[DC] Daily Conversation', '[RW] Reading & Writing', '[LS1] Listening & Speaking', '[PP101] Pronunciation — Vowels', '[EP] Exam Prep'];
+const demoAddClass = () => {
+  const starts = upcomingLessons.value.map((l) => school.findLesson(l.id)?.start).filter(Boolean).sort();
+  const base = starts.length ? new Date(starts.at(-1)) : new Date(Date.now() + 2 * 3600 * 1000);
+  const start = new Date(base.getTime() + 24 * 3600 * 1000);
+  start.setUTCMinutes(Math.round(start.getUTCMinutes() / 30) * 30, 0, 0);
+  // Start from a different teacher each time, so added classes vary.
+  const all = Object.keys(school.db.teachers).map(Number);
+  const offset = scheduledLessons.value.length % all.length;
+  const teacherIds = [...all.slice(offset), ...all.slice(0, offset)];
+  const subject = DEMO_SUBJECTS[scheduledLessons.value.length % DEMO_SUBJECTS.length];
+  for (const teacherId of teacherIds) {
+    const booked = school.bookLesson({ studentId: CURRENT_STUDENT_ID, teacherId, start: start.toISOString(), points: 0, subject });
+    if (booked) return;
+  }
+};
+const demoRemoveClass = () => {
+  const last = [...scheduledLessons.value]
+    .sort((a, b) => (school.findLesson(a.id)?.start ?? '').localeCompare(school.findLesson(b.id)?.start ?? ''))
+    .at(-1);
+  if (last) school.undoBooking(last.id);
+};
 
 const detailsLesson = ref(null);
 const detailsJoinIntent = ref(false);
@@ -1295,6 +1468,42 @@ const writingTasks = computed(() =>
 </script>
 
 <style scoped>
+/* Announcement strip. The board sizes itself from its own width, not the
+   screen's, because beside the quick actions it is much narrower than the
+   window. One card shows at a time until the board has room for two
+   readable titles; the strip moves by one card plus the gap per step. */
+.ann-board { container-type: inline-size; }
+.ann-track { --ann-per: 1; transform: translateX(calc(var(--ann-i) * -1 * (100% + 0.75rem) / var(--ann-per))); }
+.ann-slide { width: calc((100% - (var(--ann-per) - 1) * 0.75rem) / var(--ann-per)); }
+.ann-track--animate { transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1); }
+.ann-thumb { width: 5.5rem; }
+.ann-dots { display: none; }
+.ann-sub { display: none; }
+.ann-title { -webkit-line-clamp: 3; }
+@container (min-width: 340px) {
+  .ann-sub { display: block; }
+}
+@container (min-width: 420px) {
+  .ann-thumb { width: 8rem; }
+  .ann-title { -webkit-line-clamp: 2; }
+  .ann-dots { display: flex; }
+}
+/* Two cards from here. Until the board is wide, the cards are narrow, so
+   the thumbnail shrinks and titles may take a third line rather than be
+   cut off. */
+@container (min-width: 640px) {
+  .ann-track { --ann-per: 2; }
+  .ann-thumb { width: 5rem; }
+  .ann-title { -webkit-line-clamp: 3; }
+}
+@container (min-width: 820px) {
+  .ann-thumb { width: 8rem; }
+  .ann-title { -webkit-line-clamp: 2; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ann-track--animate { transition: none; }
+}
+
 /* The breakpoint belongs to the table, not the screen. Four columns need
    about 700px for readable labels and actions. Below that, the rows take over,
    so the same section restacks itself when placed in a narrow panel. */
