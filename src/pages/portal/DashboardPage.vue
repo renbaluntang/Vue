@@ -52,100 +52,83 @@
          quick actions beside them on wide screens (xl) and under them below
          that. -->
     <section class="flex flex-col xl:flex-row gap-5 xl:gap-6 items-stretch xl:items-center">
-      <!-- A board of the newest posts from the blog's Announcement category.
-           Each row opens the post on the blog in a new tab. Colour stays in
-           the date chips and the pinned row, so the list reads calmly. -->
-      <section aria-labelledby="announcements-title" @mouseenter="annPaused = true" @mouseleave="annPaused = false" @focusin="annPaused = true" @focusout="annPaused = false" class="ann-board min-w-0 w-full flex-1 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
-        <header class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-3 sm:px-5">
-          <div class="flex min-w-0 items-center gap-3">
-            <span class="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-brighture-cream text-brighture-bronze ring-1 ring-inset ring-amber-200/70">
-              <i class="fa-solid fa-bullhorn text-sm" aria-hidden="true"></i>
+      <!-- The newest posts from the blog's Announcement category as a list.
+           Three rows show at once; the list scrolls to reveal all five, and
+           the button under it steps through them for people who don't notice
+           the list scrolls. Each row's Read more opens the post on the blog
+           in a new tab. -->
+      <section aria-labelledby="announcements-title" class="min-w-0 w-full flex-1 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
+        <header class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-2 sm:px-5">
+          <div class="flex min-w-0 items-center gap-2.5">
+            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brighture-cream text-brighture-bronze ring-1 ring-inset ring-amber-200/70">
+              <i class="fa-solid fa-bullhorn text-xs" aria-hidden="true"></i>
             </span>
-            <div class="min-w-0">
-              <h2 id="announcements-title" class="m-0 text-[15px] font-extrabold leading-tight tracking-tight text-slate-900">Announcements</h2>
-              <p class="ann-sub m-0 mt-0.5 truncate text-xs font-medium text-slate-400">News from the Brighture blog</p>
+            <!-- Title and source share one line to keep the header slim. -->
+            <div class="flex min-w-0 items-baseline gap-2">
+              <h2 id="announcements-title" class="m-0 text-sm font-extrabold tracking-tight text-slate-900">Announcements</h2>
+              <p class="m-0 hidden truncate text-xs font-medium text-slate-400 sm:block">from the Brighture blog</p>
             </div>
-          </div>
-          <div class="flex shrink-0 items-center gap-3">
-          <!-- One dot per post; the filled one is the post on top. -->
-          <div class="ann-dots items-center gap-1" role="group" aria-label="Choose announcements">
-            <button
-              v-for="(post, i) in latestAnnouncements"
-              :key="post.id"
-              type="button"
-              @click="annStart = i"
-              class="h-1.5 rounded-full transition-all"
-              :class="i === annStart ? 'w-4 bg-brighture-gold' : 'w-1.5 bg-slate-200 hover:bg-slate-300'"
-              :aria-label="`Show ${post.title}`"
-              :aria-current="i === annStart ? 'true' : null"
-            ></button>
           </div>
           <a
             :href="ANNOUNCEMENTS_URL"
             target="_blank"
             rel="noopener"
-            class="inline-flex h-8 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-3 text-xs font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+            class="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-2.5 text-[11px] font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
           >
             View all
-            <i class="fa-solid fa-arrow-up-right-from-square text-[10px]" aria-hidden="true"></i>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[9px]" aria-hidden="true"></i>
           </a>
-          </div>
         </header>
-        <!-- A sliding strip: every card sits in one row and the row glides
-             left by one card, so the second card moves smoothly into the
-             first card's place. Two cards show at a time, one on a phone.
-             The first two cards are repeated at the end, so the strip can
-             run on past the last post and then quietly jump back to the
-             start. -->
-        <div class="p-3 sm:p-4">
-        <div class="overflow-hidden">
-        <ul
-          class="ann-track m-0 flex list-none gap-3 p-0"
-          :class="annAnimate ? 'ann-track--animate' : ''"
-          :style="{ '--ann-i': annIndex }"
-          aria-live="off"
-          @transitionend.self="onAnnSlid"
+
+        <div
+          ref="annList"
+          class="ann-list overflow-y-auto overscroll-contain motion-safe:scroll-smooth"
+          @scroll.passive="onAnnScroll"
         >
-          <li
-            v-for="(post, i) in annTrack"
-            :key="`${post.id}-${i}`"
-            class="ann-slide min-w-0 shrink-0"
-            :aria-hidden="i >= latestAnnouncements.length ? 'true' : null"
+          <div
+            v-for="post in latestAnnouncements"
+            :key="post.id"
+            class="ann-row flex items-center gap-2.5 border-b border-slate-100 pl-2.5 pr-4 last:border-b-0 sm:pl-3.5 sm:pr-5"
+            :class="post.pinned ? 'bg-brighture-cream/40' : ''"
           >
+            <!-- The tag leads the row, so pinned and new posts stand out when
+                 scanning down the titles. Its slot has the same width on every
+                 row, tag or not, so the titles start on one line. -->
+            <span class="flex w-9 shrink-0 justify-center">
+              <span v-if="post.pinned" class="text-brighture-bronze" title="Pinned">
+                <i class="fa-solid fa-thumbtack text-xs" aria-hidden="true"></i>
+                <span class="sr-only">Pinned:</span>
+              </span>
+              <span v-else-if="isNewPost(post.date)" class="rounded-full bg-emerald-50 px-1.5 py-px text-[11px] font-bold text-emerald-700">New</span>
+            </span>
+            <span class="min-w-0 flex-1 truncate text-sm font-semibold text-slate-800" :title="post.title">{{ post.title }}</span>
+            <time :datetime="post.date" class="hidden shrink-0 whitespace-nowrap text-[11px] font-medium tabular-nums text-slate-400 md:inline">{{ formatPostDate(post.date) }}</time>
+            <!-- The post's title is in the link's accessible name, so a list
+                 of "Read more" links still says where each one goes. -->
             <a
               :href="post.url"
-              :tabindex="i >= latestAnnouncements.length ? -1 : null"
               target="_blank"
               rel="noopener"
-              class="group flex h-full items-center gap-3 rounded-xl border p-2 pr-3 transition"
-              :class="post.pinned
-                ? 'border-amber-200/80 bg-gradient-to-r from-brighture-cream to-white hover:border-amber-300'
-                : 'border-slate-200/80 bg-white hover:border-slate-300 hover:bg-slate-50/60'"
+              :aria-label="`Read more: ${post.title} (opens the blog)`"
+              class="inline-flex shrink-0 items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-bold text-slate-600 transition hover:border-brighture-gold hover:bg-brighture-cream hover:text-brighture-bronze focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
             >
-              <!-- The thumbnail the blog shows for the post. -->
-              <span class="ann-thumb block aspect-video shrink-0 overflow-hidden rounded-lg bg-slate-100">
-                <img
-                  :src="post.image"
-                  alt=""
-                  class="h-full w-full object-cover transition duration-300 group-hover:scale-[1.03]"
-                />
-              </span>
-              <div class="min-w-0 flex-1">
-                <p class="ann-title m-0 line-clamp-2 text-sm font-semibold leading-snug text-slate-800 transition group-hover:text-slate-950">{{ post.title }}</p>
-                <p class="m-0 mt-1 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] font-medium text-slate-400">
-                  <time :datetime="post.date" class="whitespace-nowrap tabular-nums">{{ formatPostDate(post.date) }}</time>
-                  <span v-if="post.pinned" class="inline-flex items-center gap-1 whitespace-nowrap font-bold text-brighture-bronze">
-                    <i class="fa-solid fa-thumbtack text-[9px]" aria-hidden="true"></i>
-                    Pinned
-                  </span>
-                  <span v-else-if="isNewPost(post.date)" class="rounded-full bg-emerald-50 px-1.5 py-px font-bold text-emerald-700">New</span>
-                </p>
-              </div>
+              Read more
+              <i class="fa-solid fa-arrow-up-right-from-square text-[9px]" aria-hidden="true"></i>
             </a>
-          </li>
-        </ul>
+          </div>
         </div>
-        </div>
+
+        <!-- Steps the list down one row at a time; at the end it takes you
+             back to the top. -->
+        <button
+          v-if="latestAnnouncements.length > 3"
+          type="button"
+          class="flex w-full items-center justify-center gap-1.5 border-t border-slate-100 py-2 text-xs font-bold text-slate-500 transition hover:bg-slate-50 hover:text-slate-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-brighture-gold"
+          @click="scrollAnnouncements"
+        >
+          <i class="fa-solid text-[10px]" :class="annAtEnd ? 'fa-chevron-up' : 'fa-chevron-down'" aria-hidden="true"></i>
+          {{ annAtEnd ? 'Back to top' : 'Show more' }}
+        </button>
       </section>
 
       <!-- Quick Action Buttons -->
@@ -386,10 +369,12 @@
             <table class="w-full table-fixed text-left border-collapse">
               <thead>
                 <tr class="bg-slate-50 text-[11px] uppercase tracking-wider text-slate-500 font-bold border-b border-slate-100">
-                  <th class="w-[21%] py-3 px-2.5 sm:px-3">Date &amp; time</th>
-                  <th class="w-[24%] py-3 px-2.5 sm:px-3">Online teacher</th>
-                  <th class="w-[25%] py-3 px-2.5 sm:px-3">Subject &amp; class</th>
-                  <th class="w-[30%] py-3 px-2.5 sm:px-3 text-right">Actions</th>
+                  <!-- The actions column holds one Details button, so it gets a
+                       fixed width and the rest goes to the columns with text. -->
+                  <th class="w-[30%] py-3 px-2.5 sm:px-3">Date &amp; time</th>
+                  <th class="w-[24%] py-3 px-2.5 sm:px-3">Teacher</th>
+                  <th class="py-3 px-2.5 sm:px-3">Subject</th>
+                  <th class="sched__actions py-3 px-2.5 sm:px-3 text-right"><span class="sr-only">Actions</span></th>
                 </tr>
               </thead>
               <tbody class="divide-y divide-slate-100 text-sm">
@@ -403,8 +388,8 @@
                     <div class="flex items-center gap-2">
                       <span v-if="lesson.isNext" class="w-2 h-2 rounded-full bg-emerald-500" title="Next upcoming lesson"></span>
                       <div>
-                        <div class="font-bold text-slate-800">{{ lesson.date }}</div>
-                        <div class="text-slate-500 text-xs font-semibold mt-0.5">{{ lesson.time }}</div>
+                        <div class="whitespace-nowrap font-bold text-slate-800">{{ lesson.date }}</div>
+                        <div class="whitespace-nowrap text-slate-500 text-[11px] font-semibold mt-0.5">{{ lesson.time }}</div>
                       </div>
                     </div>
                   </td>
@@ -434,7 +419,8 @@
                     </button>
                   </td>
                   <td class="py-3.5 px-2.5 sm:px-3 align-middle">
-                    <div class="min-w-0 truncate font-bold text-slate-700"><SubjectCode :subject="lesson.subject" size="sm" /></div>
+                    <!-- A flex parent lets the name shrink and end in an ellipsis. -->
+                    <div class="flex min-w-0 font-bold text-slate-700" :title="lesson.subject"><SubjectCode :subject="lesson.subject" size="sm" /></div>
                   </td>
                   <!-- Only the featured class above gets a Meet button; these come
                        later, so their link waits in class details until it's their
@@ -448,7 +434,7 @@
                         title="View class details"
                       >
                         <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-                        <span>Details</span>
+                        <span class="sched__details-label">Details</span>
                       </button>
                     </div>
                   </td>
@@ -478,9 +464,17 @@
                 :aria-expanded="isLessonOpen(lesson)"
                 class="w-full py-3 px-3.5 sm:px-4 cursor-pointer select-none focus:outline-none focus:bg-slate-100/60 transition-colors"
               >
-                <!-- Photo | who and what | when. Each column has one job, so names
-                     and dates line up down the list instead of zig-zagging. -->
+                <!-- From sm up: when | photo | who and what, like an agenda. The
+                     time leads in a fixed-width column, so times and names line
+                     up down the list and the row has no gap in the middle. On
+                     phones the time sits at the right end instead, where the
+                     row is narrow enough that nothing is left empty. -->
                 <div class="flex items-center gap-3">
+                  <div class="hidden w-28 shrink-0 border-r border-slate-100 pr-3 sm:block">
+                    <p class="m-0 text-sm font-black tabular-nums tracking-tight text-slate-900">{{ startTime(lesson.time) }}</p>
+                    <p class="m-0 mt-0.5 truncate text-[11px] font-medium text-slate-500">{{ lesson.date }}</p>
+                  </div>
+
                   <AppImage
                     :src="lesson.teacherPhoto"
                     :alt="lesson.teacherName"
@@ -508,7 +502,7 @@
                     </div>
                   </div>
 
-                  <div class="shrink-0 text-right">
+                  <div class="shrink-0 text-right sm:hidden">
                     <p class="m-0 text-sm font-black tabular-nums tracking-tight text-slate-900">{{ startTime(lesson.time) }}</p>
                     <p class="m-0 mt-1 text-xs font-medium text-slate-500">{{ lesson.date }}</p>
                   </div>
@@ -850,7 +844,7 @@
           <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
             <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span> Featured Instructors
           </h2>
-          <p class="text-xs text-slate-500 mt-0.5">Explore instructor profiles, ratings, and specialties.</p>
+          <p class="text-xs text-slate-500 mt-0.5">Explore instructor profiles and specialties.</p>
         </div>
         <RouterLink
           to="/booking"
@@ -883,10 +877,6 @@
                   <h3 class="truncate text-sm font-extrabold text-slate-900 group-hover:text-brighture-bronze transition-colors">
                     {{ instructor.name }}
                   </h3>
-                  <span class="inline-flex items-center gap-1 text-xs font-bold text-amber-600 shrink-0">
-                    <i class="fa-solid fa-star text-[10px] text-amber-500"></i>
-                    {{ instructor.rating }}
-                  </span>
                 </div>
                 <p class="mt-0.5 text-[11px] font-medium text-emerald-700 flex items-center gap-1">
                   <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
@@ -1211,48 +1201,30 @@ const showRenewalReminder = computed(() => {
 });
 const selectedTeacherForModal = ref(null);
 
-// The announcement board shows the five newest posts; View all opens the rest
+// The announcement list shows the five newest posts; View all opens the rest
 // on the blog.
 const latestAnnouncements = announcements.slice(0, 5);
 
-// The board shows two of them and moves on by one every eight seconds. It
-// holds still while the pointer or keyboard focus is on it, so a post never
-// slides away mid-click, and it does not move on its own for people who ask
-// for reduced motion; the dots still step through by hand.
-const annIndex = ref(0);
-const annAnimate = ref(true);
-const annPaused = ref(false);
-const annTrack = [...latestAnnouncements, ...latestAnnouncements.slice(0, 2)];
-// The dots show which post leads; clicking one slides straight to it.
-const annStart = computed({
-  get: () => annIndex.value % latestAnnouncements.length,
-  set: (i) => { annAnimate.value = true; annIndex.value = i; },
-});
-// After sliding onto the repeated cards at the end, jump back to the real
-// ones without animating. They look the same, so nobody sees the jump.
-const onAnnSlid = () => {
-  if (annIndex.value < latestAnnouncements.length) return;
-  annAnimate.value = false;
-  annIndex.value -= latestAnnouncements.length;
-  requestAnimationFrame(() => requestAnimationFrame(() => { annAnimate.value = true; }));
-};
-let annTimer = null;
-onMounted(() => {
-  // Fetch every thumbnail up front, so a card never slides in with an
-  // empty picture while its image is still loading.
-  latestAnnouncements.forEach((post) => { new Image().src = post.image; });
-  if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
-  annTimer = setInterval(() => {
-    if (!annPaused.value) { annAnimate.value = true; annIndex.value += 1; }
-  }, 8000);
-});
-onBeforeUnmount(() => clearInterval(annTimer));
 const postParts = (iso) => {
   const [y, m, d] = iso.split('-').map(Number);
   return new Date(Date.UTC(y, m - 1, d));
 };
 // Posts from the last two weeks get a small New tag.
 const isNewPost = (iso) => school.now - postParts(iso).getTime() < 14 * 24 * 3600 * 1000;
+// The list shows three rows and scrolls for the rest. The button moves it
+// down one row per press and, once the last row is in view, back to the top.
+const annList = ref(null);
+const annAtEnd = ref(false);
+const onAnnScroll = () => {
+  const el = annList.value;
+  if (el) annAtEnd.value = el.scrollTop + el.clientHeight >= el.scrollHeight - 2;
+};
+const scrollAnnouncements = () => {
+  const el = annList.value;
+  if (!el) return;
+  if (annAtEnd.value) el.scrollTo({ top: 0 });
+  else el.scrollBy({ top: el.querySelector('.ann-row')?.offsetHeight ?? 52 });
+};
 const formatPostDate = (iso) => postParts(iso)
   .toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
 
@@ -1468,52 +1440,30 @@ const writingTasks = computed(() =>
 </script>
 
 <style scoped>
-/* Announcement strip. The board sizes itself from its own width, not the
-   screen's, because beside the quick actions it is much narrower than the
-   window. One card shows at a time until the board has room for two
-   readable titles; the strip moves by one card plus the gap per step. */
-.ann-board { container-type: inline-size; }
-.ann-track { --ann-per: 1; transform: translateX(calc(var(--ann-i) * -1 * (100% + 0.75rem) / var(--ann-per))); }
-.ann-slide { width: calc((100% - (var(--ann-per) - 1) * 0.75rem) / var(--ann-per)); }
-.ann-track--animate { transition: transform 0.8s cubic-bezier(0.65, 0, 0.35, 1); }
-.ann-thumb { width: 5.5rem; }
-.ann-dots { display: none; }
-.ann-sub { display: none; }
-.ann-title { -webkit-line-clamp: 3; }
-@container (min-width: 340px) {
-  .ann-sub { display: block; }
-}
-@container (min-width: 420px) {
-  .ann-thumb { width: 8rem; }
-  .ann-title { -webkit-line-clamp: 2; }
-  .ann-dots { display: flex; }
-}
-/* Two cards from here. Until the board is wide, the cards are narrow, so
-   the thumbnail shrinks and titles may take a third line rather than be
-   cut off. */
-@container (min-width: 640px) {
-  .ann-track { --ann-per: 2; }
-  .ann-thumb { width: 5rem; }
-  .ann-title { -webkit-line-clamp: 3; }
-}
-@container (min-width: 820px) {
-  .ann-thumb { width: 8rem; }
-  .ann-title { -webkit-line-clamp: 2; }
-}
-@media (prefers-reduced-motion: reduce) {
-  .ann-track--animate { transition: none; }
-}
+/* Announcement list. Every row is the same height, so three of them (plus
+   the hairlines between them) set the visible height of the list. */
+.ann-row { height: 3.25rem; }
+.ann-list { max-height: calc(3 * 3.25rem + 2px); scrollbar-width: thin; }
 
-/* The breakpoint belongs to the table, not the screen. Four columns need
-   about 700px for readable labels and actions. Below that, the rows take over,
+/* The breakpoint belongs to the table, not the screen. With the actions
+   column cut to one button, four columns read well from about 500px, which
+   covers the dashboard column on a 13" laptop. Below that, the rows take over,
    so the same section restacks itself when placed in a narrow panel. */
 .sched { container-type: inline-size; }
 .sched__table { display: none; }
 .sched__rows { display: block; }
 
-@container (min-width: 44rem) {
+@container (min-width: 31rem) {
   .sched__table { display: block; }
   .sched__rows { display: none; }
+}
+/* Until the table is roomy, Details shows as its icon alone (the label stays
+   for screen readers), so the date and subject keep their width. */
+.sched__actions { width: 3.75rem; }
+.sched__details-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@container (min-width: 40rem) {
+  .sched__actions { width: 6.5rem; }
+  .sched__details-label { position: static; width: auto; height: auto; overflow: visible; clip-path: none; }
 }
 
 /* Safari 15 and other pre-container-query engines fall back to the viewport. */

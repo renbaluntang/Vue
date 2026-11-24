@@ -106,12 +106,15 @@
           </div>
         </div>
 
-        <div class="flex shrink-0 flex-wrap items-center gap-2 self-end sm:self-center">
+        <!-- On wider screens the actions sit in two fixed columns, with an
+             empty cell where a row has no Rate button, so Rate and Details
+             line up down the whole list. The recording lives inside Details. -->
+        <div class="flex shrink-0 flex-wrap items-center gap-2 self-end sm:grid sm:grid-cols-[7.5rem_7.5rem] sm:self-center">
           <button
             v-if="lesson.status === 'completed'"
             type="button"
             @click="openRating(lesson)"
-            :class="`px-3.5 py-2 rounded-xl font-bold text-xs transition ${
+            :class="`inline-flex items-center justify-center px-3.5 py-2 rounded-xl font-bold text-xs transition sm:w-full ${
               lesson.yourRating
                 ? 'bg-brighture-cream text-brighture-bronze hover:bg-brighture-gold/25'
                 : 'bg-brighture-gold text-brighture-ink hover:bg-brighture-gold-deep shadow-2xs'
@@ -123,25 +126,15 @@
             <span v-if="lesson.yourRating" class="inline-flex items-center gap-0.5 text-sm leading-none">
               <i v-for="n in 5" :key="n" class="fa-solid fa-star" :class="n <= lesson.yourRating ? 'text-brighture-gold-deep' : 'text-brighture-gold/40'" aria-hidden="true"></i>
             </span>
-            <span v-else>Rate teacher</span>
+            <span v-else>Rate</span>
           </button>
-          <!-- The lesson's recording, while its link is still shown. -->
-          <a
-            v-if="recordingOf(lesson) === 'recorded'"
-            :href="school.findLesson(lesson.id).recording.url"
-            target="_blank"
-            rel="noopener"
-            class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 hover:border-slate-300 transition"
-          >
-            <i class="fa-solid fa-circle-play text-[11px] text-slate-500" aria-hidden="true"></i> Watch recording
-          </a>
-          <span v-else-if="recordingOf(lesson) === 'processing'" class="text-[11px] font-semibold text-slate-400">Recording processing</span>
+          <span v-else class="hidden sm:block" aria-hidden="true"></span>
           <button
             type="button"
             @click="openLesson = lesson"
-            class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 hover:border-slate-300 transition"
+            class="px-3.5 py-2 rounded-xl border border-slate-200 bg-white text-slate-700 font-bold text-xs hover:bg-slate-50 hover:border-slate-300 transition sm:w-full"
           >
-            {{ lesson.status === 'completed' ? 'Review notes' : 'Why cancelled' }}
+            {{ lesson.status === 'completed' ? 'Details' : 'Why cancelled' }}
           </button>
         </div>
       </div>
@@ -154,7 +147,7 @@
     <!-- Feedback -->
     <div
       v-if="openLesson"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs animate-in fade-in duration-200"
+      class="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-slate-900/60 p-4 pt-6 backdrop-blur-xs animate-in fade-in duration-200 sm:pt-12"
       @click.self="openLesson = null"
     >
       <div
@@ -166,7 +159,7 @@
         <div class="flex items-start justify-between gap-4 border-b border-slate-100 bg-gradient-to-r from-slate-900 via-slate-950 to-slate-900 p-5 text-white sm:p-6">
           <div class="min-w-0">
             <p class="text-[11px] font-bold uppercase tracking-wider text-brighture-gold">
-              {{ openLesson.status === 'completed' ? 'Teacher feedback' : 'Cancelled class' }}
+              {{ openLesson.status === 'completed' ? 'Class details' : 'Cancelled class' }}
             </p>
             <h2 id="lesson-feedback-title" class="mt-1 flex min-w-0 text-lg font-extrabold sm:text-xl">
               <SubjectCode :subject="openLesson.subject" />
@@ -207,6 +200,31 @@
 
           <p class="whitespace-pre-wrap rounded-2xl bg-slate-50 p-4 text-sm leading-relaxed text-slate-700">
             {{ openLesson.feedback }}
+          </p>
+
+          <!-- The lesson's recording, while its link is still shown. -->
+          <a
+            v-if="recordingOf(openLesson) === 'recorded'"
+            :href="school.findLesson(openLesson.id).recording.url"
+            target="_blank"
+            rel="noopener"
+            class="flex items-center gap-3 rounded-xl border border-slate-200 p-3 transition hover:border-slate-300 hover:bg-slate-50"
+          >
+            <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-900 text-white">
+              <i class="fa-solid fa-play text-[11px]" aria-hidden="true"></i>
+            </span>
+            <span class="min-w-0 flex-1">
+              <span class="block text-sm font-bold text-slate-900">Watch recording</span>
+              <span class="block text-[11px] font-medium text-slate-500">Opens in Google Drive</span>
+            </span>
+            <i class="fa-solid fa-arrow-up-right-from-square text-[11px] text-slate-400" aria-hidden="true"></i>
+          </a>
+          <p
+            v-else-if="recordingOf(openLesson) === 'processing'"
+            class="flex items-center gap-2 rounded-xl border border-dashed border-slate-200 p-3 text-xs font-semibold text-slate-500"
+          >
+            <i class="fa-solid fa-hourglass-half text-slate-400" aria-hidden="true"></i>
+            Your recording is still processing. Check back soon.
           </p>
 
           <div v-if="openLesson.materials?.length">
@@ -259,7 +277,7 @@
         role="dialog"
         aria-modal="true"
         aria-labelledby="rate-teacher-title"
-        class="relative w-full max-w-md overflow-hidden rounded-[1.75rem] bg-white shadow-[0_24px_64px_-16px_rgba(15,23,42,0.45)] ring-1 ring-slate-900/5 animate-in zoom-in-95"
+        class="relative w-full max-w-lg overflow-hidden rounded-[1.75rem] bg-white shadow-[0_24px_64px_-16px_rgba(15,23,42,0.45)] ring-1 ring-slate-900/5 animate-in zoom-in-95"
       >
         <button
           type="button"
@@ -290,63 +308,79 @@
         </div>
 
         <div class="px-6 pb-6 sm:px-8">
-          <!-- Stars. Hovering previews the rating across every star up to the
-               pointer; choosing one replays a short fill from left to right so
-               the pick feels set rather than merely recoloured. Arrow keys
-               move the rating like any radio group. -->
-          <div
-            :key="`stars-${shakeKey}`"
-            class="mt-5 flex items-center justify-center gap-1"
-            :class="shakeKey ? 'stars-shake' : ''"
-            role="radiogroup"
-            :aria-invalid="missingStars"
-            :aria-describedby="missingStars ? 'rate-teacher-warning' : undefined"
-            aria-label="Rating out of five"
-            @mouseleave="hoverStars = 0"
-            @keydown.right.prevent="stepStars(1)"
-            @keydown.up.prevent="stepStars(1)"
-            @keydown.left.prevent="stepStars(-1)"
-            @keydown.down.prevent="stepStars(-1)"
-          >
-            <button
-              v-for="star in 5"
-              :key="star"
-              :ref="(el) => (starButtons[star - 1] = el)"
-              type="button"
-              role="radio"
-              :aria-checked="draftStars === star"
-              :aria-label="`${star} of 5, ${STAR_LABELS[star]}`"
-              :tabindex="star === (draftStars || 1) ? 0 : -1"
-              @mouseenter="hoverStars = star"
-              @click="pickStars(star)"
-              class="group/star rounded-xl p-1.5 leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+          <!-- One star row per part of the lesson, like rating the seller,
+               the delivery and the courier separately in a shop. The teacher
+               row is the score the teacher sees, so it is the only one that
+               is required. Hovering previews a row; arrow keys move it like a
+               radio group, and a pick replays a short fill left to right. -->
+          <ul class="mt-5 divide-y divide-slate-100 rounded-2xl border border-slate-200/80">
+            <li
+              v-for="aspect in ASPECTS"
+              :key="aspect.key"
+              class="flex flex-col gap-1.5 px-3.5 py-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-3"
             >
-              <i
-                :key="star <= draftStars ? `on-${popKey}` : 'off'"
-                class="fa-solid fa-star block text-[2.5rem] transition-[color,transform] duration-150 ease-out group-hover/star:scale-110 motion-reduce:transition-none"
-                :class="[
-                  star <= shownStars ? 'star-on' : 'text-slate-200',
-                  star <= draftStars && popKey ? 'star-pop' : '',
-                ]"
-                :style="star <= draftStars && popKey ? { animationDelay: `${(star - 1) * 45}ms` } : null"
-                aria-hidden="true"
-              ></i>
-            </button>
-          </div>
-          <!-- Submitting without a star swaps the hint for a warning in the
-               same spot, so nothing below shifts. -->
-          <p
-            v-if="missingStars && !shownStars"
-            id="rate-teacher-warning"
-            class="mt-2 flex h-5 items-center justify-center gap-1.5 text-center text-sm font-bold text-rose-600"
-            role="alert"
-          >
-            <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
-            Choose a star rating before you submit
-          </p>
-          <p v-else class="mt-2 h-5 text-center text-sm font-bold" :class="shownStars ? 'text-brighture-bronze' : 'text-slate-400'" aria-live="polite">
-            {{ STAR_LABELS[shownStars] ?? 'Tap a star to rate' }}
-          </p>
+              <div class="flex min-w-0 flex-1 items-center gap-2.5">
+                <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-brighture-cream text-xs text-brighture-bronze" aria-hidden="true">
+                  <i :class="aspect.icon"></i>
+                </span>
+                <div class="min-w-0">
+                  <p :id="`rate-${aspect.key}-label`" class="text-sm font-bold text-brighture-ink">
+                    {{ aspect.label }}
+                  </p>
+                  <p
+                    class="truncate text-[11px] font-semibold"
+                    :class="missingStars && aspect.required && !shownFor(aspect.key)
+                      ? 'text-rose-600'
+                      : shownFor(aspect.key) ? 'text-brighture-bronze' : 'text-slate-400'"
+                    aria-live="polite"
+                  >
+                    {{ missingStars && aspect.required && !shownFor(aspect.key)
+                      ? 'Choose a rating'
+                      : STAR_LABELS[shownFor(aspect.key)] ?? aspect.hint }}
+                  </p>
+                </div>
+              </div>
+              <div
+                :key="`${aspect.key}-${aspect.required ? shakeKey : 0}`"
+                class="-ml-0.5 flex shrink-0 items-center pl-[2.625rem] sm:ml-0 sm:pl-0"
+                :class="aspect.required && shakeKey ? 'stars-shake' : ''"
+                role="radiogroup"
+                :aria-labelledby="`rate-${aspect.key}-label`"
+                :aria-invalid="aspect.required && missingStars"
+                @mouseleave="hover = { key: '', star: 0 }"
+                @keydown.right.prevent="stepStars(aspect.key, 1)"
+                @keydown.up.prevent="stepStars(aspect.key, 1)"
+                @keydown.left.prevent="stepStars(aspect.key, -1)"
+                @keydown.down.prevent="stepStars(aspect.key, -1)"
+              >
+                <button
+                  v-for="star in 5"
+                  :key="star"
+                  :ref="(el) => (starButtons[`${aspect.key}-${star}`] = el)"
+                  type="button"
+                  role="radio"
+                  :aria-checked="draft[aspect.key] === star"
+                  :aria-label="`${star} of 5, ${STAR_LABELS[star]}`"
+                  :tabindex="star === (draft[aspect.key] || 1) ? 0 : -1"
+                  @mouseenter="hover = { key: aspect.key, star }"
+                  @click="pickStars(aspect.key, star)"
+                  class="group/star rounded-lg p-0.5 leading-none focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold sm:p-1"
+                >
+                  <i
+                    :key="star <= draft[aspect.key] ? `on-${popKey[aspect.key]}` : 'off'"
+                    class="fa-solid fa-star block text-[1.375rem] transition-[color,transform] duration-150 ease-out group-hover/star:scale-110 motion-reduce:transition-none sm:text-2xl"
+                    :class="[
+                      star <= shownFor(aspect.key) ? 'star-on' : 'text-slate-200',
+                      star <= draft[aspect.key] && popKey[aspect.key] ? 'star-pop' : '',
+                    ]"
+                    :style="star <= draft[aspect.key] && popKey[aspect.key] ? { animationDelay: `${(star - 1) * 45}ms` } : null"
+                    aria-hidden="true"
+                  ></i>
+                </button>
+              </div>
+            </li>
+          </ul>
+          <p class="mt-2 text-center text-[11px] font-semibold text-slate-400">Only the teacher rating is required</p>
 
           <label for="rate-teacher-comment" class="mt-5 block text-xs font-bold text-slate-700">
             {{ commentPrompt }} <span class="font-semibold text-slate-400">(optional)</span>
@@ -379,7 +413,7 @@
               type="button"
               @click="submitRating"
               class="h-11 rounded-xl border text-sm font-bold transition focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold focus-visible:ring-offset-2"
-              :class="draftStars
+              :class="draft.teacher
                 ? 'border-transparent bg-gradient-to-br from-[#FFE066] via-brighture-gold to-[#F5A000] text-brighture-ink shadow-md shadow-brighture-amber/30 hover:brightness-105'
                 : 'border-slate-200 bg-slate-100 text-slate-500 hover:bg-slate-200/70'"
             >
@@ -425,60 +459,71 @@ const STAR_LABELS = {
   5: 'Excellent',
 };
 
+// The parts of a lesson a student rates. The teacher row is the lesson's
+// main score (the one the teacher portal shows), so only it is required.
+const ASPECTS = [
+  { key: 'teacher', label: 'Teacher', icon: 'fa-solid fa-chalkboard-user', hint: 'Teaching and feedback', required: true },
+  { key: 'content', label: 'Lesson content', icon: 'fa-solid fa-book-open', hint: 'Topic and materials' },
+  { key: 'connection', label: 'Connection', icon: 'fa-solid fa-wifi', hint: 'Audio, video and internet' },
+];
+const emptyDraft = () => Object.fromEntries(ASPECTS.map((a) => [a.key, 0]));
+
 const ratingTarget = ref(null);
-const draftStars = ref(0);
+const draft = ref(emptyDraft());
 const draftComment = ref('');
-// The star under the pointer, so the row previews a rating before it's chosen.
-const hoverStars = ref(0);
-// Bumped on every pick so the chosen stars re-mount and replay their fill.
-// Zero on open, so a saved rating shows without animating.
-const popKey = ref(0);
-const starButtons = ref([]);
-// Set when Submit is pressed with no stars; cleared as soon as one is picked.
+// The star under the pointer, so a row previews a rating before it's chosen.
+const hover = ref({ key: '', star: 0 });
+// Bumped per row on every pick so the chosen stars re-mount and replay their
+// fill. Zero on open, so saved ratings show without animating.
+const popKey = ref(emptyDraft());
+const starButtons = ref({});
+// Set when Submit is pressed without a teacher rating; cleared once one is picked.
 const missingStars = ref(false);
-// Bumped on each empty submit so the star row re-mounts and replays its shake.
+// Bumped on each empty submit so the teacher row re-mounts and replays its shake.
 const shakeKey = ref(0);
 
-const shownStars = computed(() => hoverStars.value || draftStars.value);
+const shownFor = (key) => (hover.value.key === key ? hover.value.star : 0) || draft.value[key];
 
 const firstName = (name = '') => name.split(' ')[0];
 
 // The question follows the rating, so a low score asks what to fix and a
 // high one asks what worked.
 const commentPrompt = computed(() => {
-  if (!draftStars.value) return 'Anything you want to say about this lesson?';
-  return draftStars.value <= 3 ? 'What could have been better?' : 'What did you enjoy most?';
+  const picked = Object.values(draft.value).filter(Boolean);
+  if (!picked.length) return 'Anything you want to say about this lesson?';
+  return Math.min(...picked) <= 3 ? 'What could have been better?' : 'What did you enjoy most?';
 });
 
 const openRating = (lesson) => {
   ratingTarget.value = lesson;
-  draftStars.value = lesson.yourRating ?? 0;
+  draft.value = { ...emptyDraft(), ...(lesson.yourAspects ?? {}), teacher: lesson.yourRating ?? 0 };
   draftComment.value = lesson.yourComment ?? '';
-  hoverStars.value = 0;
-  popKey.value = 0;
+  hover.value = { key: '', star: 0 };
+  popKey.value = emptyDraft();
   missingStars.value = false;
   shakeKey.value = 0;
 };
 
-const pickStars = (star) => {
-  draftStars.value = star;
-  popKey.value += 1;
-  missingStars.value = false;
+const pickStars = (key, star) => {
+  draft.value[key] = star;
+  popKey.value[key] += 1;
+  if (key === 'teacher') missingStars.value = false;
 };
 
-const stepStars = (delta) => {
-  const next = Math.min(5, Math.max(1, (draftStars.value || 0) + delta));
-  pickStars(next);
-  starButtons.value[next - 1]?.focus();
+const stepStars = (key, delta) => {
+  const next = Math.min(5, Math.max(1, (draft.value[key] || 0) + delta));
+  pickStars(key, next);
+  starButtons.value[`${key}-${next}`]?.focus();
 };
 
 const submitRating = () => {
-  if (!draftStars.value) {
+  const { teacher, ...aspects } = draft.value;
+  if (!teacher) {
     missingStars.value = true;
     shakeKey.value += 1;
     return;
   }
-  user.rateLesson(ratingTarget.value.id, draftStars.value, draftComment.value);
+  user.rateLesson(ratingTarget.value.id, teacher, draftComment.value, aspects);
   ratingTarget.value = null;
 };
 

@@ -498,7 +498,6 @@
                 >
                   {{ instructor.name }}
                 </h3>
-                <span class="text-xs text-amber-500 font-bold">★ {{ instructor.rating }}</span>
               </div>
               <p class="text-[11px] text-slate-500 truncate">{{ instructor.specialty }}</p>
               <div class="mt-1 flex items-center gap-1">

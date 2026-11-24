@@ -468,8 +468,7 @@ const draftSubjectOptions = computed(() => {
                 </div>
                 <p class="text-[11px] sm:text-xs text-zinc-400 font-medium mt-0.5 truncate">{{ teacher.major }}</p>
                 <div class="flex items-center gap-2 mt-1">
-                  <span class="text-xs text-amber-600 font-bold">★ {{ teacher.rating || '4.95' }}</span>
-                  <span class="text-zinc-400 text-[11px]">({{ teacher.lessonCount || '1,000+' }} lessons)</span>
+                  <span class="text-zinc-400 text-[11px]">{{ teacher.lessonCount || '1,000+' }} lessons</span>
                   <span class="text-zinc-300">•</span>
                   <span class="text-xs text-zinc-600 font-medium">30m: <strong class="text-zinc-900">{{ pointsForDuration(teacher, 30) }} pts</strong></span>
                 </div>

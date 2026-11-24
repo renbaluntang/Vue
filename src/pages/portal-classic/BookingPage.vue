@@ -619,13 +619,8 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-[4/3] sm:aspect-square";
                   <span>{{ teacher.name }}</span>
                 </h3>
 
-                <!-- Rating & Experience Tag -->
+                <!-- Experience tag. Students never see a teacher's rating. -->
                 <div class="inline-flex items-center gap-2 rounded-full bg-slate-50 border border-slate-200/80 px-2.5 py-1 text-xs">
-                  <span class="inline-flex items-center gap-1 font-bold text-slate-800">
-                    <span class="text-amber-500">★</span>
-                    <span>{{ (teacher.rating || 4.9).toFixed(2) }}</span>
-                  </span>
-                  <span class="text-slate-300">·</span>
                   <span class="text-slate-500 font-medium">
                     {{ (teacher.lessonCount || 850).toLocaleString() }}+ lessons taught
                   </span>
@@ -906,8 +901,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-[4/3] sm:aspect-square";
             <div class="flex items-center gap-2 justify-center sm:justify-start flex-wrap">
               <p class="m-0 text-lg sm:text-xl font-black text-slate-900">{{ profileTeacher.name }}</p>
               <span class="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-800 border border-amber-200">
-                <span class="text-amber-500 font-black">★</span> {{ profileTeacher.rating }}
-                <span class="text-slate-400 font-normal text-[10px]">({{ profileTeacher.lessonCount }}+ lessons)</span>
+                {{ profileTeacher.lessonCount }}+ lessons
               </span>
               <span class="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-0.5 text-[11px] font-bold text-emerald-700">
                 <span class="h-1.5 w-1.5 rounded-full bg-emerald-500" />

@@ -62,7 +62,7 @@ const CS = '[CS] Counseling Session';
  */
 export const seedLessons = (anchor) => {
   const at = (day, time) => manilaAt(anchor, day, time);
-  const base = { recording: null, duration: 30, points: 5, substitution: false, meetLink: '', note: '', topic: '', feedback: '', hiddenNote: '', feedbackSubmitted: false, teacherScore: null, studentRating: null, studentComment: '', cancelReason: '', refunded: false };
+  const base = { recording: null, duration: 30, points: 5, substitution: false, meetLink: '', note: '', topic: '', feedback: '', hiddenNote: '', feedbackSubmitted: false, teacherScore: null, studentRating: null, studentComment: '', studentAspects: null, cancelReason: '', refunded: false };
   const L = (o) => ({ ...base, ...o });
   // A recording the backend has filed. Taro allows recording; l-104 was not
   // recorded, and l-415 is past the 30 days the portal shows a link for.

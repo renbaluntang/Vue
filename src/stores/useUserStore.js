@@ -448,6 +448,7 @@ export const useUserStore = defineStore('user', () => {
           status: completed ? 'completed' : 'cancelled',
           yourRating: l.studentRating,
           yourComment: l.studentComment ?? '',
+          yourAspects: l.studentAspects ?? null,
           rating: l.teacherScore,
           feedback,
           // What the teacher provided for this lesson; none for a cancelled one.
@@ -456,9 +457,9 @@ export const useUserStore = defineStore('user', () => {
       })
   );
 
-  /** The student's rating of the teacher for one past lesson. */
-  const rateLesson = (id, rating, comment = '') => {
-    school.rateLesson(id, rating, (comment ?? '').trim());
+  /** The student's rating of one past lesson: the teacher score, plus optional scores for the other parts. */
+  const rateLesson = (id, rating, comment = '', aspects = null) => {
+    school.rateLesson(id, rating, (comment ?? '').trim(), aspects);
   };
 
   /**

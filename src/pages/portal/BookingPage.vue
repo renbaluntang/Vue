@@ -495,84 +495,113 @@ const confirmDateTimeFilters = () => {
 // --- Grid layout (single column; the runtime switcher was removed) ---
 const containerMaxWidthClass = "max-w-[1240px]";
 const sectionColsClass = "grid-cols-1";
-const cardBodyGridClass = "md:grid-cols-[200px,1fr]";
-const cardPhotoAspectClass = "max-w-[200px] aspect-square";
+const cardBodyGridClass = "md:grid-cols-[148px,1fr]";
+const cardPhotoAspectClass = "max-w-[148px] aspect-square";
 </script>
 
 <template>
-  <div class="min-h-screen bg-[#f1f5f9] px-3 py-6 pb-10 text-slate-800 sm:px-6">
+  <div class="min-h-screen bg-[#f1f5f9] px-3 py-6 pb-12 text-slate-800 sm:px-6">
     <div :class="`mx-auto space-y-6 transition-all duration-300 ${containerMaxWidthClass}`">
-      <!-- The free trial lesson & assessment, for a new student who has not
-           taken it. It sits above everything else because it is the best
-           first booking, and it disappears for good once it is booked. -->
+      <!-- 1. Page Header with Points Balance pill -->
+      <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <div class="flex items-center gap-2.5">
+            <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span>
+            <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
+              Book a Lesson
+            </h1>
+          </div>
+          <p class="mt-1 text-sm text-slate-500 font-medium">
+            Browse our professional English instructors, check schedules, and reserve your 1-on-1 classes.
+          </p>
+        </div>
+
+        <!-- Quick balance indicator linking to point purchase/history -->
+        <RouterLink
+          to="/points"
+          class="inline-flex items-center gap-3 rounded-2xl border border-amber-200/80 bg-white hover:bg-amber-50/60 px-4 py-2.5 transition active:scale-[0.98] shadow-xs group shrink-0"
+          title="View your points balance"
+        >
+          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-900">
+            <i class="fa-solid fa-coins text-amber-700 text-sm" aria-hidden="true"></i>
+          </div>
+          <div>
+            <span class="block text-[10px] font-bold uppercase tracking-wider text-amber-800">Available Points</span>
+            <span class="block text-sm font-black text-slate-950">
+              {{ user.profile.pointsBalance }} pts
+              <span class="text-xs font-semibold text-brighture-bronze group-hover:translate-x-0.5 transition-transform inline-block ml-0.5">→</span>
+            </span>
+          </div>
+        </RouterLink>
+      </header>
+
+      <!-- 2. The free trial lesson & assessment (for eligible new students) -->
       <section
         v-if="user.taEligible"
-        class="relative overflow-hidden rounded-2xl border border-brighture-gold/40 bg-brighture-cream p-5 shadow-sm sm:p-6"
+        class="relative overflow-hidden rounded-2xl border border-amber-300/60 bg-amber-50/70 p-4 sm:p-5 shadow-xs"
         aria-labelledby="trial-promo-title"
       >
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex items-start gap-3.5">
-            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-brighture-gold text-lg text-brighture-ink shadow-sm">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brighture-gold text-base text-slate-950 shadow-xs">
               <i class="fa-solid fa-gift" aria-hidden="true"></i>
             </span>
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
-                <h2 id="trial-promo-title" class="m-0 text-base font-extrabold tracking-tight text-slate-900 sm:text-lg">Your free trial lesson &amp; assessment</h2>
+                <h2 id="trial-promo-title" class="m-0 text-base font-extrabold tracking-tight text-slate-900">Your free trial lesson &amp; assessment</h2>
                 <span class="rounded-full bg-emerald-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">Free · once</span>
               </div>
-              <p class="m-0 mt-1 text-xs font-medium text-slate-600 sm:text-sm">
-                Meet an instructor, talk about your goals, and get personal feedback on how you're doing and what to work on. It costs no points.
+              <p class="m-0 mt-0.5 text-xs font-medium text-slate-600 sm:text-sm">
+                Meet an instructor, talk about your goals, and get personal feedback on how you're doing. It costs no points.
               </p>
             </div>
           </div>
           <button
             type="button"
             @click="showTrialInstructors"
-            class="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-2xl bg-slate-900 px-6 py-3 text-sm font-bold text-white shadow-md transition hover:bg-slate-800 sm:w-auto"
+            class="inline-flex w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-slate-900 px-5 py-2.5 text-xs font-bold text-white shadow-xs transition hover:bg-slate-800 sm:w-auto cursor-pointer"
           >
             Choose a trial instructor <i class="fa-solid fa-arrow-right text-xs" aria-hidden="true"></i>
           </button>
         </div>
       </section>
 
-      <!-- Instant option — the alternative to picking a slot below. The
-           referral offer used to share this row; it now sits at the foot of
-           the page so the teachers come into view sooner. -->
-      <section class="relative flex w-full flex-col overflow-hidden rounded-2xl border border-white/10 p-5 text-white sm:p-6 shadow-xl shadow-black/20 bg-[radial-gradient(120%_140%_at_90%_10%,rgba(255,205,0,0.18)_0%,rgba(255,205,0,0.04)_40%,transparent_70%),radial-gradient(70%_90%_at_0%_100%,rgba(51,65,85,0.25)_0%,transparent_60%),linear-gradient(135deg,#131722_0%,#1a202c_48%,#0b0e14_100%)]">
-        <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-        <div class="relative z-10 flex flex-1 flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
-          <div class="flex items-start gap-3.5">
-            <span class="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white/[0.08] border border-white/[0.08] text-lg shadow-inner"><i class="fa-solid fa-bolt text-[#FFCD00]" aria-hidden="true"></i></span>
+      <!-- 3. Talk Now (Instant Lesson Option) -->
+      <section class="relative overflow-hidden rounded-2xl border border-slate-900 bg-slate-900 p-4 sm:p-5 text-white shadow-md">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
+          <div class="flex items-center gap-3">
+            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-brighture-gold text-base" aria-hidden="true">
+              <i class="fa-solid fa-bolt"></i>
+            </span>
             <div class="min-w-0">
-              <div class="flex flex-wrap items-center gap-2">
-                <h2 class="text-base font-extrabold tracking-tight sm:text-lg">Talk Now</h2>
-                <span class="rounded-full bg-red-600 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white shadow-sm">
-                  Instant
-                </span>
+              <div class="flex items-center gap-2">
+                <h2 class="text-sm sm:text-base font-extrabold tracking-tight text-white">Talk Now</h2>
+                <span class="rounded-full bg-red-500/90 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">Instant</span>
               </div>
-              <p class="mt-0.5 text-xs font-medium text-slate-300 sm:text-sm">
-                Start a 25-minute lesson right now — teacher assigned automatically, 5 pts.
+              <p class="mt-0.5 text-xs text-slate-300">
+                Need to practice right away? Start a 25-minute lesson now — teacher assigned automatically (5 pts).
               </p>
             </div>
           </div>
           <button
             type="button"
             @click="showFreeConversationModal = true"
-            class="w-full shrink-0 rounded-2xl bg-brighture-gold px-6 py-3 text-sm font-bold text-brighture-ink shadow-md transition-all hover:bg-brighture-gold-deep hover:shadow-lg active:scale-95 xl:w-auto"
+            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brighture-gold hover:bg-[#FFD933] px-5 py-2.5 text-xs font-black text-slate-950 shadow-xs transition active:scale-95 cursor-pointer"
           >
-            Start now
+            <span>Start lesson now</span>
+            <i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i>
           </button>
         </div>
       </section>
 
-      <!-- Top Header & Search Filter Bar -->
-      <header class="rounded-2xl border border-slate-200/60 bg-white shadow-sm">
-        <!-- Row 1: Search + Date + Time -->
-        <div class="flex items-center gap-3 px-5 pt-5 sm:px-6 sm:pt-6">
-          <!-- Search input — grows -->
+      <!-- 4. Search & Filter Bar -->
+      <header class="rounded-2xl border border-slate-200/80 bg-white shadow-xs">
+        <!-- Row 1: Search + Date & Time Popover Trigger -->
+        <div class="flex items-center gap-3 px-4 pt-4 sm:px-6 sm:pt-5">
+          <!-- Search input -->
           <div class="relative flex-1">
             <svg
-              class="pointer-events-none absolute left-4 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-slate-400"
+              class="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400"
               fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"
             >
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
@@ -581,37 +610,37 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
               type="text"
               v-model="search"
               placeholder="Search by instructor name, specialty, or subject…"
-              class="w-full rounded-2xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-12 text-sm text-slate-800 outline-none ring-0 transition-all placeholder:text-slate-400 focus:border-[#FFCD00] focus:bg-white focus:shadow-[0_0_0_3px_rgba(255,205,0,0.15)]"
+              class="w-full rounded-xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-10 text-xs sm:text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-amber-400 focus:bg-white focus:ring-2 focus:ring-amber-200/50"
             />
             <button
               v-if="search"
               type="button"
               @click="search = ''"
               aria-label="Clear search"
-              class="absolute right-3.5 top-1/2 -translate-y-1/2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-[11px] font-bold text-slate-500 transition hover:bg-slate-300 hover:text-slate-700"
+              class="absolute right-3 top-1/2 -translate-y-1/2 flex h-5 w-5 items-center justify-center rounded-full bg-slate-200 text-[10px] font-bold text-slate-500 hover:bg-slate-300 hover:text-slate-700 transition"
             >
               <i class="fa-solid fa-xmark" aria-hidden="true"></i>
             </button>
             <span
               v-else
-              class="absolute right-4 top-1/2 -translate-y-1/2 hidden rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 sm:block"
+              class="absolute right-3 top-1/2 -translate-y-1/2 hidden rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[9px] font-mono text-slate-400 sm:block"
             >
               ⌘K
             </span>
           </div>
 
-          <!-- Popover trigger button (Mobile + Tablet + Desktop friendly) -->
+          <!-- Popover trigger button -->
           <div class="relative">
             <button
               type="button"
               @click="openDateTimePopover"
-              :class="`flex h-[46px] items-center gap-2 rounded-2xl border px-3 sm:px-5 text-xs sm:text-sm font-semibold transition ${
+              :class="`flex h-[38px] sm:h-[42px] items-center gap-2 rounded-xl border px-3 sm:px-4 text-xs sm:text-sm font-semibold transition cursor-pointer ${
                 selectedDayKey || selectedTime
-                  ? 'border-brighture-gold bg-brighture-cream text-brighture-ink'
+                  ? 'border-brighture-gold bg-amber-50/80 text-slate-900'
                   : 'border-slate-200 bg-slate-50 hover:border-slate-300 hover:bg-white text-slate-700'
               }`"
             >
-              <svg class="h-4 w-4 text-slate-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+              <svg class="h-4 w-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
               <span v-if="selectedDayKey || selectedTime" class="truncate max-w-[120px] sm:max-w-none">
@@ -620,7 +649,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                 <template v-if="selectedTime">{{ formatSlotTo12Hour(selectedTime) }}</template>
               </span>
               <span v-else>
-                <span class="hidden sm:inline">Search by Date &amp; Time</span>
+                <span class="hidden sm:inline">Date &amp; Time</span>
                 <span class="inline sm:hidden">Date/Time</span>
               </span>
             </button>
@@ -637,9 +666,8 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
           </div>
         </div>
 
-        <!-- Row 2: subject filters, then the result count, reset and
-             favourites on the same line, so the filter card stays short. -->
-        <div class="mt-3 border-t border-slate-100 px-5 py-2.5 sm:px-6">
+        <!-- Row 2: SubjectFilterBar with count and reset -->
+        <div class="mt-2.5 border-t border-slate-100 px-4 py-2 sm:px-6">
           <SubjectFilterBar
             v-model="subjectFilter"
             v-model:favorites-only="favoritesOnly"
@@ -654,7 +682,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
                 v-if="search || subjectFilter !== 'ALL' || favoritesOnly || selectedDayKey || selectedTime"
                 type="button"
                 @click="resetFilters"
-                class="inline-flex h-8 items-center gap-1 rounded-xl px-2 text-[11px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800"
+                class="inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 cursor-pointer"
               >
                 <i class="fa-solid fa-rotate-left text-[10px]" aria-hidden="true"></i>
                 Reset
@@ -664,171 +692,174 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
         </div>
       </header>
 
-      <!-- Instructors Grid List -->
-      <section ref="instructorList" :class="`grid scroll-mt-24 gap-5 transition-all duration-300 ${sectionColsClass}`">
+      <!-- 5. Instructors Grid List (Clean, user-friendly cards) -->
+      <section ref="instructorList" :class="`grid scroll-mt-24 gap-4 transition-all duration-300 ${sectionColsClass}`">
         <article
           v-for="teacher in filteredInstructors"
           :key="teacher.id"
-          class="group relative flex flex-col justify-between overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-sm transition-all duration-300 hover:border-amber-400/80 hover:shadow-xl hover:shadow-slate-200/50"
+          class="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-amber-300 hover:shadow-md"
         >
-          <div>
-            <!-- Header Row: Instructor Name, Lesson Stats, Rates & Favorite Button -->
-            <div class="flex flex-col gap-3 pb-4 border-b border-slate-100 sm:flex-row sm:items-center sm:justify-between">
-              <div class="flex flex-wrap items-center gap-3">
-                <h3 class="m-0 text-xl font-extrabold tracking-tight">
+          <!-- Favourite star, pinned to the card's top-right corner at every
+               width so it's always in the same place. -->
+          <button
+            type="button"
+            @click="toggleFavorite(teacher.id)"
+            :class="`absolute right-4 top-4 z-10 inline-flex h-7 w-7 sm:right-5 sm:top-5 items-center justify-center rounded-lg border text-xs transition-all cursor-pointer ${
+            favorites.includes(teacher.id)
+              ? 'border-amber-300 bg-amber-50 text-amber-500 shadow-xs hover:bg-amber-100 scale-105'
+              : 'border-slate-200 bg-white text-slate-400 hover:border-amber-300 hover:text-amber-500 hover:bg-amber-50/40'
+            }`"
+            :aria-label="`Toggle favorite for ${teacher.name}`"
+            :title="favorites.includes(teacher.id) ? 'Saved as favorite teacher' : 'Save to favorite teachers'"
+          >
+            <i class="fa-solid fa-star" aria-hidden="true"></i>
+          </button>
+
+          <!-- Three columns on laptop screens: the photo at a fixed size (a
+               share of the width made it too big), then what the teacher
+               teaches and the actions at 5 : 2. The grid stretches every
+               column to the tallest one, so the booking button sits in the
+               bottom-right corner. On tablets the actions drop to a row under
+               the photo and details; on phones everything stacks. -->
+          <div class="flex flex-1 flex-col gap-4 sm:grid sm:grid-cols-[148px_1fr] sm:gap-5 lg:grid-cols-[164px_minmax(0,5fr)_minmax(0,2fr)]">
+            <!-- Photo, centred down the card's height so it doesn't hang at
+                 the top when the details run long. -->
+            <div class="mx-auto w-full max-w-xs sm:max-w-none sm:self-center">
+              <!-- Avatar Photo -->
+              <button
+                type="button"
+                @click="openTeacherInfo(teacher)"
+                class="relative w-full aspect-square overflow-hidden rounded-2xl bg-slate-100 border border-slate-200 shadow-xs group/avatar cursor-pointer"
+                :aria-label="`View ${teacher.name}'s profile`"
+                title="View teacher profile"
+              >
+                <img
+                  :src="getTeacherModalImage(teacher)"
+                  :alt="teacher.name"
+                  class="h-full w-full object-cover object-top transition duration-500 group-hover/avatar:scale-105"
+                />
+                <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/3 bg-gradient-to-t from-slate-950/70 to-transparent" />
+                <div class="absolute bottom-2 inset-x-2 flex items-center justify-center gap-1 rounded-lg bg-slate-900/80 px-2 py-0.5 text-[10px] font-bold text-white shadow-xs backdrop-blur-sm transition group-hover/avatar:bg-slate-900">
+                  <i class="fa-solid fa-id-card text-brighture-gold text-[10px]" aria-hidden="true"></i>
+                  <span>Profile</span>
+                </div>
+              </button>
+            </div>
+
+            <!-- Teacher details. Thin vertical rules divide the columns,
+                 instead of a line under the name. -->
+            <div class="min-w-0 sm:border-l sm:border-slate-100 sm:pl-5">
+              <!-- Top Row: Name and Rates. On phones the right padding keeps
+                   the name clear of the favourite star. -->
+              <div class="flex flex-col pr-12 sm:flex-row sm:items-start lg:pr-0 justify-between gap-2.5">
+                <div class="min-w-0">
+                  <div class="flex flex-wrap items-center gap-2">
+                    <h3 class="m-0 text-lg sm:text-xl font-black tracking-tight">
+                      <button
+                        type="button"
+                        @click="openTeacherInfo(teacher)"
+                        class="text-slate-900 hover:text-amber-600 transition cursor-pointer text-left font-black"
+                      >
+                        {{ teacher.name }}
+                      </button>
+                    </h3>
+                  </div>
+
+                  <!-- Teacher Major / Specialty -->
+                  <p class="mt-1 text-xs text-slate-500 font-medium flex items-center gap-1.5">
+                    <i class="fa-solid fa-graduation-cap text-slate-400" aria-hidden="true"></i>
+                    <span>{{ getTeacherProfile(teacher).major }}</span>
+                  </p>
+                </div>
+
+                <!-- Rates Pill -->
+                <div class="flex items-center gap-2 shrink-0">
+                  <div class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-amber-200/80 bg-amber-50/60 px-2.5 py-1 text-xs shadow-xs">
+                    <span class="text-amber-800 font-bold uppercase tracking-wider text-[10px]">Lesson:</span>
+                    <span class="font-bold text-slate-800 text-xs">
+                      30m <span class="text-amber-700 font-black">({{ pointsForDuration(teacher, 30) }} pts)</span>
+                    </span>
+                    <span class="text-amber-300 font-bold">·</span>
+                    <span class="font-bold text-slate-800 text-xs">
+                      60m <span class="text-amber-700 font-black">({{ pointsForDuration(teacher, 60) }} pts)</span>
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Self Intro Quote -->
+              <p class="mt-2.5 text-xs sm:text-sm text-slate-600 italic leading-relaxed line-clamp-2">
+                "{{ getTeacherProfile(teacher).selfIntro }}"
+              </p>
+
+              <!-- Subjects Taught Badges -->
+              <!-- Below laptop width the full chips took several rows, so
+                   phones and tablets get one line of subject boxes next to
+                   the label (each box names its subject on hover and to
+                   screen readers). From lg the named chips return, and the
+                   label keeps its own column so a second row of chips starts
+                   under the first chip rather than under the label. -->
+              <div class="mt-3 flex items-center gap-2 lg:items-start">
+                <span class="shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-400 lg:pt-1">Subjects ({{ offeredCodes(teacher).length }}):</span>
+                <div class="flex min-w-0 flex-wrap gap-1 lg:hidden">
+                  <SubjectCode
+                    v-for="code in offeredCodes(teacher)"
+                    :key="code"
+                    :subject="code"
+                    :show-name="false"
+                  />
+                </div>
+                <div class="hidden min-w-0 flex-wrap gap-1 lg:flex">
+                <span
+                  v-for="code in offeredCodes(teacher)"
+                  :key="code"
+                  :class="[
+                    'inline-flex max-w-full items-center rounded-md border py-0.5 pl-0.5 pr-1.5 text-[11px] font-semibold leading-none',
+                    subjectChipClass(code)
+                  ]"
+                >
+                  <SubjectCode :subject="code" size="sm" />
+                </span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Actions. In the three-column layout the three buttons sit
+                 together as one group, centred in the space below the
+                 favourite star pinned in the card's corner. -->
+            <div class="flex flex-col gap-3 sm:col-span-2 lg:border-l lg:border-slate-100 lg:pl-5 sm:flex-row sm:items-center sm:justify-between lg:col-span-1 lg:flex-col lg:items-stretch lg:justify-center lg:gap-2 lg:pt-10">
+              <div class="grid grid-cols-2 gap-1.5 sm:flex lg:grid lg:grid-cols-1">
                   <button
                     type="button"
-                    @click="openTeacherInfo(teacher)"
-                    class="text-slate-900 cursor-pointer hover:text-amber-600 transition flex items-center gap-2"
-                    :aria-label="`View ${teacher.name}'s teacher information`"
-                    title="View teacher information"
+                    @click.stop="openVideo(teacher, 'intro')"
+                    class="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-amber-50 hover:border-amber-300 py-1.5 px-2 text-xs font-bold text-slate-700 shadow-xs transition active:scale-95 cursor-pointer min-h-[36px]"
+                    :title="`Watch ${teacher.name}'s intro video`"
                   >
-                    <span>{{ teacher.name }}</span>
+                    <i class="fa-solid fa-play shrink-0 text-xs" aria-hidden="true"></i>
+                    <span class="truncate">Intro Video</span>
                   </button>
-                </h3>
 
+                  <button
+                    type="button"
+                    @click.stop="openVideo(teacher, 'demo')"
+                    class="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 py-1.5 px-2 text-xs font-bold text-slate-700 shadow-xs transition active:scale-95 cursor-pointer min-h-[36px]"
+                    :title="`Watch a sample lesson with ${teacher.name}`"
+                  >
+                    <i class="fa-solid fa-clapperboard shrink-0 text-xs" aria-hidden="true"></i>
+                    <span class="truncate">Class Demo</span>
+                  </button>
               </div>
-
-              <!-- Rates & Action Pill -->
-              <div class="flex items-center justify-between sm:justify-end gap-2.5">
-                <div class="inline-flex items-center gap-2 rounded-xl border border-amber-200/70 bg-gradient-to-r from-amber-50/70 to-orange-50/50 px-3 py-1.5 text-xs shadow-2xs">
-                  <span class="text-amber-800/80 font-bold uppercase tracking-wider text-[10px]">Lesson Cost:</span>
-                  <span class="font-extrabold text-slate-800">
-                    30 min <span class="text-amber-700">({{ pointsForDuration(teacher, 30) }} pts)</span>
-                  </span>
-                  <span class="text-amber-300 font-bold">/</span>
-                  <span class="font-extrabold text-slate-800">
-                    60 min <span class="text-amber-700">({{ pointsForDuration(teacher, 60) }} pts)</span>
-                  </span>
-                </div>
-
+              <div>
                 <button
                   type="button"
-                  @click="toggleFavorite(teacher.id)"
-                  :class="`inline-flex h-9 w-9 items-center justify-center rounded-xl border text-sm transition-all cursor-pointer ${
-                    favorites.includes(teacher.id)
-                      ? 'border-amber-300 bg-amber-50 text-amber-500 shadow-xs hover:bg-amber-100 scale-105'
-                      : 'border-slate-200 bg-white text-slate-400 hover:border-amber-300 hover:text-amber-500 hover:bg-amber-50/40'
-                  }`"
-                  :aria-label="`Toggle favorite for ${teacher.name}`"
-                  :title="favorites.includes(teacher.id) ? 'Saved as favorite teacher' : 'Save to favorite teachers'"
+                  @click="openTeacherProfile(teacher)"
+                  class="inline-flex items-center justify-center gap-2 rounded-xl bg-brighture-gold hover:bg-[#FFD933] active:bg-amber-400 text-slate-950 font-black text-xs px-6 lg:px-3 py-2.5 shadow-xs hover:shadow transition-all active:scale-95 cursor-pointer min-h-[40px] w-full whitespace-nowrap sm:w-auto lg:w-full"
                 >
-                  <i class="fa-solid fa-star" aria-hidden="true"></i>
+                  <i class="fa-solid fa-calendar-days text-xs" aria-hidden="true"></i>
+                  <span>Book a class</span>
+                  <i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i>
                 </button>
               </div>
-            </div>
-
-            <!-- Body Content -->
-            <div :class="`mt-5 grid gap-5 ${cardBodyGridClass}`">
-              <!-- Left Column: Instructor Photo & Video Actions -->
-              <div class="flex flex-col items-center sm:items-start gap-3">
-                <button
-                  type="button"
-                  @click="openTeacherInfo(teacher)"
-                  :class="`relative w-full overflow-hidden rounded-2xl bg-slate-100 border border-slate-200 shadow-sm group/avatar cursor-pointer ${cardPhotoAspectClass}`"
-                  :aria-label="`View ${teacher.name}'s teacher information`"
-                  title="View teacher information"
-                >
-                  <img
-                    :src="getTeacherModalImage(teacher)"
-                    :alt="teacher.name"
-                    class="h-full w-full object-cover object-top transition duration-500 group-hover/avatar:scale-105"
-                  />
-                  <!-- Only a thin footing, to seat the badge. The wash used to
-                       be inset-0 and darkened the whole frame just so two lines
-                       of text could sit on it. -->
-                  <div class="pointer-events-none absolute inset-x-0 bottom-0 h-1/4 bg-gradient-to-t from-slate-950/70 to-transparent" />
-
-                  <!-- What the photo does. Low and right: the crop is anchored
-                       to the top, so this corner is shoulder, never face. -->
-                  <div class="absolute bottom-2.5 right-2.5 flex items-center gap-1 rounded-full bg-slate-900/80 px-2.5 py-1 text-[10px] font-bold text-white shadow-sm backdrop-blur-xs transition group-hover/avatar:bg-slate-900">
-                    <i class="fa-solid fa-user text-[#FFCD00]" aria-hidden="true"></i> View Profile
-                  </div>
-                </button>
-
-              </div>
-
-              <!-- Right Column: Organized Teacher Details -->
-              <div class="space-y-3.5">
-                <!-- Teacher Introduction Quote Box -->
-                <div class="relative rounded-2xl border border-slate-200/80 bg-gradient-to-r from-amber-50/30 via-slate-50/80 to-white p-3.5 pl-4 shadow-2xs">
-                  <div class="absolute left-0 top-3 bottom-3 w-1 rounded-r-full bg-amber-400" />
-                  <p class="m-0 text-[10px] font-black uppercase tracking-wider text-slate-500 mb-1 flex items-center gap-1">
-                    <i class="fa-solid fa-comments text-sky-600" aria-hidden="true"></i>
-                    <span>Teacher Introduction</span>
-                  </p>
-                  <p class="m-0 text-xs leading-relaxed text-slate-700 italic line-clamp-3 font-normal">
-                    "{{ getTeacherProfile(teacher).selfIntro }}"
-                  </p>
-                </div>
-
-                <!-- Subjects Taught Badges with Clear Names & Category Pills -->
-                <div class="rounded-2xl border border-slate-200/80 bg-slate-50/50 p-3.5 space-y-2.5">
-                  <div class="flex items-center justify-between">
-                    <div class="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-wider text-slate-600">
-                      <svg class="h-3.5 w-3.5 text-slate-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253" />
-                      </svg>
-                      <span>Subjects Taught ({{ offeredCodes(teacher).length }})</span>
-                    </div>
-                    <span v-if="subjectFilter !== 'ALL'" class="inline-flex items-center gap-1 text-[10px] font-bold text-amber-800 bg-amber-100/80 px-2 py-0.5 rounded-full">
-                      <i class="fa-solid fa-check" aria-hidden="true"></i> Filter match
-                    </span>
-                  </div>
-
-                  <div class="flex flex-wrap gap-2">
-                    <span
-                      v-for="code in offeredCodes(teacher)"
-                      :key="code"
-                      :class="[
-                        'inline-flex max-w-full items-center rounded-lg border px-2 py-1 text-xs font-semibold transition-all shadow-2xs',
-                        subjectChipClass(code)
-                      ]"
-                    >
-                      <SubjectCode :subject="code" size="sm" />
-                    </span>
-                  </div>
-                </div>
-
-              </div>
-            </div>
-          </div>
-
-          <!-- Card Footer CTA Bar -->
-          <div class="mt-5 flex flex-col items-center justify-between gap-3 sm:flex-row">
-            <!-- Video buttons, in the footer beside the booking button. -->
-            <div class="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto">
-              <button
-                type="button"
-                @click.stop="openVideo(teacher, 'intro')"
-                class="inline-flex min-w-0 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
-                title="A short video about them"
-              >
-                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-red-100 text-red-600 text-[9px]"><i class="fa-solid fa-play" aria-hidden="true"></i></span>
-                <span>Get to know {{ teacher.name.split(' ')[0] }}</span>
-              </button>
-
-              <button
-                type="button"
-                @click.stop="openVideo(teacher, 'demo')"
-                class="inline-flex min-w-0 touch-manipulation items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-slate-200/90 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-amber-300 hover:bg-amber-50/50 hover:text-amber-900 active:scale-95 cursor-pointer"
-                title="A few minutes of a real class"
-              >
-                <span class="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-100 text-indigo-600 text-[10px]"><i class="fa-solid fa-clapperboard" aria-hidden="true"></i></span>
-                <span>See {{ teacher.name.split(' ')[0] }} teach</span>
-              </button>
-            </div>
-
-            <div class="flex items-center gap-2 w-full sm:w-auto">
-              <button
-                type="button"
-                @click="openTeacherProfile(teacher)"
-                class="flex-1 sm:flex-none inline-flex min-w-0 touch-manipulation items-center justify-center gap-2 whitespace-nowrap border border-amber-300 px-6 py-2.5 rounded-xl bg-[#FFCD00] hover:bg-[#FFD933] active:bg-amber-400 text-slate-900 font-extrabold text-xs shadow-md hover:shadow-lg hover:scale-105 active:scale-95 transition-all cursor-pointer"
-              >
-                <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
-                <span>Select &amp; Book Class</span>
-                <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
-              </button>
             </div>
           </div>
         </article>
@@ -844,36 +875,34 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
           <button
             type="button"
             @click="resetFilters"
-            class="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800"
+            class="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 cursor-pointer"
           >
             Reset Filters
           </button>
         </div>
       </section>
 
-      <!-- Referral, as a slim banner at the foot of the page: it is an
-           offer, not part of booking, so it waits until the list is done. -->
+      <!-- 6. Referral Banner at the foot of the page -->
       <aside
         aria-label="Refer a friend"
-        class="relative overflow-hidden rounded-2xl border border-white/10 bg-[radial-gradient(90%_160%_at_100%_0%,rgba(139,92,246,0.24)_0%,rgba(139,92,246,0.06)_45%,transparent_75%),linear-gradient(135deg,#131722_0%,#1a202c_48%,#0b0e14_100%)] px-4 py-3 text-white shadow-lg shadow-black/10 sm:px-5"
+        class="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white px-4 py-3.5 sm:px-5 text-slate-900 shadow-sm"
       >
-        <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent"></div>
-        <div class="relative flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div class="flex min-w-0 items-center gap-3">
-            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-white/[0.08] bg-white/[0.08]">
-              <i class="fa-solid fa-user-plus text-sm text-violet-300" aria-hidden="true"></i>
+            <span class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-amber-200 bg-amber-50 text-amber-800 shadow-xs" aria-hidden="true">
+              <i class="fa-solid fa-gift text-sm"></i>
             </span>
-            <p class="min-w-0 text-sm text-slate-300">
-              <strong class="font-extrabold text-white">Refer a friend</strong>
-              <span class="mx-1.5 text-slate-500" aria-hidden="true">·</span>
-              {{ REFERRAL_TERMS.friendDiscountLabel }} USD off their plan, {{ REFERRAL_TERMS.referrerPoints }} pts for you once they buy.
+            <p class="min-w-0 text-xs sm:text-sm text-slate-600">
+              <strong class="font-black text-slate-900">Refer a friend:</strong>
+              Give {{ REFERRAL_TERMS.friendDiscountLabel }} USD off their plan, earn {{ REFERRAL_TERMS.referrerPoints }} pts once they buy.
             </p>
           </div>
           <RouterLink
             to="/refer"
-            class="shrink-0 rounded-xl bg-violet-500 px-4 py-2 text-center text-xs font-bold text-white shadow-sm transition hover:bg-violet-400"
+            class="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-xl bg-brighture-gold hover:bg-[#FFD933] px-4 py-2 text-center text-xs font-extrabold text-slate-950 shadow-xs transition active:scale-95"
           >
-            Get my link
+            <span>Get invite link</span>
+            <i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i>
           </RouterLink>
         </div>
       </aside>
@@ -1031,7 +1060,7 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
           <div class="h-1 w-10 rounded-full bg-slate-300"></div>
         </div>
 
-        <!-- The name appears once, beside the photo; the close button sits in the corner. -->
+        <!-- The name appears once, under the photo; the close button sits in the corner. -->
         <div class="relative flex flex-col items-center gap-4 border-b border-slate-200 p-4 text-center sm:flex-row sm:items-center sm:text-left sm:p-5 sm:pr-14">
           <button
             type="button"
@@ -1041,43 +1070,44 @@ const cardPhotoAspectClass = "max-w-[200px] aspect-square";
           >
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
           </button>
-          <!-- The photo and name open the instructor's full profile over the calendar. -->
-          <button
-            type="button"
-            @click="openTeacherInfo(profileTeacher)"
-            class="group relative flex-none cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
-            :aria-label="`View ${profileTeacher.name}'s profile`"
-          >
-            <img
-              :src="getTeacherPhoto(profileTeacher)"
-              :alt="profileTeacher.name"
-              class="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover shadow-sm ring-2 ring-white outline outline-1 outline-slate-200 transition group-hover:brightness-95 group-hover:outline-amber-300"
-            />
-            <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[10px] text-slate-700 shadow ring-1 ring-slate-200 transition group-hover:text-brighture-bronze" aria-hidden="true">
-              <i class="fa-solid fa-user"></i>
-            </span>
-          </button>
+          <!-- The name sits under the photo, so the details beside them get
+               the full width. -->
+          <div class="flex flex-none flex-col items-center gap-2">
+            <!-- The photo and name open the instructor's full profile over the calendar. -->
+            <button
+              type="button"
+              @click="openTeacherInfo(profileTeacher)"
+              class="group relative flex-none cursor-pointer rounded-2xl focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+              :aria-label="`View ${profileTeacher.name}'s profile`"
+            >
+              <img
+                :src="getTeacherPhoto(profileTeacher)"
+                :alt="profileTeacher.name"
+                class="h-20 w-20 sm:h-24 sm:w-24 rounded-2xl object-cover shadow-sm ring-2 ring-white outline outline-1 outline-slate-200 transition group-hover:brightness-95 group-hover:outline-amber-300"
+              />
+              <span class="absolute -bottom-1 -right-1 flex h-6 w-6 items-center justify-center rounded-full bg-white text-[10px] text-slate-700 shadow ring-1 ring-slate-200 transition group-hover:text-brighture-bronze" aria-hidden="true">
+                <i class="fa-solid fa-user"></i>
+              </span>
+            </button>
+            <h2 class="m-0 text-base font-black text-slate-900">
+              <button
+                type="button"
+                @click="openTeacherInfo(profileTeacher)"
+                class="group inline-flex cursor-pointer items-center gap-1 rounded transition hover:text-brighture-bronze focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
+              >
+                <span class="underline-offset-4 group-hover:underline">{{ profileTeacher.name }}</span>
+                <i class="fa-solid fa-chevron-right text-[10px] text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-brighture-bronze" aria-hidden="true"></i>
+              </button>
+            </h2>
+          </div>
           <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2 justify-center sm:justify-start flex-wrap">
-              <h2 class="m-0 text-lg sm:text-xl font-black text-slate-900">
-                <button
-                  type="button"
-                  @click="openTeacherInfo(profileTeacher)"
-                  class="group inline-flex cursor-pointer items-center gap-1.5 rounded text-left transition hover:text-brighture-bronze focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-gold"
-                >
-                  <span class="underline-offset-4 group-hover:underline">{{ profileTeacher.name }}</span>
-                  <i class="fa-solid fa-chevron-right text-xs text-slate-400 transition group-hover:translate-x-0.5 group-hover:text-brighture-bronze" aria-hidden="true"></i>
-                </button>
-              </h2>
-            </div>
-
             <!-- Distinct subjects covered chips in modal header -->
-            <div class="mt-2 flex flex-wrap justify-center sm:justify-start gap-1.5">
+            <div class="flex flex-wrap justify-center sm:justify-start gap-1.5">
               <span
                 v-for="code in offeredCodes(profileTeacher)"
                 :key="code"
                 :class="[
-                  'inline-flex max-w-full items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-bold shadow-2xs',
+                  'inline-flex max-w-full items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-bold shadow-xs',
                   subjectChipClass(code)
                 ]"
               >

@@ -278,7 +278,7 @@ export const useSchoolStore = defineStore('school', () => {
       status: 'booked', substitution: false,
       meetLink: meetLink ?? `https://meet.google.com/${Math.random().toString(36).slice(2, 5)}-${Math.random().toString(36).slice(2, 6)}-${Math.random().toString(36).slice(2, 5)}`,
       feedback: '', hiddenNote: '', feedbackSubmitted: false, teacherScore: null,
-      studentRating: null, studentComment: '', cancelReason: '', refunded: false,
+      studentRating: null, studentComment: '', studentAspects: null, cancelReason: '', refunded: false,
     };
     db.value.lessons.push(lesson);
     if (checkType) notifyLevelCheck('booked', lesson);
@@ -348,11 +348,14 @@ export const useSchoolStore = defineStore('school', () => {
     if (score !== null) l.teacherScore = score;
   };
 
-  const rateLesson = (id, rating, comment = '') => {
+  // `rating` is the teacher score; `aspects` holds the optional per-part
+  // scores ({ content, connection }), each 1–5 or 0 for not rated.
+  const rateLesson = (id, rating, comment = '', aspects = null) => {
     const l = findLesson(id);
     if (!l || l.status !== 'completed') return;
     l.studentRating = rating;
     l.studentComment = comment;
+    l.studentAspects = aspects;
   };
 
   // ── Writing ───────────────────────────────────────────────────────────

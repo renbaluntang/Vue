@@ -284,7 +284,6 @@
                 >
                   {{ instructor.name }}
                 </button>
-                <span class="text-[11px] text-amber-600 font-semibold">★ {{ instructor.rating }}</span>
               </div>
               <p class="text-[11px] text-zinc-400 truncate mt-0.5">{{ instructor.specialty }}</p>
               <div class="mt-1 flex items-center gap-1.5">

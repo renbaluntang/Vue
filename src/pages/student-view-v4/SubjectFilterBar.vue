@@ -153,17 +153,36 @@ onUnmounted(() => {
 <template>
   <div class="w-full space-y-2.5">
     <!-- Top Row: Category Tabs + Dropdown Menu + Favorites -->
-    <div class="flex flex-wrap items-center justify-between gap-2.5">
+    <!-- On phones this row anchors the subject list, so the list spans the
+         row's full width instead of starting at the button and running off
+         the screen. -->
+    <div class="relative flex items-center justify-between gap-2 sm:static sm:flex-wrap sm:gap-2.5">
       
       <!-- Category Segmented Control & Dropdown Trigger -->
-      <div class="flex flex-wrap items-center gap-1.5 min-w-0">
-        
+      <div class="flex min-w-0 items-center gap-1.5 sm:flex-wrap">
+
+        <!-- On phones the four category tabs don't fit in one line, so they
+             become one compact dropdown and the whole filter stays a single
+             row. -->
+        <div class="relative sm:hidden">
+          <select
+            :value="activeCategory"
+            @change="selectCategoryTab($event.target.value)"
+            aria-label="Category"
+            class="h-8 cursor-pointer appearance-none rounded-xl border border-slate-200 bg-white pl-2.5 pr-7 text-[11px] font-semibold text-slate-700 outline-none transition hover:border-slate-300 focus:border-brighture-gold focus:ring-2 focus:ring-brighture-gold/30"
+          >
+            <option value="ALL">All ({{ INSTRUCTORS.length }})</option>
+            <option v-for="cat in categories" :key="cat.id" :value="cat.id">{{ cat.shortName }}</option>
+          </select>
+          <i class="fa-solid fa-chevron-down pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-[9px] text-slate-400" aria-hidden="true"></i>
+        </div>
+
         <!-- Category Tabs -->
-        <div class="inline-flex items-center rounded-xl bg-slate-100 p-1 text-[11px] font-semibold text-slate-600">
+        <div class="hidden items-center rounded-xl bg-slate-100 p-1 text-[11px] font-semibold text-slate-600 sm:inline-flex">
           <button
             type="button"
             @click="selectCategoryTab('ALL')"
-            :class="`rounded-lg px-2.5 py-1 transition-all duration-150 ${
+            :class="`whitespace-nowrap rounded-lg px-2.5 py-1 transition-all duration-150 ${
               activeCategory === 'ALL'
                 ? 'bg-white text-slate-900 shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900'
@@ -177,7 +196,7 @@ onUnmounted(() => {
             :key="cat.id"
             type="button"
             @click="selectCategoryTab(cat.id)"
-            :class="`inline-flex items-center gap-1 rounded-lg px-2.5 py-1 transition-all duration-150 ${
+            :class="`inline-flex items-center justify-center gap-1 whitespace-nowrap rounded-lg px-2.5 py-1 transition-all duration-150 ${
               activeCategory === cat.id
                 ? 'bg-white text-slate-900 shadow-xs font-bold'
                 : 'text-slate-600 hover:text-slate-900'
@@ -189,7 +208,7 @@ onUnmounted(() => {
         </div>
 
         <!-- Subject Popover Trigger Button -->
-        <div class="relative" ref="dropdownRef">
+        <div class="sm:relative" ref="dropdownRef">
           <button
             type="button"
             @click="isDropdownOpen = !isDropdownOpen"
@@ -209,7 +228,7 @@ onUnmounted(() => {
                 :subject="selectedSubjectObject.code"
                 size="sm"
               />
-              <span v-else class="truncate">Select Subject…</span>
+              <span v-else class="truncate"><span class="sm:hidden">Subject</span><span class="hidden sm:inline">Select Subject…</span></span>
             </span>
             <svg
               class="h-3 w-3 transition-transform duration-200"
@@ -223,18 +242,18 @@ onUnmounted(() => {
           <!-- Dropdown Popover -->
           <div
             v-if="isDropdownOpen"
-            class="absolute left-0 top-full mt-1.5 z-50 w-72 sm:w-80 rounded-2xl bg-white p-3 shadow-xl ring-1 ring-black/10 text-slate-800 animate-in fade-in zoom-in-95 origin-top-left"
+            class="absolute inset-x-0 top-full mt-1.5 z-50 w-auto sm:right-auto sm:w-72 rounded-2xl bg-white p-2 shadow-xl ring-1 ring-black/10 text-slate-800 animate-in fade-in zoom-in-95 origin-top-left"
           >
             <!-- Search bar -->
-            <div class="relative mb-2.5">
+            <div class="relative mb-1.5">
               <svg class="pointer-events-none absolute left-2.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
               <input
                 v-model="searchQuery"
                 type="text"
-                placeholder="Search subject or code (e.g. SF, Vowels)…"
-                class="w-full rounded-xl border border-slate-200 bg-slate-50 py-1.5 pl-8 pr-7 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white transition placeholder:text-slate-400"
+                placeholder="Search subject or code"
+                class="w-full rounded-lg border border-slate-200 bg-slate-50 py-1 pl-8 pr-7 text-xs text-slate-800 outline-none focus:border-slate-400 focus:bg-white transition placeholder:text-slate-400"
                 autofocus
               />
               <button
@@ -252,7 +271,7 @@ onUnmounted(() => {
             <button
               type="button"
               @click="clearFilter"
-              :class="`w-full flex items-center justify-between rounded-xl px-2.5 py-1.5 text-xs font-semibold transition mb-1.5 ${
+              :class="`w-full flex items-center justify-between rounded-lg px-2 py-1 text-xs font-semibold transition mb-1 ${
                 modelValue === 'ALL' ? 'bg-slate-900 text-white' : 'text-slate-700 hover:bg-slate-100'
               }`"
             >
@@ -266,19 +285,19 @@ onUnmounted(() => {
             </button>
 
             <!-- Categorized list -->
-            <div class="max-h-64 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
-              <div v-for="cat in filteredCategoriesForDropdown" :key="cat.id" class="space-y-1">
-                <div class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
+            <div class="max-h-60 overflow-y-auto space-y-1.5 pr-1 custom-scrollbar">
+              <div v-for="cat in filteredCategoriesForDropdown" :key="cat.id">
+                <div class="px-2 pb-0.5 pt-1 text-[10px] font-bold uppercase tracking-wider text-slate-400 flex items-center gap-1">
                   <i :class="cat.icon" aria-hidden="true"></i>
                   <span>{{ cat.name }}</span>
                 </div>
-                <div class="space-y-0.5">
+                <div>
                   <button
                     v-for="sub in cat.subjects"
                     :key="sub.code"
                     type="button"
                     @click="selectFilter(sub.code)"
-                    :class="`w-full flex items-center justify-between rounded-lg px-2 py-1.5 text-xs transition text-left ${
+                    :class="`w-full flex items-center justify-between rounded-md px-2 py-1 text-xs transition text-left ${
                       modelValue === sub.code
                         ? 'bg-slate-900 text-white font-bold'
                         : 'text-slate-700 hover:bg-slate-100 font-medium'
@@ -317,7 +336,7 @@ onUnmounted(() => {
 
       <!-- Right side: whatever the page adds (such as a result count),
            then the favourites toggle. -->
-      <div class="ml-auto flex shrink-0 items-center gap-2.5">
+      <div class="ml-auto flex shrink-0 items-center gap-2 sm:gap-2.5">
       <slot name="end" />
       <!-- Favorites Toggle (if enabled) -->
       <button
@@ -325,14 +344,16 @@ onUnmounted(() => {
         type="button"
         @click="emit('update:favoritesOnly', !favoritesOnly)"
         :aria-pressed="favoritesOnly"
-        :class="`inline-flex h-8 items-center gap-1.5 rounded-xl border px-3 text-[11px] font-semibold transition-all shrink-0 ${
+        :class="`inline-flex h-8 items-center gap-1.5 rounded-xl border px-2.5 text-[11px] sm:px-3 font-semibold transition-all shrink-0 ${
           favoritesOnly
             ? 'border-amber-300 bg-amber-50 text-amber-800 shadow-xs font-bold'
             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
         }`"
       >
         <i class="fa-solid fa-star" :class="favoritesOnly ? 'text-amber-500' : 'text-slate-300'" aria-hidden="true"></i>
-        <span>Favorites</span>
+        <!-- On phones the star and count say enough; the name stays for
+             screen readers. -->
+        <span class="sr-only sm:not-sr-only">Favorites</span>
         <span
           v-if="favoritesCount > 0"
           :class="`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${

@@ -3,17 +3,28 @@
     <!-- 1. Lesson length first: it decides what a click on the grid books,
          so it is the loudest thing above the calendar — a dark panel with a
          numbered step, not a quiet toolbar control. -->
-    <div class="relative overflow-hidden rounded-2xl bg-slate-900 px-3.5 py-3 text-white shadow-lg sm:px-4">
+    <div class="relative overflow-hidden rounded-2xl bg-slate-900 px-3 py-2 text-white shadow-lg sm:px-3.5">
       <div class="pointer-events-none absolute -right-10 -top-12 h-40 w-40 rounded-full bg-brighture-gold/15 blur-2xl"></div>
-      <div class="relative flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div class="relative flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
         <div class="flex min-w-0 items-center gap-2.5">
-          <span class="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-brighture-gold text-xs font-black text-brighture-ink shadow-md">1</span>
+          <span class="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-brighture-gold text-[11px] font-black text-brighture-ink shadow-md">1</span>
           <div class="min-w-0">
-            <p class="m-0 text-sm font-black tracking-tight sm:text-base">Choose your lesson length</p>
+            <p class="m-0 text-sm font-black tracking-tight">Choose your lesson length</p>
             <p class="m-0 text-[11px] text-slate-300">Pick this first — clicking a time on the calendar books this much.</p>
           </div>
         </div>
-        <div class="grid grid-cols-2 gap-2 md:w-[22rem]" role="radiogroup" aria-label="Lesson length">
+        <!-- A two-way switch: one track, and a gold thumb that slides under
+             whichever length is chosen, so it reads as "this or that". -->
+        <div
+          class="relative grid grid-cols-2 rounded-xl bg-white/10 p-0.5 ring-1 ring-white/15 md:w-[16rem]"
+          role="radiogroup"
+          aria-label="Lesson length"
+        >
+          <span
+            class="pointer-events-none absolute inset-y-0.5 left-0.5 w-[calc(50%-0.125rem)] rounded-[0.625rem] bg-brighture-gold shadow-lg shadow-brighture-gold/20 transition-transform duration-300 ease-out motion-reduce:transition-none"
+            :style="{ transform: duration === 60 ? 'translateX(100%)' : 'translateX(0)' }"
+            aria-hidden="true"
+          ></span>
           <button
             v-for="d in DURATIONS"
             :key="d.minutes"
@@ -21,29 +32,19 @@
             role="radio"
             :aria-checked="duration === d.minutes"
             @click="setDuration(d.minutes)"
-            class="flex items-center justify-between gap-2 rounded-xl border-2 px-3 py-2 text-left transition"
-            :class="duration === d.minutes
-              ? 'border-brighture-gold bg-brighture-gold text-brighture-ink shadow-lg shadow-brighture-gold/20'
-              : 'border-white/15 bg-white/5 text-white hover:border-white/40 hover:bg-white/10'"
+            class="relative z-10 flex cursor-pointer items-center justify-center gap-1.5 rounded-[0.625rem] px-2.5 py-1.5 transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/70"
+            :class="duration === d.minutes ? 'text-brighture-ink' : 'text-slate-300 hover:text-white'"
           >
-            <!-- One line: the length (its number carries it), then the price -->
-            <span class="flex min-w-0 items-center gap-2">
-              <span class="flex items-baseline gap-1 leading-none">
-                <span class="text-xl font-black tracking-tight tabular-nums">{{ d.minutes === 60 ? 1 : 30 }}</span>
-                <span class="text-sm font-bold">{{ d.minutes === 60 ? 'hour' : 'min' }}</span>
-              </span>
-              <span
-                class="inline-flex items-center rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums"
-                :class="duration === d.minutes ? 'bg-brighture-ink/10 text-brighture-ink' : 'bg-white/10 text-slate-200'"
-              >
-                {{ priceLabel(d.minutes) }}
-              </span>
+            <span class="flex items-baseline gap-1 leading-none">
+              <span class="text-base font-black tracking-tight tabular-nums">{{ d.minutes === 60 ? 1 : 30 }}</span>
+              <span class="text-xs font-bold">{{ d.minutes === 60 ? 'hour' : 'min' }}</span>
             </span>
-            <i
-              class="text-base"
-              :class="duration === d.minutes ? 'fa-solid fa-circle-check text-brighture-ink' : 'fa-regular fa-circle text-white/35'"
-              aria-hidden="true"
-            ></i>
+            <span
+              class="inline-flex items-center rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums transition-colors duration-300"
+              :class="duration === d.minutes ? 'bg-brighture-ink/10 text-brighture-ink' : 'bg-white/10 text-slate-300'"
+            >
+              {{ priceLabel(d.minutes) }}
+            </span>
           </button>
         </div>
       </div>

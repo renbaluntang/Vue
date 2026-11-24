@@ -307,33 +307,53 @@
     <!-- Lesson recording permission. Saved the moment it changes, not with
          the form, because teachers check it right before a lesson. -->
     <div class="bg-white border border-slate-200/80 rounded-3xl p-6 sm:p-8 shadow-xs">
-      <div class="flex items-start justify-between gap-4">
+      <!-- The choice is centred against the whole text block, so it reads as
+           the control for the setting rather than for the heading alone. On
+           phones it drops below the text so the words keep their width. -->
+      <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
         <div class="min-w-0">
           <h2 id="recording-consent-label" class="text-lg font-bold text-slate-900 flex items-center gap-2">
             <span class="w-2 h-5 rounded-full bg-brighture-gold"></span> Lesson recording
           </h2>
           <p class="text-sm text-slate-600 mt-2 max-w-xl leading-relaxed">
-            Allow your teachers to record your lessons in Google Meet. Only you, your teacher and Brighture staff can watch a recording, and its link stays in your lesson history for 30 days.
+            Choose whether your teachers may record your lessons in Google Meet. Only you, your teacher and Brighture staff can watch a recording, and its link stays in your lesson history for 30 days.
           </p>
           <p class="text-xs text-slate-500 mt-2">
-            <template v-if="recordingConsent">Recording is allowed. You can turn it off at any time; lessons already recorded are not affected.</template>
-            <template v-else>Recording is off. Your teachers see "Do not record" on your lessons.</template>
+            <template v-if="recordingConsent">Recording is allowed. You can change this at any time. Lessons that were already recorded are not affected.</template>
+            <template v-else>Recording is not allowed. Your teachers will see "Do not record" on your lessons.</template>
           </p>
         </div>
-        <button
-          type="button"
-          role="switch"
-          :aria-checked="recordingConsent"
+        <!-- Two labelled options instead of an on/off toggle, so the current
+             answer is written out rather than implied by a colour. The gold
+             block slides to the chosen side. -->
+        <div
+          class="relative grid shrink-0 grid-cols-2 rounded-xl bg-slate-100 p-1 ring-1 ring-slate-200 sm:w-60"
+          role="radiogroup"
           aria-labelledby="recording-consent-label"
-          class="relative mt-1 inline-flex h-7 w-12 shrink-0 items-center rounded-full transition focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-brighture-gold/40"
-          :class="recordingConsent ? 'bg-emerald-500' : 'bg-slate-300'"
-          @click="toggleRecordingConsent"
+          @keydown.left.prevent="chooseRecordingConsent(true, true)"
+          @keydown.right.prevent="chooseRecordingConsent(false, true)"
         >
           <span
-            class="inline-block h-5 w-5 rounded-full bg-white shadow transition"
-            :class="recordingConsent ? 'translate-x-6' : 'translate-x-1'"
+            class="pointer-events-none absolute inset-y-1 left-1 w-[calc(50%-0.25rem)] rounded-lg bg-brighture-gold shadow-sm transition-transform duration-300 ease-out motion-reduce:transition-none"
+            :style="{ transform: recordingConsent ? 'translateX(0)' : 'translateX(100%)' }"
+            aria-hidden="true"
           ></span>
-        </button>
+          <button
+            v-for="opt in RECORDING_OPTIONS"
+            :key="opt.label"
+            :ref="(el) => { if (el) recordingOptionRefs[opt.value ? 0 : 1] = el; }"
+            type="button"
+            role="radio"
+            :aria-checked="recordingConsent === opt.value"
+            :tabindex="recordingConsent === opt.value ? 0 : -1"
+            class="relative z-10 flex cursor-pointer items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-xs font-bold transition-colors duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-bronze/50"
+            :class="recordingConsent === opt.value ? 'text-brighture-ink' : 'text-slate-500 hover:text-slate-800'"
+            @click="chooseRecordingConsent(opt.value)"
+          >
+            <i :class="opt.icon" class="text-[11px]" aria-hidden="true"></i>
+            {{ opt.label }}
+          </button>
+        </div>
       </div>
     </div>
 
@@ -345,47 +365,96 @@
       <div class="border-b border-slate-100 pb-4 flex items-center justify-between">
         <div>
           <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <span class="w-2 h-5 rounded-full bg-brighture-gold"></span> Learning Objectives & Schedule
+            <span class="w-2 h-5 rounded-full bg-brighture-gold"></span> Learning Objectives
           </h2>
-          <p class="text-xs text-slate-500 mt-0.5">Customize your learning pathway and booking timezone.</p>
+          <p class="text-xs text-slate-500 mt-0.5">What you want to get out of your lessons.</p>
         </div>
         <span v-if="isLearningDirty" class="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200">
           Unsaved Edits
         </span>
       </div>
 
+      <!-- The select drops the browser arrow for a chevron that lines up
+           with the field's padding. -->
       <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
         <div>
-          <label for="profile-timezone" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Student Timezone</label>
-          <select
-            id="profile-timezone"
-            ref="timezoneRef"
-            v-model="form.timezone"
-            class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3 px-4 text-sm font-semibold text-slate-800 outline-none focus:bg-white focus:border-brighture-gold focus:ring-4 focus:ring-brighture-gold/20 transition"
-            :class="highlightTimezone ? 'border-brighture-gold bg-white ring-4 ring-brighture-gold/40' : ''"
-          >
-            <option v-for="zone in TIMEZONES" :key="zone.value" :value="zone.value">{{ zone.label }}</option>
-          </select>
+          <label for="profile-objective" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Primary Learning Objective</label>
+          <div class="relative">
+            <select
+              id="profile-objective"
+              v-model="form.learningObjective"
+              class="w-full cursor-pointer appearance-none rounded-2xl border border-slate-200 bg-slate-50/50 py-3 pl-4 pr-11 text-sm font-semibold text-slate-800 outline-none hover:border-slate-300 focus:bg-white focus:border-brighture-gold focus:ring-4 focus:ring-brighture-gold/20 transition"
+            >
+              <option v-for="obj in LEARNING_OBJECTIVES" :key="obj.value" :value="obj.value">{{ obj.label }}</option>
+            </select>
+            <i class="fa-solid fa-chevron-down pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400" aria-hidden="true"></i>
+          </div>
         </div>
 
         <div>
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Primary Learning Objective</label>
-          <select
-            v-model="form.learningObjective"
-            class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3 px-4 text-sm font-semibold text-slate-800 outline-none focus:bg-white focus:border-brighture-gold focus:ring-4 focus:ring-brighture-gold/20 transition"
-          >
-            <option v-for="obj in LEARNING_OBJECTIVES" :key="obj.value" :value="obj.value">{{ obj.label }}</option>
-          </select>
-        </div>
-
-        <div class="sm:col-span-2">
-          <label class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Target Study Goal & Focus</label>
+          <label for="profile-goal" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Target Study Goal & Focus</label>
           <input
+            id="profile-goal"
             type="text"
             v-model="form.targetGoal"
             placeholder="e.g. Business Meetings, IELTS 7.5, Accent Reduction"
             class="w-full rounded-2xl border border-slate-200 bg-slate-50/50 py-3 px-4 text-sm font-semibold text-slate-800 outline-none focus:bg-white focus:border-brighture-gold focus:ring-4 focus:ring-brighture-gold/20 transition"
           />
+        </div>
+      </div>
+    </div>
+
+    <!-- Language & timezone. Both decide how the portal is shown to you
+         rather than what you study, so they sit apart from the learning card.
+         The language applies the moment it changes (src/i18n saves it); the
+         timezone is saved with the rest of the form. -->
+    <div
+      class="bg-white border rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 transition-all duration-300"
+      :class="isRegionDirty ? 'border-amber-300 ring-2 ring-amber-100' : 'border-slate-200/80'"
+    >
+      <div class="border-b border-slate-100 pb-4 flex items-center justify-between">
+        <div>
+          <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
+            <span class="w-2 h-5 rounded-full bg-brighture-gold"></span> Language & Timezone
+          </h2>
+          <p class="text-xs text-slate-500 mt-0.5">How the portal and your lesson times are shown to you.</p>
+        </div>
+        <span v-if="isRegionDirty" class="text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded-xl border border-amber-200">
+          Unsaved Edits
+        </span>
+      </div>
+
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-5 sm:gap-6">
+        <div>
+          <label for="profile-language" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Language</label>
+          <div class="relative">
+            <select
+              id="profile-language"
+              v-model="locale"
+              class="w-full cursor-pointer appearance-none rounded-2xl border border-slate-200 bg-slate-50/50 py-3 pl-4 pr-11 text-sm font-semibold text-slate-800 outline-none hover:border-slate-300 focus:bg-white focus:border-brighture-gold focus:ring-4 focus:ring-brighture-gold/20 transition"
+            >
+              <option v-for="lang in LANGUAGES" :key="lang.code" :value="lang.code">{{ lang.label }}</option>
+            </select>
+            <i class="fa-solid fa-chevron-down pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400" aria-hidden="true"></i>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Changes right away on this device.</p>
+        </div>
+
+        <div>
+          <label for="profile-timezone" class="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">Your Timezone</label>
+          <div class="relative">
+            <select
+              id="profile-timezone"
+              ref="timezoneRef"
+              v-model="form.timezone"
+              class="w-full cursor-pointer appearance-none rounded-2xl border border-slate-200 bg-slate-50/50 py-3 pl-4 pr-11 text-sm font-semibold text-slate-800 outline-none hover:border-slate-300 focus:bg-white focus:border-brighture-gold focus:ring-4 focus:ring-brighture-gold/20 transition"
+              :class="highlightTimezone ? 'border-brighture-gold bg-white ring-4 ring-brighture-gold/40' : ''"
+            >
+              <option v-for="zone in TIMEZONES" :key="zone.value" :value="zone.value">{{ zone.label }}</option>
+            </select>
+            <i class="fa-solid fa-chevron-down pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-xs text-slate-400" aria-hidden="true"></i>
+          </div>
+          <p class="text-[11px] text-slate-400 mt-1">Lesson times and booking slots are shown in this timezone.</p>
         </div>
       </div>
     </div>
@@ -769,6 +838,8 @@ import { CURRENT_STUDENT_ID } from '@/lib/schoolSeed';
 import { ref, computed, reactive, watch, nextTick } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
+import { useI18n } from 'vue-i18n';
+import { LANGUAGES } from '@/i18n';
 
 const user = useUserStore();
 
@@ -836,10 +907,17 @@ const school = useSchoolStore();
 // Whether teachers may record this student's lessons; lives in the shared
 // store so the teacher portal shows the change straight away.
 const recordingConsent = computed(() => !!school.student(CURRENT_STUDENT_ID).recordingConsent);
-const toggleRecordingConsent = () => {
-  const next = !recordingConsent.value;
-  school.setRecordingConsent(CURRENT_STUDENT_ID, next);
-  showToast(next ? 'Recording allowed. Your teachers will see it on your lessons.' : 'Recording turned off. Your teachers will see "Do not record".', 'success');
+const RECORDING_OPTIONS = [
+  { value: true, label: 'Allow', icon: 'fa-solid fa-video' },
+  { value: false, label: "Don't allow", icon: 'fa-solid fa-video-slash' },
+];
+const recordingOptionRefs = [];
+// Arrow keys move the choice and the focus together, as in any radio group.
+const chooseRecordingConsent = (value, moveFocus = false) => {
+  if (moveFocus) recordingOptionRefs[value ? 0 : 1]?.focus();
+  if (value === recordingConsent.value) return;
+  school.setRecordingConsent(CURRENT_STUDENT_ID, value);
+  showToast(value ? 'Recording allowed. Your teachers will see this on your lessons.' : 'Recording not allowed. Your teachers will see "Do not record" on your lessons.', 'success');
 };
 
 // Modal states
@@ -864,6 +942,9 @@ const isPersonalDirty = computed(() => {
   );
 });
 
+// The same global locale the sidebar's language switch changes.
+const { locale } = useI18n({ useScope: 'global' });
+
 const isContactDirty = computed(() => {
   const current = JSON.parse(savedSnapshot.value);
   return (
@@ -875,10 +956,14 @@ const isContactDirty = computed(() => {
 const isLearningDirty = computed(() => {
   const current = JSON.parse(savedSnapshot.value);
   return (
-    form.timezone !== current.timezone ||
     form.learningObjective !== current.learningObjective ||
     form.targetGoal !== current.targetGoal
   );
+});
+
+const isRegionDirty = computed(() => {
+  const current = JSON.parse(savedSnapshot.value);
+  return form.timezone !== current.timezone;
 });
 
 const hasUnsavedChanges = computed(() => {

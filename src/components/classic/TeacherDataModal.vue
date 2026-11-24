@@ -30,9 +30,6 @@
           <div class="text-center sm:text-left space-y-2 flex-1">
             <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
               <h3 class="text-xl sm:text-2xl font-extrabold text-slate-900">{{ teacher.name }}</h3>
-              <span class="px-2.5 py-0.5 rounded-full bg-emerald-50 text-emerald-700 text-xs font-bold border border-emerald-200">
-                ★ {{ teacher.rating || '4.95' }} Rating
-              </span>
             </div>
             <p class="text-sm font-semibold text-indigo-600">{{ teacher.specialty || '[SF] Speech Fluency, [LS1] Listening & Speaking, [DC] Daily Conversation' }}</p>
 
