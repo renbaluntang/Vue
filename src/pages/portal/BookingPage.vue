@@ -509,6 +509,29 @@ const openDateTimePopover = () => {
   isPopoverOpen.value = true;
 };
 
+// The filter button names the pick in full, "Thu, Nov 27 · 8:00 PM JST",
+// rather than "11/27, 8:00 PM": a bare month/day reads differently around
+// the world, and the times are Tokyo times whatever the student's clock says.
+const MONTH_SHORT = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const dateTimeFilterLabel = computed(() => {
+  const day = BOOKING_DAYS.find((d) => d.key === selectedDayKey.value);
+  // BOOKING_DAYS labels are "MM/DD" for the same day their weekday names.
+  const [mm, dd] = (day?.label ?? "").split("/").map(Number);
+  const datePart = day ? `${day.day.slice(0, 3)}, ${MONTH_SHORT[mm - 1]} ${dd}` : "";
+  const timePart = selectedTime.value ? `${formatSlotTo12Hour(selectedTime.value)} JST` : "";
+  return [datePart, timePart].filter(Boolean).join(" · ");
+});
+
+/** Clears only the date and time, for the empty list's "Clear date & time" (leaves search and subject alone). */
+const clearDateTimeOnly = () => {
+  selectedDayKey.value = "";
+  selectedTime.value = "";
+  filterDuration.value = 30;
+  tempSelectedDayKey.value = "";
+  tempSelectedTime.value = "";
+  tempFilterDuration.value = 30;
+};
+
 const clearDateTimeFilters = () => {
   tempSelectedDayKey.value = "";
   tempSelectedTime.value = "";
@@ -549,7 +572,7 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
             </h1>
           </div>
           <p class="mt-1 text-sm text-slate-500 font-medium">
-            Browse our professional English instructors, check schedules, and reserve your 1-on-1 classes.
+            Find a teacher you like and pick a time that suits you. Times are shown in Japan time (JST).
           </p>
         </div>
 
@@ -666,11 +689,7 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
               <svg class="h-4 w-4 text-slate-400 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                 <path stroke-linecap="round" stroke-linejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
               </svg>
-              <span v-if="selectedDayKey || selectedTime" class="truncate max-w-[120px] sm:max-w-none">
-                <template v-if="selectedDayKey">{{ BOOKING_DAYS.find((d) => d.key === selectedDayKey)?.label }}</template>
-                <template v-if="selectedDayKey && selectedTime">, </template>
-                <template v-if="selectedTime">{{ formatSlotTo12Hour(selectedTime) }}</template>
-              </span>
+              <span v-if="selectedDayKey || selectedTime" class="truncate max-w-[140px] sm:max-w-none">{{ dateTimeFilterLabel }}</span>
               <span v-else>
                 <span class="hidden sm:inline">Date &amp; Time</span>
                 <span class="inline sm:hidden">Date/Time</span>
@@ -732,14 +751,14 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
           :key="teacher.id"
           class="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-amber-300 hover:shadow-md"
         >
-          <!-- Favourite button, pinned to the card's top-right corner at every
-               width so it's always in the same place. A heart, not a star:
+          <!-- Favourite button, pinned to the card's top-left corner (over the
+               photo's corner) at every width so it's always in the same place. A heart, not a star:
                the student portal shows no teacher ratings, and a star on
                every card would read as one. -->
           <button
             type="button"
             @click="toggleFavorite(teacher.id)"
-            :class="`absolute right-4 top-4 z-10 inline-flex h-7 w-7 sm:right-5 sm:top-5 items-center justify-center rounded-lg border text-xs transition-all cursor-pointer ${
+            :class="`absolute left-4 top-4 z-10 inline-flex h-7 w-7 sm:left-5 sm:top-5 items-center justify-center rounded-lg border text-xs transition-all cursor-pointer ${
             favorites.includes(teacher.id)
               ? 'border-rose-200 bg-rose-50 text-rose-500 shadow-xs hover:bg-rose-100'
               : 'border-slate-200 bg-white text-slate-400 hover:border-rose-200 hover:text-rose-500 hover:bg-rose-50/40'
@@ -785,9 +804,9 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
             <!-- Teacher details. Thin vertical rules divide the columns,
                  instead of a line under the name. -->
             <div class="min-w-0 sm:border-l sm:border-slate-100 sm:pl-5">
-              <!-- Top Row: Name and Rates. On phones the right padding keeps
-                   the name clear of the favourite star. -->
-              <div class="flex flex-col pr-12 sm:flex-row sm:items-start lg:pr-0 justify-between gap-2.5">
+              <!-- Top Row: Name and major. The price sits with the actions,
+                   just above the video buttons. -->
+              <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-2.5">
                 <div class="min-w-0">
                   <div class="flex flex-wrap items-center gap-2">
                     <h3 class="m-0 text-lg sm:text-xl font-black tracking-tight">
@@ -807,20 +826,6 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
                     <span>{{ getTeacherProfile(teacher).major }}</span>
                   </p>
                 </div>
-
-                <!-- Rates Pill -->
-                <div class="flex items-center gap-2 shrink-0">
-                  <div class="inline-flex items-center gap-1.5 whitespace-nowrap rounded-xl border border-amber-200/80 bg-amber-50/60 px-2.5 py-1 text-xs shadow-xs">
-                    <span class="text-amber-800 font-bold uppercase tracking-wider text-[10px]">Lesson:</span>
-                    <span class="font-bold text-slate-800 text-xs">
-                      30m <span class="text-amber-700 font-black">({{ pointsForDuration(teacher, 30) }} pts)</span>
-                    </span>
-                    <span class="text-amber-300 font-bold">·</span>
-                    <span class="font-bold text-slate-800 text-xs">
-                      60m <span class="text-amber-700 font-black">({{ pointsForDuration(teacher, 60) }} pts)</span>
-                    </span>
-                  </div>
-                </div>
               </div>
 
               <!-- Self Intro Quote -->
@@ -833,11 +838,11 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
                    laptop width they sit on one line that scrolls sideways
                    (faded at the right edge so it reads as "more this way"),
                    so a long list doesn't push the card taller. From lg they
-                   wrap, and the label keeps its own column so a second row
-                   starts under the first chip rather than under the label. -->
-              <div class="mt-3 flex items-center gap-2 lg:items-start">
-                <span class="shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-400 lg:pt-1">Subjects ({{ offeredCodes(teacher).length }}):</span>
-                <div class="chip-strip flex min-w-0 flex-1 gap-x-3 overflow-x-auto lg:flex-wrap lg:gap-y-1 lg:overflow-visible">
+                   wrap. The label sits on its own line above the chips, so
+                   every row of chips starts at the card's left edge. -->
+              <div class="mt-3">
+                <span class="block text-[10px] font-black uppercase tracking-wider text-slate-400">Subjects ({{ offeredCodes(teacher).length }})</span>
+                <div class="chip-strip mt-1.5 flex min-w-0 gap-x-3 overflow-x-auto lg:flex-wrap lg:gap-y-1.5 lg:overflow-visible">
                   <span
                     v-for="code in offeredCodes(teacher)"
                     :key="code"
@@ -853,13 +858,27 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
             </div>
 
             <!-- Actions. In the three-column layout the three buttons sit
-                 together as one group, centred in the space below the
-                 favourite button pinned in the card's corner. The video
+                 together as one group, centred down the column. The video
                  buttons are plain white with a border and shadow, and only
                  their small icon discs carry colour. That is enough to read
                  as buttons next to the flat, borderless subject labels
-                 without competing with the gold Book button. -->
-            <div class="flex flex-col gap-3 sm:col-span-2 lg:border-l lg:border-slate-100 lg:pl-5 sm:flex-row sm:items-center sm:justify-between lg:col-span-1 lg:flex-col lg:items-stretch lg:justify-center lg:gap-2 lg:pt-10">
+                 without competing with the gold Book button. The price leads
+                 the group, so it is read right before choosing to book. -->
+            <div class="flex flex-col gap-3 sm:col-span-2 lg:border-l lg:border-slate-100 lg:pl-5 sm:flex-row sm:items-center sm:justify-between lg:col-span-1 lg:flex-col lg:items-stretch lg:justify-center lg:gap-2">
+              <!-- Price, as plain text: a border would make it look like a
+                   third button next to the video buttons below it. -->
+              <div class="flex justify-center sm:justify-start lg:justify-center">
+                <div class="inline-flex items-center gap-1.5 whitespace-nowrap py-1 text-xs">
+                  <span class="text-amber-800 font-bold uppercase tracking-wider text-[10px]">Lesson:</span>
+                  <span class="font-bold text-slate-800 text-xs">
+                    30m <span class="text-amber-700 font-black">({{ pointsForDuration(teacher, 30) }} pts)</span>
+                  </span>
+                  <span class="text-amber-300 font-bold">·</span>
+                  <span class="font-bold text-slate-800 text-xs">
+                    60m <span class="text-amber-700 font-black">({{ pointsForDuration(teacher, 60) }} pts)</span>
+                  </span>
+                </div>
+              </div>
               <div class="grid grid-cols-2 gap-1.5 sm:flex lg:grid lg:grid-cols-1">
                   <button
                     type="button"
@@ -896,21 +915,49 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
           </div>
         </article>
 
-        <div v-if="filteredInstructors.length === 0" class="col-span-full rounded-2xl border border-slate-200 bg-white p-12 text-center">
+        <!-- When the date and time filter is set, it is the likely reason
+             nobody matches, so the message says so and offers to clear just
+             that, keeping the student's search and subject. -->
+        <div v-if="filteredInstructors.length === 0" class="col-span-full rounded-2xl border border-slate-200 bg-white p-8 text-center sm:p-12">
           <div class="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-            <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+            <i :class="selectedDayKey || selectedTime ? 'fa-regular fa-calendar-xmark' : 'fa-solid fa-magnifying-glass'" aria-hidden="true"></i>
           </div>
-          <h3 class="mt-3 text-base font-semibold text-slate-800">No teachers found</h3>
-          <p class="mt-1 text-xs text-slate-500">
-            Try adjusting your search terms or resetting filters.
-          </p>
-          <button
-            type="button"
-            @click="resetFilters"
-            class="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 cursor-pointer"
-          >
-            Reset Filters
-          </button>
+          <template v-if="selectedDayKey || selectedTime">
+            <h3 class="mt-3 text-base font-semibold text-slate-800">No teachers are free then</h3>
+            <p class="mx-auto mt-1 max-w-sm text-xs text-slate-500">
+              Nobody matching your search has an open {{ filterDuration }}-minute slot for
+              <strong class="font-bold text-slate-700">{{ dateTimeFilterLabel }}</strong>. Try another time, or see every teacher.
+            </p>
+            <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                type="button"
+                @click="openDateTimePopover"
+                class="rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-slate-300 hover:bg-slate-50 cursor-pointer"
+              >
+                Change date &amp; time
+              </button>
+              <button
+                type="button"
+                @click="clearDateTimeOnly"
+                class="rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 cursor-pointer"
+              >
+                Clear date &amp; time
+              </button>
+            </div>
+          </template>
+          <template v-else>
+            <h3 class="mt-3 text-base font-semibold text-slate-800">No teachers found</h3>
+            <p class="mt-1 text-xs text-slate-500">
+              Try other search words, or reset your filters.
+            </p>
+            <button
+              type="button"
+              @click="resetFilters"
+              class="mt-4 rounded-xl bg-slate-900 px-4 py-2 text-xs font-semibold text-white transition hover:bg-slate-800 cursor-pointer"
+            >
+              Reset filters
+            </button>
+          </template>
         </div>
       </section>
 

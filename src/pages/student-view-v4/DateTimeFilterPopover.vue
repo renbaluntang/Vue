@@ -101,7 +101,7 @@ const monthName = base.toLocaleDateString("en-US", { month: "long", year: "numer
 
       <!-- Time selector -->
       <div class="border-t border-white/10 pt-4 mb-4">
-        <label class="block text-xs font-semibold text-gray-400 mb-2">Start Time</label>
+        <label class="block text-xs font-semibold text-gray-400 mb-2">Start time <span class="font-normal text-gray-500">(JST)</span></label>
         <div class="relative">
           <svg class="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
