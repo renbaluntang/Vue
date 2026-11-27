@@ -30,7 +30,7 @@ import {
 } from "../student-view-v4/constants";
 import { useUserStore } from "../../stores/useUserStore";
 import { useSchoolStore } from "../../stores/useSchoolStore";
-import { TOKYO, partsIn, tokyoAt } from "../../lib/schoolTime";
+import { tokyoDayIso, slotStartIso, nextOpenSlot } from "../../lib/teacherAvailability";
 
 const user = useUserStore();
 const school = useSchoolStore();
@@ -50,14 +50,9 @@ const offeredCodes = (teacher) => parseSubjectCodes(teacher.specialty).filter((c
 /** The specialty string with unbookable subjects taken out, for filtering and search. */
 const offeredSpecialty = (teacher) => offeredCodes(teacher).join(", ");
 
-/** Tokyo calendar date `offset` days from today, as 'YYYY-MM-DD'. The grid times are JST. */
-const tokyoDayIso = (offset) => {
-  const p = partsIn(new Date().toISOString(), TOKYO);
-  return new Date(Date.UTC(p.year, p.month, p.day + offset)).toISOString().slice(0, 10);
-};
-
-/** The instant a grid cell starts at. */
-const slotStartIso = (dayIndex, slotIndex) => tokyoAt(tokyoDayIso(dayIndex), BOOKING_TIME_SLOTS[slotIndex]);
+// Grid dates and slot instants (JST) come from lib/teacherAvailability, the
+// same helpers that work out each card's next open time, so the card and the
+// calendar can't disagree.
 
 const instructorById = (teacherId) => INSTRUCTORS.find((item) => item.id === teacherId);
 
@@ -77,6 +72,21 @@ const getSlotStatusLive = (teacherId, dayIndex, slotIndex) => {
 
 
 const favorites = ref(getInitialFavorites());
+
+// Each teacher's first open 30-minute slot in the next two weeks, for the
+// "Soonest available" sort. Recomputed when the shared store changes (a
+// booking takes a slot), since nextOpenSlot reads it.
+const nextOpenById = computed(() =>
+  Object.fromEntries(INSTRUCTORS.map((teacher) => [teacher.id, nextOpenSlot(school, teacher)]))
+);
+
+// "Recommended" keeps the usual order (favourites first); "Soonest
+// available" puts whoever can be booked first at the top, favourite or not.
+const SORT_OPTIONS = [
+  { value: "recommended", label: "Recommended" },
+  { value: "soonest", label: "Soonest available" },
+];
+const sortBy = ref("recommended");
 const showFreeConversationModal = ref(false);
 const profileTeacher = ref(null);
 const infoTeacher = ref(null);
@@ -136,15 +146,18 @@ const resetFilters = () => {
   tempSelectedDayKey.value = "";
   tempSelectedTime.value = "";
   tempFilterDuration.value = 30;
+  sortBy.value = "recommended";
 };
 
 // Teacher card friendly presentation helpers
-// Subject chips stay neutral so each subject's own letter-box colour reads;
-// only a chip that matches the active filter is lit up.
+// Subject chips are passive labels, not buttons: no border, fill or shadow, so
+// the tinted video buttons on the card read as the things to click. Each
+// subject's own letter-box colour carries them; only a chip that matches the
+// active filter is lit up.
 const subjectChipClass = (code) =>
   subjectFilter.value !== "ALL" && isSubjectMatchingFilter(code, subjectFilter.value)
     ? getSubjectBadgeStyle(code, true)
-    : "bg-white text-slate-700 border-slate-200";
+    : "border-transparent bg-transparent text-slate-700";
 
 const getSubjectCategoryBadge = (code) => {
   const cat = getSubjectCategory(code);
@@ -203,6 +216,21 @@ watch(bookingNotice, (value) => {
   startNoticeTimer();
 });
 onBeforeUnmount(() => clearTimeout(noticeTimer));
+
+// ⌘K on a Mac, Ctrl+K elsewhere, jumps to the search box, as the hint in the
+// box promises. The hint shows the key for the student's own keyboard.
+const searchInput = ref(null);
+const isMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+const searchShortcutLabel = isMac ? "⌘K" : "Ctrl K";
+const onSearchShortcut = (event) => {
+  if ((isMac ? event.metaKey : event.ctrlKey) && event.key.toLowerCase() === "k") {
+    event.preventDefault();
+    searchInput.value?.focus();
+    searchInput.value?.select();
+  }
+};
+onMounted(() => window.addEventListener("keydown", onSearchShortcut));
+onBeforeUnmount(() => window.removeEventListener("keydown", onSearchShortcut));
 
 /** Takes back the booking the notice is about, with a full refund. */
 const undoLastBooking = () => {
@@ -408,6 +436,14 @@ const filteredInstructors = computed(() => {
     });
   }
 
+  if (sortBy.value === "soonest") {
+    const startOf = (teacher) => {
+      const next = nextOpenById.value[teacher.id];
+      return next ? Date.parse(next.iso) : Infinity;
+    };
+    return list.sort((left, right) => startOf(left) - startOf(right) || right.id - left.id);
+  }
+
   return list.sort((left, right) => {
     const leftFav = favorites.value.includes(left.id) ? 1 : 0;
     const rightFav = favorites.value.includes(right.id) ? 1 : 0;
@@ -502,9 +538,10 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
 <template>
   <div class="min-h-screen bg-[#f1f5f9] px-3 py-6 pb-12 text-slate-800 sm:px-6">
     <div :class="`mx-auto space-y-6 transition-all duration-300 ${containerMaxWidthClass}`">
-      <!-- 1. Page Header with Points Balance pill -->
+      <!-- 1. Page Header with Talk Now -->
       <header class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
+        <!-- min-w-0 lets the intro wrap beside the button instead of squeezing it. -->
+        <div class="min-w-0">
           <div class="flex items-center gap-2.5">
             <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span>
             <h1 class="text-2xl sm:text-3xl font-extrabold tracking-tight text-slate-900">
@@ -516,23 +553,36 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
           </p>
         </div>
 
-        <!-- Quick balance indicator linking to point purchase/history -->
-        <RouterLink
-          to="/points"
-          class="inline-flex items-center gap-3 rounded-2xl border border-amber-200/80 bg-white hover:bg-amber-50/60 px-4 py-2.5 transition active:scale-[0.98] shadow-xs group shrink-0"
-          title="View your points balance"
+        <!-- Talk Now sits on the header's right side. It used to be a
+             full-width banner of its own, which pushed the teacher list a
+             whole block further down the page; the details (25 minutes,
+             5 points, teacher assigned for you) are in its pop-up, so the
+             button only needs to say what it is. The points balance is not
+             repeated here: the portal header already shows it.
+             Made to stand out without motion (no pulsing, per the house
+             rules): a gold edge and glow on the dark ink, a solid gold icon
+             disc and an arrow, so it reads as the quickest way into a lesson.
+             It is always only as wide as its content, so the arrow sits right
+             after the text: stretched across a phone it left a wide empty gap
+             in the middle. On phones it sits centred under the intro; beside the
+             title it never shrinks or wraps. -->
+        <button
+          type="button"
+          @click="showFreeConversationModal = true"
+          class="group relative inline-flex shrink-0 items-center gap-3 self-center whitespace-nowrap overflow-hidden rounded-2xl border border-brighture-gold/60 bg-[radial-gradient(120%_140%_at_0%_0%,rgba(255,205,0,0.28)_0%,rgba(255,205,0,0.08)_38%,transparent_65%),linear-gradient(135deg,#161C26_0%,#0F1319_100%)] py-2.5 pl-3 pr-3.5 text-left text-white shadow-lg shadow-amber-500/25 transition hover:border-brighture-gold hover:shadow-amber-500/40 active:scale-[0.98] cursor-pointer sm:self-auto"
+          title="Start a 25-minute lesson now with a teacher who is free (5 pts)"
         >
-          <div class="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-900">
-            <i class="fa-solid fa-coins text-amber-700 text-sm" aria-hidden="true"></i>
-          </div>
-          <div>
-            <span class="block text-[10px] font-bold uppercase tracking-wider text-amber-800">Available Points</span>
-            <span class="block text-sm font-black text-slate-950">
-              {{ user.profile.pointsBalance }} pts
-              <span class="text-xs font-semibold text-brighture-bronze group-hover:translate-x-0.5 transition-transform inline-block ml-0.5">→</span>
-            </span>
-          </div>
-        </RouterLink>
+          <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-brighture-gold text-slate-950 shadow-sm" aria-hidden="true">
+            <i class="fa-solid fa-bolt text-base"></i>
+          </span>
+          <span class="min-w-0">
+            <span class="block text-sm font-black leading-tight">Talk Now</span>
+            <span class="block text-[11px] font-semibold text-amber-100/80">Start now · 25 min · 5 pts</span>
+          </span>
+          <span class="ml-2 flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white/10 text-brighture-gold transition group-hover:translate-x-0.5 group-hover:bg-white/15" aria-hidden="true">
+            <i class="fa-solid fa-arrow-right text-[11px]"></i>
+          </span>
+        </button>
       </header>
 
       <!-- 2. The free trial lesson & assessment (for eligible new students) -->
@@ -566,35 +616,7 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
         </div>
       </section>
 
-      <!-- 3. Talk Now (Instant Lesson Option) -->
-      <section class="relative overflow-hidden rounded-2xl border border-slate-900 bg-slate-900 p-4 sm:p-5 text-white shadow-md">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3.5">
-          <div class="flex items-center gap-3">
-            <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-brighture-gold text-base" aria-hidden="true">
-              <i class="fa-solid fa-bolt"></i>
-            </span>
-            <div class="min-w-0">
-              <div class="flex items-center gap-2">
-                <h2 class="text-sm sm:text-base font-extrabold tracking-tight text-white">Talk Now</h2>
-                <span class="rounded-full bg-red-500/90 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white">Instant</span>
-              </div>
-              <p class="mt-0.5 text-xs text-slate-300">
-                Need to practice right away? Start a 25-minute lesson now — teacher assigned automatically (5 pts).
-              </p>
-            </div>
-          </div>
-          <button
-            type="button"
-            @click="showFreeConversationModal = true"
-            class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-brighture-gold hover:bg-[#FFD933] px-5 py-2.5 text-xs font-black text-slate-950 shadow-xs transition active:scale-95 cursor-pointer"
-          >
-            <span>Start lesson now</span>
-            <i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i>
-          </button>
-        </div>
-      </section>
-
-      <!-- 4. Search & Filter Bar -->
+      <!-- 3. Search & Filter Bar -->
       <header class="rounded-2xl border border-slate-200/80 bg-white shadow-xs">
         <!-- Row 1: Search + Date & Time Popover Trigger -->
         <div class="flex items-center gap-3 px-4 pt-4 sm:px-6 sm:pt-5">
@@ -607,6 +629,7 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
               <path stroke-linecap="round" stroke-linejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
             </svg>
             <input
+              ref="searchInput"
               type="text"
               v-model="search"
               placeholder="Search by instructor name, specialty, or subject…"
@@ -625,7 +648,7 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
               v-else
               class="absolute right-3 top-1/2 -translate-y-1/2 hidden rounded border border-slate-200 bg-slate-100 px-1.5 py-0.5 text-[9px] font-mono text-slate-400 sm:block"
             >
-              ⌘K
+              {{ searchShortcutLabel }}
             </span>
           </div>
 
@@ -675,11 +698,21 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
             :exclude-codes="excludedCodes"
           >
             <template #end>
+              <label class="inline-flex items-center gap-1.5 text-[11px] font-semibold text-slate-500">
+                <span class="hidden sm:inline">Sort:</span>
+                <select
+                  v-model="sortBy"
+                  aria-label="Sort teachers"
+                  class="h-8 cursor-pointer rounded-xl border border-slate-200 bg-white py-0 pl-2.5 pr-7 text-[11px] font-semibold text-slate-700 outline-none transition hover:border-slate-300 focus:border-amber-400 focus:ring-2 focus:ring-amber-200/50"
+                >
+                  <option v-for="option in SORT_OPTIONS" :key="option.value" :value="option.value">{{ option.label }}</option>
+                </select>
+              </label>
               <span class="whitespace-nowrap text-[11px] font-medium tabular-nums text-slate-400">
                 <strong class="font-bold text-slate-600">{{ filteredInstructors.length }}</strong> of {{ INSTRUCTORS.length }}
               </span>
               <button
-                v-if="search || subjectFilter !== 'ALL' || favoritesOnly || selectedDayKey || selectedTime"
+                v-if="search || subjectFilter !== 'ALL' || favoritesOnly || selectedDayKey || selectedTime || sortBy !== 'recommended'"
                 type="button"
                 @click="resetFilters"
                 class="inline-flex h-7 items-center gap-1 rounded-lg px-2 text-[11px] font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-800 cursor-pointer"
@@ -692,27 +725,30 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
         </div>
       </header>
 
-      <!-- 5. Instructors Grid List (Clean, user-friendly cards) -->
+      <!-- 4. Instructors Grid List (Clean, user-friendly cards) -->
       <section ref="instructorList" :class="`grid scroll-mt-24 gap-4 transition-all duration-300 ${sectionColsClass}`">
         <article
           v-for="teacher in filteredInstructors"
           :key="teacher.id"
           class="group relative flex flex-col overflow-hidden rounded-3xl border border-slate-200/90 bg-white p-4 sm:p-5 shadow-xs transition-all duration-200 hover:border-amber-300 hover:shadow-md"
         >
-          <!-- Favourite star, pinned to the card's top-right corner at every
-               width so it's always in the same place. -->
+          <!-- Favourite button, pinned to the card's top-right corner at every
+               width so it's always in the same place. A heart, not a star:
+               the student portal shows no teacher ratings, and a star on
+               every card would read as one. -->
           <button
             type="button"
             @click="toggleFavorite(teacher.id)"
             :class="`absolute right-4 top-4 z-10 inline-flex h-7 w-7 sm:right-5 sm:top-5 items-center justify-center rounded-lg border text-xs transition-all cursor-pointer ${
             favorites.includes(teacher.id)
-              ? 'border-amber-300 bg-amber-50 text-amber-500 shadow-xs hover:bg-amber-100 scale-105'
-              : 'border-slate-200 bg-white text-slate-400 hover:border-amber-300 hover:text-amber-500 hover:bg-amber-50/40'
+              ? 'border-rose-200 bg-rose-50 text-rose-500 shadow-xs hover:bg-rose-100'
+              : 'border-slate-200 bg-white text-slate-400 hover:border-rose-200 hover:text-rose-500 hover:bg-rose-50/40'
             }`"
-            :aria-label="`Toggle favorite for ${teacher.name}`"
-            :title="favorites.includes(teacher.id) ? 'Saved as favorite teacher' : 'Save to favorite teachers'"
+            :aria-label="favorites.includes(teacher.id) ? `Remove ${teacher.name} from favorites` : `Add ${teacher.name} to favorites`"
+            :aria-pressed="favorites.includes(teacher.id)"
+            :title="favorites.includes(teacher.id) ? 'In your favorite teachers' : 'Add to favorite teachers'"
           >
-            <i class="fa-solid fa-star" aria-hidden="true"></i>
+            <i :class="favorites.includes(teacher.id) ? 'fa-solid fa-heart' : 'fa-regular fa-heart'" aria-hidden="true"></i>
           </button>
 
           <!-- Three columns on laptop screens: the photo at a fixed size (a
@@ -792,60 +828,56 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
                 "{{ getTeacherProfile(teacher).selfIntro }}"
               </p>
 
-              <!-- Subjects Taught Badges -->
-              <!-- Below laptop width the full chips took several rows, so
-                   phones and tablets get one line of subject boxes next to
-                   the label (each box names its subject on hover and to
-                   screen readers). From lg the named chips return, and the
-                   label keeps its own column so a second row of chips starts
-                   under the first chip rather than under the label. -->
+              <!-- Subjects Taught Badges. Every width shows the names: phones
+                   have no hover to reveal what a bare code box means. Below
+                   laptop width they sit on one line that scrolls sideways
+                   (faded at the right edge so it reads as "more this way"),
+                   so a long list doesn't push the card taller. From lg they
+                   wrap, and the label keeps its own column so a second row
+                   starts under the first chip rather than under the label. -->
               <div class="mt-3 flex items-center gap-2 lg:items-start">
                 <span class="shrink-0 text-[10px] font-black uppercase tracking-wider text-slate-400 lg:pt-1">Subjects ({{ offeredCodes(teacher).length }}):</span>
-                <div class="flex min-w-0 flex-wrap gap-1 lg:hidden">
-                  <SubjectCode
+                <div class="chip-strip flex min-w-0 flex-1 gap-x-3 overflow-x-auto lg:flex-wrap lg:gap-y-1 lg:overflow-visible">
+                  <span
                     v-for="code in offeredCodes(teacher)"
                     :key="code"
-                    :subject="code"
-                    :show-name="false"
-                  />
-                </div>
-                <div class="hidden min-w-0 flex-wrap gap-1 lg:flex">
-                <span
-                  v-for="code in offeredCodes(teacher)"
-                  :key="code"
-                  :class="[
-                    'inline-flex max-w-full items-center rounded-md border py-0.5 pl-0.5 pr-1.5 text-[11px] font-semibold leading-none',
-                    subjectChipClass(code)
-                  ]"
-                >
-                  <SubjectCode :subject="code" size="sm" />
-                </span>
+                    :class="[
+                      'inline-flex shrink-0 items-center whitespace-nowrap rounded-md border py-0.5 pl-0.5 pr-1.5 text-[11px] font-semibold leading-none',
+                      subjectChipClass(code)
+                    ]"
+                  >
+                    <SubjectCode :subject="code" size="sm" />
+                  </span>
                 </div>
               </div>
             </div>
 
             <!-- Actions. In the three-column layout the three buttons sit
                  together as one group, centred in the space below the
-                 favourite star pinned in the card's corner. -->
+                 favourite button pinned in the card's corner. The video
+                 buttons are plain white with a border and shadow, and only
+                 their small icon discs carry colour. That is enough to read
+                 as buttons next to the flat, borderless subject labels
+                 without competing with the gold Book button. -->
             <div class="flex flex-col gap-3 sm:col-span-2 lg:border-l lg:border-slate-100 lg:pl-5 sm:flex-row sm:items-center sm:justify-between lg:col-span-1 lg:flex-col lg:items-stretch lg:justify-center lg:gap-2 lg:pt-10">
               <div class="grid grid-cols-2 gap-1.5 sm:flex lg:grid lg:grid-cols-1">
                   <button
                     type="button"
                     @click.stop="openVideo(teacher, 'intro')"
-                    class="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-amber-50 hover:border-amber-300 py-1.5 px-2 text-xs font-bold text-slate-700 shadow-xs transition active:scale-95 cursor-pointer min-h-[36px]"
+                    class="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 py-1.5 px-2 text-xs font-bold text-slate-700 shadow-xs transition active:scale-95 cursor-pointer min-h-[36px]"
                     :title="`Watch ${teacher.name}'s intro video`"
                   >
-                    <i class="fa-solid fa-play shrink-0 text-xs" aria-hidden="true"></i>
+                    <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-red-500 text-white" aria-hidden="true"><i class="fa-solid fa-play translate-x-[0.5px] text-[7px]"></i></span>
                     <span class="truncate">Intro Video</span>
                   </button>
 
                   <button
                     type="button"
                     @click.stop="openVideo(teacher, 'demo')"
-                    class="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-100 py-1.5 px-2 text-xs font-bold text-slate-700 shadow-xs transition active:scale-95 cursor-pointer min-h-[36px]"
+                    class="inline-flex min-w-0 items-center justify-center gap-1.5 rounded-xl border border-slate-200 bg-white hover:bg-slate-50 hover:border-slate-300 py-1.5 px-2 text-xs font-bold text-slate-700 shadow-xs transition active:scale-95 cursor-pointer min-h-[36px]"
                     :title="`Watch a sample lesson with ${teacher.name}`"
                   >
-                    <i class="fa-solid fa-clapperboard shrink-0 text-xs" aria-hidden="true"></i>
+                    <span class="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-indigo-500 text-white" aria-hidden="true"><i class="fa-solid fa-clapperboard text-[8px]"></i></span>
                     <span class="truncate">Class Demo</span>
                   </button>
               </div>
@@ -882,7 +914,7 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
         </div>
       </section>
 
-      <!-- 6. Referral Banner at the foot of the page -->
+      <!-- 5. Referral Banner at the foot of the page -->
       <aside
         aria-label="Refer a friend"
         class="relative overflow-hidden rounded-2xl border border-slate-200/90 bg-white px-4 py-3.5 sm:px-5 text-slate-900 shadow-sm"
@@ -1107,7 +1139,7 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
                 v-for="code in offeredCodes(profileTeacher)"
                 :key="code"
                 :class="[
-                  'inline-flex max-w-full items-center gap-1 rounded-lg border px-2 py-0.5 text-xs font-bold shadow-xs',
+                  'inline-flex max-w-full items-center gap-1 rounded-lg border px-1.5 py-0.5 text-xs font-bold',
                   subjectChipClass(code)
                 ]"
               >
@@ -1203,7 +1235,7 @@ const cardPhotoAspectClass = "max-w-[148px] aspect-square";
 }
 .chip-strip::-webkit-scrollbar { display: none; }
 
-@media (min-width: 640px) {
+@media (min-width: 1024px) {
   .chip-strip {
     -webkit-mask-image: none;
     mask-image: none;

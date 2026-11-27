@@ -346,18 +346,19 @@ onUnmounted(() => {
         :aria-pressed="favoritesOnly"
         :class="`inline-flex h-8 items-center gap-1.5 rounded-xl border px-2.5 text-[11px] sm:px-3 font-semibold transition-all shrink-0 ${
           favoritesOnly
-            ? 'border-amber-300 bg-amber-50 text-amber-800 shadow-xs font-bold'
+            ? 'border-rose-200 bg-rose-50 text-rose-800 shadow-xs font-bold'
             : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
         }`"
       >
-        <i class="fa-solid fa-star" :class="favoritesOnly ? 'text-amber-500' : 'text-slate-300'" aria-hidden="true"></i>
-        <!-- On phones the star and count say enough; the name stays for
+        <!-- A heart, matching the favourite button on each teacher card. -->
+        <i :class="favoritesOnly ? 'fa-solid fa-heart text-rose-500' : 'fa-regular fa-heart text-slate-400'" aria-hidden="true"></i>
+        <!-- On phones the heart and count say enough; the name stays for
              screen readers. -->
         <span class="sr-only sm:not-sr-only">Favorites</span>
         <span
           v-if="favoritesCount > 0"
           :class="`rounded-full px-1.5 py-0.2 text-[10px] font-bold ${
-            favoritesOnly ? 'bg-amber-200 text-amber-900' : 'bg-slate-100 text-slate-500'
+            favoritesOnly ? 'bg-rose-200 text-rose-900' : 'bg-slate-100 text-slate-500'
           }`"
         >
           {{ favoritesCount }}

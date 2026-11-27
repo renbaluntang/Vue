@@ -7,7 +7,7 @@ import { partsIn, tokyoAt, TOKYO, minutesUntil } from '@/lib/schoolTime';
 import { BOOKING_DAYS, BOOKING_TIME_SLOTS, getSlotStatus, formatSlotTo12Hour } from '@/pages/student-view-v4/constants';
 
 /** Tokyo calendar date `offset` days from today, as 'YYYY-MM-DD'. The grid times are JST. */
-const tokyoDayIso = (offset) => {
+export const tokyoDayIso = (offset) => {
   const p = partsIn(new Date().toISOString(), TOKYO);
   return new Date(Date.UTC(p.year, p.month, p.day + offset)).toISOString().slice(0, 10);
 };

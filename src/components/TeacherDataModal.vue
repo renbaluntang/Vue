@@ -42,7 +42,7 @@
               <!-- Closes the quote opened top-left, so the intro reads as their own words. -->
               <i class="fa-solid fa-quote-right absolute bottom-4 right-4 text-lg text-amber-400" aria-hidden="true"></i>
             </div>
-            <!-- Tinted so they stand out from the plain cards below; each opens the video pop-up. -->
+            <!-- Plain white like the booking page's video buttons; only the icon discs carry colour. Each opens the video pop-up. -->
             <div class="grid w-full grid-cols-2 gap-2">
               <button
                 v-for="v in VIDEOS"
@@ -141,10 +141,10 @@ defineEmits(['close', 'book']);
 const activeVideo = ref(null);
 
 const VIDEOS = [
-  { kind: 'intro', label: (n) => `Get to know ${n}`, icon: 'fa-solid fa-play text-[7px]', dot: 'bg-red-500 text-white',
-    card: 'border-red-200 bg-red-50 text-red-900 hover:border-red-300' },
-  { kind: 'demo', label: (n) => `See ${n} teach`, icon: 'fa-solid fa-chalkboard-user text-[8px]', dot: 'bg-indigo-500 text-white',
-    card: 'border-indigo-200 bg-indigo-50 text-indigo-900 hover:border-indigo-300' },
+  { kind: 'intro', label: (n) => `Get to know ${n}`, icon: 'fa-solid fa-play translate-x-[0.5px] text-[7px]', dot: 'bg-red-500 text-white',
+    card: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50' },
+  { kind: 'demo', label: (n) => `See ${n} teach`, icon: 'fa-solid fa-clapperboard text-[8px]', dot: 'bg-indigo-500 text-white',
+    card: 'border-slate-200 bg-white text-slate-700 hover:border-slate-300 hover:bg-slate-50' },
 ]
 const firstName = computed(() => (props.teacher?.name || '').split(' ')[0]);
 
