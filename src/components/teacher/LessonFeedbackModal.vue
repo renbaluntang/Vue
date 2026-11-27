@@ -31,6 +31,26 @@
         </div>
 
         <div class="space-y-4 p-5">
+          <!-- Marked as a no-show: say so up front, with the way back for a
+               teacher who picked the wrong lesson. -->
+          <div
+            v-if="lesson.rawStatus === 'no-show'"
+            class="flex items-start gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-900"
+          >
+            <i class="fa-solid fa-user-xmark mt-0.5 text-rose-500" aria-hidden="true"></i>
+            <div class="min-w-0 flex-1">
+              <p class="m-0 font-bold">Marked as a no-show</p>
+              <p class="m-0 mt-0.5 text-rose-800/80">{{ lesson.studentName }} didn't attend. The lesson's points were not refunded.</p>
+            </div>
+            <button
+              type="button"
+              @click="$emit('attended', lesson.id)"
+              class="shrink-0 rounded-lg border border-rose-200 bg-white px-2.5 py-1.5 font-bold text-rose-800 transition hover:bg-rose-100"
+            >
+              They attended
+            </button>
+          </div>
+
           <dl class="grid grid-cols-2 gap-2 text-xs">
             <div class="rounded-xl bg-slate-50 p-3">
               <dt class="text-[10px] font-bold uppercase tracking-wider text-slate-400">Lesson date</dt>
@@ -74,6 +94,42 @@
               class="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm text-slate-800 outline-none transition placeholder:text-slate-400 focus:border-brighture-gold focus:bg-white focus:shadow-[0_0_0_3px_rgba(255,205,0,0.15)]"
             ></textarea>
           </div>
+
+          <!-- A lesson the student never came to needs no feedback. Asked in
+               two steps inside the pop-up, so one stray click can't mark it.
+               Not offered once the student has rated the lesson: a rating
+               means they were there. -->
+          <div v-if="canMarkNoShow" class="border-t border-slate-100 pt-3">
+            <button
+              v-if="!confirmingNoShow"
+              type="button"
+              @click="confirmingNoShow = true"
+              class="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 transition hover:text-rose-700"
+            >
+              <i class="fa-solid fa-user-xmark" aria-hidden="true"></i>
+              Student didn't attend?
+            </button>
+            <div v-else class="rounded-2xl border border-rose-200 bg-rose-50 p-3 text-xs" role="group" aria-label="Confirm no-show">
+              <p class="m-0 font-bold text-rose-900">Mark {{ lesson.studentName }} as a no-show?</p>
+              <p class="m-0 mt-0.5 text-rose-800/80">The lesson's points are not refunded, and it leaves your feedback list. You can undo this.</p>
+              <div class="mt-2.5 flex gap-2">
+                <button
+                  type="button"
+                  @click="confirmingNoShow = false"
+                  class="flex-1 rounded-xl border border-slate-200 bg-white px-3 py-2 font-bold text-slate-700 transition hover:bg-slate-50"
+                >
+                  Keep it
+                </button>
+                <button
+                  type="button"
+                  @click="$emit('no-show', lesson.id)"
+                  class="flex-1 rounded-xl bg-rose-600 px-3 py-2 font-bold text-white transition hover:bg-rose-700"
+                >
+                  Mark as no-show
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div class="sticky bottom-0 flex gap-2 border-t border-slate-100 bg-white/95 p-4 backdrop-blur">
@@ -99,21 +155,28 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue';
+import { ref, computed, watch } from 'vue';
 import SubjectCode from '@/components/SubjectCode.vue';
 
 const props = defineProps({
   lesson: { type: Object, default: null },
 });
-const emit = defineEmits(['close', 'submit']);
+const emit = defineEmits(['close', 'submit', 'no-show', 'attended']);
 
 const feedback = ref('');
 const hiddenNote = ref('');
+
+const confirmingNoShow = ref(false);
+/** A completed lesson with no feedback yet and no rating from the student. */
+const canMarkNoShow = computed(() =>
+  props.lesson?.rawStatus === 'completed' && !props.lesson.feedbackSubmitted && !props.lesson.studentRating
+);
 
 // A new lesson means a blank form, not the previous instructor's draft.
 watch(() => props.lesson, (lesson) => {
   feedback.value = lesson?.feedback ?? '';
   hiddenNote.value = lesson?.hiddenNote ?? '';
+  confirmingNoShow.value = false;
 });
 
 const submit = () => {

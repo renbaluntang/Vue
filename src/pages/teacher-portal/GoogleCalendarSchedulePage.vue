@@ -358,6 +358,31 @@
                 </span>
               </div>
 
+              <!-- Booked lessons, drawn over the availability they sit in so
+                   the teacher can see which open hours a student has taken.
+                   They are the student's, not the teacher's to edit: a click
+                   opens the read-only lesson card, and a drag can't start on
+                   one. The store also refuses to close or hold a booked half
+                   hour (BookedSlotToast says why). -->
+              <button
+                v-for="lesson in lessonsForDay(day)"
+                :key="lesson.id"
+                type="button"
+                @mousedown.stop
+                @click.stop="openLessonCard(day, lesson)"
+                class="absolute inset-x-1 z-[20] overflow-hidden rounded-xl border border-brighture-amber bg-[#FFF4C2] px-2 py-1 text-left text-[#5C4400] shadow-[0_1px_2px_rgba(15,23,42,0.12)] transition hover:bg-[#FFEC99] focus:outline-none focus-visible:ring-2 focus-visible:ring-brighture-bronze"
+                :style="{ top: `${lesson.top}px`, height: `${lesson.height}px` }"
+                :aria-label="`Booked lesson with ${lesson.studentName}, ${lesson.rangeManila}`"
+              >
+                <p class="flex min-w-0 items-center gap-1 text-[11px] font-extrabold leading-tight">
+                  <i class="fa-solid fa-user-graduate shrink-0 text-[9px]" aria-hidden="true"></i>
+                  <span class="min-w-0 truncate">{{ lesson.studentName }}</span>
+                </p>
+                <p v-if="lesson.height > 40" class="mt-0.5 truncate text-[10px] font-semibold leading-tight opacity-80">
+                  {{ lesson.inProgress ? 'In progress' : 'Booked lesson' }}
+                </p>
+              </button>
+
               <!-- Render Events / Availability Blocks overlay on day column -->
               <template v-for="event in getEventsForDay(day)" :key="event.id">
                 <div
@@ -1139,9 +1164,13 @@
                 class="flex-1 inline-flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold transition shadow-sm"
               >
                 <GoogleMeetIcon size="md" />
-                <span>Join Video Class</span>
+                <span>Join Meet</span>
               </a>
             </div>
+            <p v-else-if="selectedEvent.meetLater" class="m-0 flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2.5 text-[11px] font-semibold text-slate-500">
+              <i class="fa-regular fa-clock text-slate-400" aria-hidden="true"></i>
+              The video class link appears here when this is your next lesson.
+            </p>
 
             <!-- Actions: Toggle Open/Close or Delete -->
             <div class="pt-4 border-t border-slate-100 flex items-center justify-between">
@@ -1181,6 +1210,8 @@
       @close="isCreateModalOpen = false"
       @applied="onCreated"
     />
+
+    <BookedSlotToast />
   </div>
 </template>
 
@@ -1192,6 +1223,8 @@ import { getTimeZoneInfo, normalizeTimeZone } from '@/lib/timezoneUtils';
 import ReserveModal from '@/components/teacher/ReserveModal.vue';
 import ScheduleTemplateModal from '@/components/teacher/ScheduleTemplateModal.vue';
 import SubjectCode from '@/components/SubjectCode.vue';
+import BookedSlotToast from '@/components/teacher/BookedSlotToast.vue';
+import { manilaSlotOf } from '@/lib/schoolTime';
 
 const teacher = useTeacherStore();
 
@@ -2564,6 +2597,35 @@ const goToToday = () => {
   anchorDate.value = new Date();
   miniMonthAnchor.value = new Date();
   teacher.goToThisWeek();
+};
+
+// Booked lessons that fall on this column's Manila date, placed by their
+// Manila start time (the column is 48 half hours of 32px each).
+const lessonsForDay = (day) => teacher.reservations
+  .map((r) => ({ r, at: manilaSlotOf(r.start) }))
+  .filter(({ at }) => at.dateIso === day.iso)
+  .map(({ r, at }) => ({
+    ...r,
+    top: (at.minutes / 30) * 32,
+    height: Math.max(1, Math.round(r.duration / 30)) * 32 - 1,
+  }));
+
+/** The read-only card for a booked lesson, in the inspector pop-up. */
+const openLessonCard = (day, lesson) => {
+  if (dragMoved.value) return;
+  selectedEvent.value = {
+    typeLabel: lesson.inProgress ? 'Lesson in progress' : 'Booked lesson',
+    title: lesson.studentName,
+    fullDateLabel: `${day.dayName}, ${day.iso}`,
+    timeRange: lesson.rangeManila,
+    studentName: lesson.studentName,
+    subject: lesson.subject,
+    // Same rule as the Reservations and Dashboard lists: the room is only
+    // offered for the next lesson or one under way, never days ahead.
+    meetLink: teacher.showsMeet(lesson) ? lesson.meetLink : '',
+    meetLater: !teacher.showsMeet(lesson),
+    modalHeaderBg: '#8A6600',
+  };
 };
 
 // Events calculation for each column in Week/Day view

@@ -5,7 +5,7 @@ import { convertSlotTime, getTimeZoneInfo, normalizeTimeZone } from '@/lib/timez
 import { CURRENT_TEACHER_ID } from '@/lib/schoolSeed';
 import { ASSESSMENT_TYPES } from '@/lib/brelas';
 import {
-  MANILA, TOKYO, stampIn, rangeIn, utcLabel, minutesUntil, manilaSlotOf, weekStartIso, countdownLabel,
+  MANILA, TOKYO, stampIn, rangeIn, utcLabel, minutesUntil, manilaSlotOf, weekStartIso, countdownLabel, manilaAt,
 } from '@/lib/schoolTime';
 import { useSchoolStore } from './useSchoolStore';
 
@@ -171,6 +171,27 @@ export const useTeacherStore = defineStore('teacher', () => {
    */
   const school = useSchoolStore();
 
+  // ── Profile ──────────────────────────────────────────────────────────
+  // The fields the Profile page edits. They are saved to the shared store,
+  // so they survive a reload and the student pages can read the intro and
+  // major the teacher wrote (getTeacherProfile in student-view-v4/constants).
+  // Subjects are not among them: the school assigns those (admin only).
+  const PROFILE_FIELDS = ['firstName', 'lastName', 'email', 'major', 'selfIntro', 'introVideo', 'timezone'];
+  // Adopt what was saved, on open and whenever another tab saves.
+  watch(
+    () => JSON.stringify(school.teacherProfileFor(TEACHER_ID)),
+    (json) => {
+      const saved = json && json !== 'null' ? JSON.parse(json) : null;
+      if (saved) Object.assign(profile.value, saved);
+    },
+    { immediate: true },
+  );
+  const saveProfile = (patch) => {
+    const next = Object.fromEntries(PROFILE_FIELDS.map((key) => [key, patch[key] ?? profile.value[key]]));
+    Object.assign(profile.value, next);
+    school.saveTeacherProfile(TEACHER_ID, next);
+  };
+
   const MONTH_ABBR = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
   /** 'Sep 2, 2026 18:00' -> 'Sep 2, 18:00', the short label message threads use. */
@@ -178,11 +199,13 @@ export const useTeacherStore = defineStore('teacher', () => {
   /** 'Sep 2, 2026' in Manila, for "added on" style labels. */
   const manilaDate = (iso) => stampIn(iso, MANILA).split(' ').slice(0, 3).join(' ');
 
-  // Upcoming reservations, soonest first.
+  // Upcoming reservations, soonest first, plus any lesson under way now. A
+  // lesson that has ended drops off even before the shared store's next tick
+  // marks it completed and moves it to the Lesson Log.
   const reservations = computed(() => {
     const now = nowTick.value;
     return school.lessonsForTeacher(TEACHER_ID)
-      .filter((lesson) => lesson.status === 'booked')
+      .filter((lesson) => lesson.status === 'booked' && minutesUntil(lesson.start, now) + lesson.duration > 0)
       .map((lesson) => {
         const s = school.student(lesson.studentId);
         return {
@@ -200,6 +223,8 @@ export const useTeacherStore = defineStore('teacher', () => {
           // Counted off the real clock, so the countdown in the header cannot
           // drift from the time beside it.
           minutesUntil: minutesUntil(lesson.start, now),
+          /** Started but not yet ended. */
+          inProgress: minutesUntil(lesson.start, now) < 0,
           startManila: stampIn(lesson.start, MANILA),
           startTokyo: stampIn(lesson.start, TOKYO),
           rangeManila: `${rangeIn(lesson.start, lesson.duration, MANILA, ' – ')} PHT`,
@@ -221,6 +246,14 @@ export const useTeacherStore = defineStore('teacher', () => {
   const laterReservations = computed(() =>
     reservations.value.filter((row) => row !== nextReservation.value)
   );
+
+  /**
+   * Whether a row gets a Meet button: only the next lesson, and any lesson
+   * already under way. Later lessons keep their link in the details, so a
+   * list of identical green buttons doesn't invite joining the wrong room.
+   */
+  const showsMeet = (row) =>
+    !!row?.meetLink && (row.inProgress || row.id === nextReservation.value?.id);
 
   /** A lesson is joinable five minutes out, matching the legacy rule. */
   const canJoin = (reservation) =>
@@ -315,6 +348,7 @@ export const useTeacherStore = defineStore('teacher', () => {
           subject: lesson.subject,
           point: lesson.points,
           status: STATUS_LABELS[lesson.status],
+          rawStatus: lesson.status,
           studentRating: lesson.studentRating,
           studentComment: lesson.studentComment,
           feedbackSubmitted: lesson.feedbackSubmitted,
@@ -331,6 +365,8 @@ export const useTeacherStore = defineStore('teacher', () => {
   const submitFeedback = (lessonId, { feedback, hiddenNote }) => {
     school.submitFeedback(lessonId, { feedback, hiddenNote });
   };
+  const markNoShow = (lessonId) => school.markNoShow(lessonId);
+  const markAttended = (lessonId) => school.markAttended(lessonId);
 
   // Availability grid. Days are columns, half-hour slots are rows, exactly like
   // the legacy scheduling matrix; `open` is what the instructor offers.
@@ -848,9 +884,39 @@ export const useTeacherStore = defineStore('teacher', () => {
     };
   });
 
-  /** Every edit in the portal lands here, so the rule is enforced once. */
+  /** The instant a half hour of the week on screen starts at. */
+  const slotStartIso = (dayKey, slotKey) => {
+    const day = scheduleDays.value.find((d) => d.key === dayKey);
+    const slot = scheduleSlots.value.find((sl) => sl.key === slotKey);
+    if (!day || !slot) return null;
+    const hhmm = `${String(Math.floor(slot.minutes / 60)).padStart(2, '0')}:${String(slot.minutes % 60).padStart(2, '0')}`;
+    return manilaAt(day.iso, 0, hhmm);
+  };
+
+  /** Whether a student has a lesson booked in this half hour of the week on screen. */
+  const slotIsBooked = (dayKey, slotKey) => {
+    const iso = slotStartIso(dayKey, slotKey);
+    return !!iso && school.teacherBusy(TEACHER_ID, iso, SLOT_MINUTES);
+  };
+
+  /**
+   * The last edit refused because a student has that half hour booked. Pages
+   * watch it to say why nothing changed. `at` makes each refusal a new value.
+   */
+  const blockedEdit = ref(null);
+
+  /**
+   * Every edit in the portal lands here, so the rules are enforced once: a
+   * past half hour can't change, and one a student has booked can't be closed
+   * or held, since the lesson stays booked either way. Returns false when the
+   * edit was refused.
+   */
   const setSlotStatus = (dayKey, slotKey, status, reason = '') => {
-    if (isPastSlot(dayKey, slotKey)) return;
+    if (isPastSlot(dayKey, slotKey)) return false;
+    if (status !== 'open' && slotIsBooked(dayKey, slotKey)) {
+      blockedEdit.value = { at: Date.now(), dayKey, slotKey };
+      return false;
+    }
     beginWeekEdit();
     const id = `${dayKey}-${slotKey}`;
     if (status === 'closed') {
@@ -862,6 +928,7 @@ export const useTeacherStore = defineStore('teacher', () => {
     } else {
       availability.value[id] = 'open';
     }
+    return true;
   };
 
   /**
@@ -1343,6 +1410,58 @@ export const useTeacherStore = defineStore('teacher', () => {
     lessonLog.value.filter((lesson) => lesson.studentRating).slice(0, 3)
   );
 
+  /**
+   * This Manila week (Sunday to Saturday) so far, worked out from the real
+   * lessons in the shared store rather than sample numbers. Only lessons
+   * that have started count. Student cancellations are left out of the
+   * completion rate: they say nothing about the teacher.
+   */
+  const weeklyPerformance = computed(() => {
+    const now = nowTick.value;
+    const weekStart = weekStartIso(manilaNow.value.iso);
+    const [y, m, d] = weekStart.split('-').map(Number);
+    const weekEnd = new Date(Date.UTC(y, m - 1, d + 7)).toISOString().slice(0, 10);
+    const all = school.lessonsForTeacher(TEACHER_ID);
+    const week = all.filter((l) => {
+      const day = manilaSlotOf(l.start).dateIso;
+      return day >= weekStart && day < weekEnd && minutesUntil(l.start, now) <= 0;
+    });
+    const taught = week.filter((l) => l.status === 'completed');
+    const noShows = week.filter((l) => l.status === 'no-show');
+    const held = taught.length + noShows.length;
+
+    // Students taught this week who have had at least one earlier completed lesson with this teacher.
+    const studentIds = [...new Set(taught.map((l) => l.studentId))];
+    const returning = studentIds.filter((id) =>
+      all.some((l) => l.studentId === id && l.status === 'completed' && manilaSlotOf(l.start).dateIso < weekStart)
+    );
+
+    const rated = taught.filter((l) => l.studentRating);
+    const avgRating = rated.length
+      ? (rated.reduce((sum, l) => sum + l.studentRating, 0) / rated.length).toFixed(2)
+      : null;
+
+    const bySubject = {};
+    taught.forEach((l) => { bySubject[l.subject] = (bySubject[l.subject] ?? 0) + 1; });
+    const subjects = Object.entries(bySubject)
+      .map(([subject, lessons]) => ({ subject, lessons }))
+      .sort((a, b) => b.lessons - a.lessons)
+      .slice(0, 4);
+
+    return {
+      taught: taught.length,
+      held,
+      completionRate: held ? Math.round((taught.length / held) * 100) : null,
+      students: studentIds.length,
+      returning: returning.length,
+      repeatShare: studentIds.length ? Math.round((returning.length / studentIds.length) * 100) : null,
+      feedbackSent: taught.filter((l) => l.feedbackSubmitted).length,
+      avgRating,
+      ratedCount: rated.length,
+      subjects,
+    };
+  });
+
   /** Student messages not yet seen, across every thread — the Messages badge. */
   const unreadMessageCount = computed(() =>
     school.threadsForTeacher(TEACHER_ID).reduce((sum, thread) => sum + school.unreadIn(thread, 'teacher'), 0)
@@ -1351,14 +1470,15 @@ export const useTeacherStore = defineStore('teacher', () => {
   const fullName = computed(() => `${profile.value.firstName} ${profile.value.lastName}`);
 
   return {
-    profile, fullName, isAway, toggleAway, teachesFreeConversation, googleCalendarLinked,
+    profile, saveProfile, fullName, isAway, toggleAway, teachesFreeConversation, googleCalendarLinked,
     googleCalendarAccount, googleCalendarSyncedAt, calendarSettingsOpen,
     linkGoogleCalendar, unlinkGoogleCalendar,
     usesTokyo, localStart, localRange, countdownLabel, viewZoneId, viewZoneAbbr, awaySince, imminentReservation,
     viewTimezone, viewTimezones, timezoneSettingsOpen,
-    reservations, nextReservation, laterReservations, canJoin,
+    reservations, nextReservation, laterReservations, canJoin, showsMeet,
     writingTasks, pendingWritingCount, sendWritingReply, completeWritingTask,
-    lessonLog, pendingFeedback, submitFeedback,
+    lessonLog, pendingFeedback, submitFeedback, markNoShow, markAttended,
+    slotIsBooked, blockedEdit,
     materialsByStudent, materialsFor, materialCount, addMaterial, removeMaterial,
     scheduleDays, scheduleSlots, availability, getSlotStatus, isOpen, isReserved, isClosed,
     activeWeekStart, thisWeekStart, weekOverrides, weekFollowsPattern, weekHasOwnHours,
@@ -1371,7 +1491,7 @@ export const useTeacherStore = defineStore('teacher', () => {
     patternHasSlot, clearPatternSlots,
     getSlotReason, setSlotStatus, cycleSlot, toggleSlot, setDay, setDayStatus, setSlotRow, setSlotRowStatus,
     openSlotCount, reservedSlotCount, openHours, reservedHours, SLOT_MINUTES, SLOTS_PER_HOUR,
-    weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings,
+    weeklyLoad, weeklyBooked, weeklyOpen, todaysReservations, attentionItems, recentRatings, weeklyPerformance,
     unreadMessageCount, teacherId: TEACHER_ID,
     analytics,
   };

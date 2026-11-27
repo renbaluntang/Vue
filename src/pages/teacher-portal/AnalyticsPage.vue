@@ -21,6 +21,18 @@
       </div>
     </header>
 
+    <!-- Every figure on this page comes from fixed sample data
+         (teacher.analytics), not the teacher's real lessons, so say so
+         plainly. The dashboard's "This week" card is the real one. -->
+    <div role="note" class="flex items-start gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-900">
+      <i class="fa-solid fa-flask mt-0.5 text-amber-600" aria-hidden="true"></i>
+      <p class="m-0 leading-relaxed">
+        <strong class="font-bold">Sample data.</strong>
+        These figures are examples to show what this page will look like, not your own lessons.
+        For your real numbers this week, see <RouterLink to="/" class="font-bold text-brighture-bronze hover:underline">the dashboard</RouterLink>.
+      </p>
+    </div>
+
     <!-- ===== Headline figures ===== -->
     <section class="grid grid-cols-2 gap-3 lg:grid-cols-4">
       <div v-for="card in kpis" :key="card.label" class="group rounded-2xl border border-slate-200/80 bg-white p-4 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:shadow-md">

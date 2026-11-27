@@ -12,7 +12,8 @@ const routes = [
     children: [
       { path: '', name: 't-dashboard', component: () => import('../pages/teacher-portal/DashboardPage.vue') },
       { path: 'reservations', name: 't-reservations', component: () => import('../pages/teacher-portal/ReservationsPage.vue') },
-      { path: 'schedule', name: 't-schedule', component: () => import('../pages/teacher-portal/SchedulePage.vue') },
+      // The old availability grid was dropped; its address leads to the calendar.
+      { path: 'schedule', redirect: '/calendar' },
       { path: 'calendar', name: 't-calendar', component: () => import('../pages/teacher-portal/GoogleCalendarSchedulePage.vue') },
       { path: 'lessons', name: 't-lessons', component: () => import('../pages/teacher-portal/LessonLogPage.vue') },
       { path: 'writing', name: 't-writing', component: () => import('../pages/teacher-portal/WritingPage.vue') },

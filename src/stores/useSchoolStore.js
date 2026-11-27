@@ -129,6 +129,23 @@ export const useSchoolStore = defineStore('school', () => {
   setInterval(() => { now.value = Date.now(); }, 30_000);
 
   /**
+   * There is no one in this prototype to mark a lesson as taught, so a
+   * booked lesson counts as completed once its end time has passed. That is
+   * what moves it into the teacher's Lesson Log ("Feedback pending") and the
+   * student's Lesson History, where it can be rated. A teacher who was
+   * stood up changes it to a no-show from the feedback pop-up. Runs on open
+   * and on every clock tick; both portals do it, with the same result.
+   */
+  const settleEndedLessons = () => {
+    const t = Date.now();
+    db.value.lessons.forEach((l) => {
+      if (l.status === 'booked' && new Date(l.start).getTime() + l.duration * 60_000 <= t) l.status = 'completed';
+    });
+  };
+  settleEndedLessons();
+  watch(now, settleEndedLessons);
+
+  /**
    * Throws away every change and starts again from the sample data, along
    * with the page settings people change as they click around (hidden
    * dashboard cards, a collapsed sidebar, favourite teachers, added time
@@ -337,6 +354,34 @@ export const useSchoolStore = defineStore('school', () => {
     if (!l) return null;
     ['subject', 'topic', 'note'].forEach((k) => { if (patch[k] !== undefined) l[k] = patch[k]; });
     return l;
+  };
+
+  /**
+   * The teacher's call that the student never came. Only for a completed
+   * lesson the student hasn't rated (a rating means they were there). The
+   * points stay spent, as with any no-show.
+   */
+  const markNoShow = (id) => {
+    const l = findLesson(id);
+    if (!l || l.status !== 'completed' || l.studentRating) return false;
+    l.status = 'no-show';
+    return true;
+  };
+
+  /** Takes back a no-show the teacher marked by mistake. */
+  const markAttended = (id) => {
+    const l = findLesson(id);
+    if (!l || l.status !== 'no-show') return false;
+    l.status = 'completed';
+    return true;
+  };
+
+  // ── Teacher profiles ─────────────────────────────────────────────────
+  /** What a teacher saved on their Profile page, or null if they never have. */
+  const teacherProfileFor = (teacherId) => db.value.teacherProfiles?.[teacherId] ?? null;
+  const saveTeacherProfile = (teacherId, profile) => {
+    if (!db.value.teacherProfiles) db.value.teacherProfiles = {};
+    db.value.teacherProfiles[teacherId] = { ...profile };
   };
 
   const submitFeedback = (id, { feedback, hiddenNote = '', score = null }) => {
@@ -813,6 +858,7 @@ export const useSchoolStore = defineStore('school', () => {
     student, teacher, teacherForStudent, nicknameOf,
     lessons, lessonsForTeacher, lessonsForStudent, findLesson, teacherBusy, isTeacherSlotOpen, teacherSlotState,
     bookLesson, cancelLesson, undoBooking, rescheduleLesson, updateLesson, submitFeedback, rateLesson,
+    markNoShow, markAttended, teacherProfileFor, saveTeacherProfile,
     walletFor, adjustWallet,
     writing, writingForStudent, writingForTeacher, findTicket, submitWriting, replyWriting, completeWriting, WRITING_COST,
     materialsFor, addMaterial, removeMaterial,

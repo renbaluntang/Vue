@@ -14,7 +14,7 @@
 import { seedMaterials } from '@/lib/lessonMaterials';
 import { manilaAt } from '@/lib/schoolTime';
 
-export const SEED_VERSION = 10;
+export const SEED_VERSION = 11;
 
 /** Ids of the signed-in user on each side of the prototype. */
 export const CURRENT_STUDENT_ID = 21;
@@ -514,4 +514,7 @@ export const buildSeed = (anchor) => ({
   classCopies: seedClassCopies(anchor),
   outbox: [],
   levelReminder: null,
+  // What each teacher has saved on their Profile page, by teacher id. Empty
+  // until they save; the student pages fall back to the catalogue profile.
+  teacherProfiles: {},
 });

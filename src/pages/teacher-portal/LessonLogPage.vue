@@ -201,6 +201,8 @@
       :lesson="feedbackLesson"
       @close="feedbackLesson = null"
       @submit="saveFeedback"
+      @no-show="markNoShow"
+      @attended="markAttended"
     />
   </div>
 </template>
@@ -244,6 +246,18 @@ const materialsLesson = ref(null);
 const saveFeedback = ({ id, feedback, hiddenNote }) => {
   teacher.submitFeedback(id, { feedback, hiddenNote });
   feedbackLesson.value = null;
+};
+
+// The row's status chip changes at once, which is the confirmation; the
+// pop-up closes after a no-show (nothing left to write) and stays open on
+// an undo so the teacher can go on to write the feedback.
+const markNoShow = (id) => {
+  if (teacher.markNoShow(id)) feedbackLesson.value = null;
+};
+const markAttended = (id) => {
+  if (teacher.markAttended(id)) {
+    feedbackLesson.value = teacher.lessonLog.find((row) => row.id === id) ?? null;
+  }
 };
 
 /**

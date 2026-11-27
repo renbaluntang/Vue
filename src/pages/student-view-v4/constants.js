@@ -1,6 +1,7 @@
 import studentImage from "@/assets/student-1.svg";
 import { TEACHER_IMAGES, imageForKey } from "@/lib/teacherImages";
 import { seedTeachers } from "@/lib/schoolSeed";
+import { useSchoolStore } from "@/stores/useSchoolStore";
 
 // Real Brighture instructors. `imageKey` is this teacher's own portrait key, so
 // the photo can never drift onto the wrong name. Subjects and point costs are
@@ -393,9 +394,30 @@ export const findInstructor = (t) =>
   INSTRUCTORS.find((i) => i.name === (t?.teacherName ?? t?.name)) ??
   null;
 
+/**
+ * What the teacher saved on their own Profile page (teacher portal), if
+ * anything, keyed by the teacher-image id the shared store uses. Read inside
+ * a render, so a save shows up on the student pages straight away. Outside
+ * a running app (no Pinia yet) there is nothing saved to read.
+ */
+const savedTeacherProfile = (teacher) => {
+  const key = teacher?.imageKey ?? teacher?.teacherId;
+  if (key == null) return null;
+  try {
+    return useSchoolStore().teacherProfileFor(key);
+  } catch {
+    return null;
+  }
+};
+
 export const getTeacherProfile = (teacher) => {
   if (!teacher) return {};
   const staticProfile = TEACHER_PROFILE_BY_ID[teacher.id] || {};
+  // The teacher's own words win over the catalogue copy: their intro, and
+  // their major (which also stands in for the "Major at university" list).
+  const saved = savedTeacherProfile(teacher);
+  const savedIntro = saved?.selfIntro?.trim();
+  const savedMajor = saved?.major?.trim();
   const specialtyCodes = parseSubjectCodes(teacher.specialty);
   const subjectsTaught = specialtyCodes
     .map((code) => SUBJECT_LABELS[code] || code)
@@ -403,12 +425,13 @@ export const getTeacherProfile = (teacher) => {
 
   return {
     // Shown as on the production profile: "Major at University" and "Areas of Expertise".
-    majors: staticProfile.majors || ["Education", "Language"],
+    majors: savedMajor ? [savedMajor] : staticProfile.majors || ["Education", "Language"],
     areas: staticProfile.areas || ["Conversation", "Grammar"],
-    major: staticProfile.major || "Education & Language Teaching",
+    major: savedMajor || staticProfile.major || "Education & Language Teaching",
     expertise: staticProfile.expertise || "English Language & Communication",
     subjectsTaught,
     selfIntro:
+      savedIntro ||
       staticProfile.selfIntro ||
       "Hello! I focus on practical English communication and personalized feedback to help you achieve your goals.",
     rating: teacher.rating || 4.95,

@@ -142,7 +142,7 @@
             <GoogleMeetIcon class="[filter:drop-shadow(0_1px_2px_rgba(0,0,0,0.25))]" />
             <!-- The actions column is narrowest between lg and xl, where the full
                  label would be cut off, so "Google" drops out there. -->
-            <span class="truncate [text-shadow:0_1px_2px_rgba(0,0,0,0.25)]">Join <span class="lg:hidden xl:inline">Google </span>Meet</span>
+            <span class="truncate [text-shadow:0_1px_2px_rgba(0,0,0,0.25)]">Join Meet</span>
           </a>
 
           <p
@@ -178,7 +178,7 @@
         Your current schedule is clear. Check open availability or configure additional lesson slots for students to reserve.
       </p>
       <RouterLink
-        to="/schedule"
+        to="/calendar"
         class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-brighture-gold text-slate-900 text-xs font-black shadow-sm transition hover:brightness-105"
       >
         <span>Open Class Slots</span>
@@ -409,7 +409,7 @@
               <!-- Action Buttons -->
               <div class="flex items-center gap-2 shrink-0 self-end sm:self-center">
                 <a
-                  v-if="row.meetLink"
+                  v-if="teacher.showsMeet(row)"
                   :href="row.meetLink"
                   target="_blank"
                   rel="noopener"
@@ -418,12 +418,6 @@
                   <GoogleMeetIcon size="sm" />
                   <span>Meet</span>
                 </a>
-                <span
-                  v-else
-                  class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-500 text-xs font-bold"
-                >
-                  No Link
-                </span>
 
                 <RouterLink
                   :to="{ path: '/chat', query: { student: row.studentId } }"
@@ -467,7 +461,7 @@
             </div>
 
             <RouterLink
-              to="/schedule"
+              to="/calendar"
               class="text-xs font-bold text-brighture-bronze hover:underline"
             >
               Open Slot Grid &rarr;
@@ -529,7 +523,7 @@
                 <h2 class="text-base sm:text-lg font-black text-slate-900">Faculty Performance & Curriculum</h2>
               </div>
               <p class="text-xs text-slate-500 mt-0.5">
-                Attendance reliability, student retention, and curriculum distribution
+                This week so far: lessons taught, returning students, feedback and ratings
               </p>
             </div>
 
@@ -542,58 +536,71 @@
             </RouterLink>
           </div>
 
-          <!-- 4 Quality Micro-Metrics -->
+          <!-- This week so far, from the real lessons in the shared store
+               (teacher.weeklyPerformance). A figure with nothing behind it
+               yet shows a dash rather than a made-up number. -->
           <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-1">
             <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
               <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Completion Rate</p>
               <p class="text-lg sm:text-xl font-black text-emerald-600 mt-1 tabular-nums">
-                {{ weeklyAnalytics?.completionRate ?? 95 }}%
+                {{ perf.completionRate ?? '—' }}<template v-if="perf.completionRate !== null">%</template>
               </p>
-              <p class="text-[10px] font-semibold text-slate-500 mt-0.5">19 of 20 taught</p>
+              <p class="text-[10px] font-semibold text-slate-500 mt-0.5">
+                {{ perf.held ? `${perf.taught} of ${perf.held} taught` : 'No lessons yet this week' }}
+              </p>
             </div>
 
             <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
               <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Repeat Students</p>
               <p class="text-lg sm:text-xl font-black text-indigo-600 mt-1 tabular-nums">
-                {{ weeklyAnalytics?.repeatShare ?? 80 }}%
+                {{ perf.repeatShare ?? '—' }}<template v-if="perf.repeatShare !== null">%</template>
               </p>
-              <p class="text-[10px] font-semibold text-slate-500 mt-0.5">High retention</p>
+              <p class="text-[10px] font-semibold text-slate-500 mt-0.5">
+                {{ perf.students ? `${perf.returning} of ${perf.students} came back` : 'No students yet this week' }}
+              </p>
             </div>
 
             <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
-              <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Punctuality</p>
+              <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Feedback Sent</p>
               <p class="text-lg sm:text-xl font-black text-sky-600 mt-1 tabular-nums">
-                100%
+                {{ perf.taught ? perf.feedbackSent : '—' }}<template v-if="perf.taught"><span class="text-sm text-slate-400"> / {{ perf.taught }}</span></template>
               </p>
-              <p class="text-[10px] font-semibold text-slate-500 mt-0.5">0 faculty cancel</p>
+              <p class="text-[10px] font-semibold text-slate-500 mt-0.5">
+                {{ !perf.taught ? 'Nothing to write yet' : perf.feedbackSent === perf.taught ? 'All written' : `${perf.taught - perf.feedbackSent} still to write` }}
+              </p>
             </div>
 
             <div class="p-3.5 rounded-2xl bg-slate-50/70 border border-slate-100">
               <p class="text-[10px] font-black uppercase tracking-wider text-slate-400">Avg Rating</p>
               <p class="text-lg sm:text-xl font-black text-amber-500 mt-1 tabular-nums">
-                {{ weeklyAnalytics?.rating ?? '4.98' }} <i class="fa-solid fa-star text-base" aria-hidden="true"></i>
+                {{ perf.avgRating ?? '—' }} <i v-if="perf.avgRating" class="fa-solid fa-star text-base" aria-hidden="true"></i>
               </p>
-              <p class="text-[10px] font-semibold text-slate-500 mt-0.5">Top percentile</p>
+              <p class="text-[10px] font-semibold text-slate-500 mt-0.5">
+                {{ perf.ratedCount ? `From ${perf.ratedCount} rating${perf.ratedCount === 1 ? '' : 's'}` : 'No ratings yet this week' }}
+              </p>
             </div>
           </div>
 
           <!-- Subject Distribution Bars -->
           <div class="space-y-2.5 pt-2">
             <p class="text-xs font-black text-slate-800 uppercase tracking-wider">Top Curriculums Taught This Week</p>
-            <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div v-if="perf.subjects.length" class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div
-                v-for="sub in weeklyAnalytics?.subjects || []"
-                :key="sub.code"
+                v-for="sub in perf.subjects"
+                :key="sub.subject"
                 class="p-2.5 rounded-xl border border-slate-100 bg-slate-50/50 flex items-center justify-between gap-3 text-xs"
               >
                 <div class="flex items-center gap-2 min-w-0">
-                  <SubjectCode :subject="`[${sub.code}] ${sub.label}`" size="sm" class="font-bold text-slate-800" />
+                  <SubjectCode :subject="sub.subject" size="sm" class="font-bold text-slate-800" />
                 </div>
                 <span class="text-xs font-black text-slate-900 tabular-nums shrink-0">
-                  {{ sub.lessons }} <span class="font-semibold text-slate-400 text-[11px]">lessons</span>
+                  {{ sub.lessons }} <span class="font-semibold text-slate-400 text-[11px]">lesson{{ sub.lessons === 1 ? '' : 's' }}</span>
                 </span>
               </div>
             </div>
+            <p v-else class="m-0 rounded-xl border border-dashed border-slate-200 p-3 text-center text-xs font-medium text-slate-400">
+              Subjects appear here once you've taught a lesson this week.
+            </p>
           </div>
         </section>
 
@@ -681,7 +688,7 @@
                 <span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>
                 <h2 class="text-base font-black text-slate-900">Recent Student Praise</h2>
               </div>
-              <p class="text-xs text-slate-400 mt-0.5">Direct feedback from completed lessons</p>
+              <p class="text-xs text-slate-400 mt-0.5">What students wrote when they rated a lesson</p>
             </div>
 
             <RouterLink
@@ -692,7 +699,10 @@
             </RouterLink>
           </div>
 
-          <div class="space-y-3">
+          <p v-if="!studentReviews.length" class="m-0 rounded-2xl border border-dashed border-slate-200 p-4 text-center text-xs font-medium text-slate-400">
+            When students rate a lesson and leave a comment, the latest show here.
+          </p>
+          <div v-else class="space-y-3">
             <article
               v-for="lesson in studentReviews"
               :key="lesson.id"
@@ -927,27 +937,21 @@ const urgentSummary = computed(() => {
 });
 
 // Curated authentic student reviews
-const studentReviews = computed(() => [
-  {
-    id: 'rev-1',
-    studentName: 'Taro Yamada',
-    subject: '[SF] Speech Fluency',
-    rating: 5,
-    comment: 'Very clear explanations, I could follow every correction effortlessly and improve my business phrasing.',
-  },
-  {
-    id: 'rev-2',
-    studentName: 'Kenji Sato',
-    subject: '[DC] Daily Conversation',
-    rating: 5,
-    comment: 'Friendly, patient, and very encouraging during speaking drills.',
-  },
-  {
-    id: 'rev-3',
-    studentName: 'Aiko Tanaka',
-    subject: '[PP101] Pronunciation — Vowels',
-    rating: 5,
-    comment: 'The minimal pair audio drills were exact and helped me hear the subtle vowel contrasts immediately.',
-  },
-]);
+// This week's numbers for the performance card.
+const perf = computed(() => teacher.weeklyPerformance);
+
+// The latest lessons students rated, newest first, from the shared store.
+// Only ones with a written comment, since the card quotes what they said.
+const studentReviews = computed(() =>
+  teacher.lessonLog
+    .filter((lesson) => lesson.studentRating && lesson.studentComment?.trim())
+    .slice(0, 3)
+    .map((lesson) => ({
+      id: lesson.id,
+      studentName: lesson.studentName,
+      subject: lesson.subject,
+      rating: lesson.studentRating,
+      comment: lesson.studentComment.trim(),
+    }))
+);
 </script>

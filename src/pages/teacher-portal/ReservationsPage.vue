@@ -529,13 +529,13 @@
                   <span class="shrink-0 font-bold text-slate-500 tabular-nums">{{ formatCardTime(row) }}</span>
                   <span v-if="row.topic && calendarPeriodType === 'day'" class="truncate font-medium text-slate-500">{{ row.topic }}</span>
                   <a
-                    v-if="row.meetLink"
+                    v-if="teacher.showsMeet(row)"
                     :href="row.meetLink"
                     target="_blank"
                     rel="noopener"
                     @click.stop
                     class="ml-auto flex h-5 w-5 shrink-0 items-center justify-center rounded-md bg-emerald-500 text-[9px] text-white shadow-2xs transition hover:bg-emerald-600"
-                    title="Join Google Meet"
+                    title="Join Meet"
                   >
                     <GoogleMeetIcon size="md" />
                   </a>
@@ -622,6 +622,7 @@
                           <span class="font-extrabold text-slate-900 text-sm">
                             {{ formatPrimaryTime(row) }}
                           </span>
+                          <span v-if="row.inProgress" class="inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 align-middle text-[9px] font-black uppercase tracking-wide text-emerald-800">In progress</span>
                           <span
                             v-if="row.id === teacher.nextReservation?.id"
                             class="rounded-full bg-brighture-gold px-1.5 py-0.2 text-[9px] font-black text-brighture-ink shadow-2xs"
@@ -688,7 +689,7 @@
                   <td class="px-5 py-4 text-right whitespace-nowrap">
                     <div class="flex items-center justify-end gap-1.5">
                       <a
-                        v-if="row.meetLink"
+                        v-if="teacher.showsMeet(row)"
                         :href="row.meetLink"
                         target="_blank"
                         rel="noopener"
@@ -698,14 +699,6 @@
                         <GoogleMeetIcon size="sm" />
                         <span>Meet</span>
                       </a>
-                      <span
-                        v-else
-                        class="inline-flex items-center gap-1 rounded-xl bg-rose-50 px-2.5 py-1.5 text-[11px] font-bold text-rose-700 border border-rose-200/60"
-                        title="Meeting room link not generated yet"
-                      >
-                        <i class="fa-solid fa-triangle-exclamation text-[10px]"></i>
-                        <span>No link</span>
-                      </span>
 
                       <!-- Details Button -->
                       <button
@@ -748,6 +741,7 @@
                   <div>
                     <p class="text-xs font-black text-slate-900 leading-none">
                       {{ formatPrimaryTime(row) }}
+                      <span v-if="row.inProgress" class="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 align-middle text-[9px] font-black uppercase tracking-wide text-emerald-800">In progress</span>
                     </p>
                     <p class="text-[10px] text-slate-400 mt-0.5">
                       {{ formatSecondaryTime(row) }}
@@ -806,7 +800,7 @@
             <!-- Card Actions -->
             <div class="mt-4 pt-3 border-t border-slate-100 flex items-center gap-2">
               <a
-                v-if="row.meetLink"
+                v-if="teacher.showsMeet(row)"
                 :href="row.meetLink"
                 target="_blank"
                 rel="noopener"
@@ -814,12 +808,6 @@
               >
                 <GoogleMeetIcon size="sm" /> Join Meet
               </a>
-              <span
-                v-else
-                class="flex-1 rounded-xl bg-rose-50 py-2 px-3 text-center text-[11px] font-bold text-rose-700 border border-rose-200/60"
-              >
-                No link
-              </span>
 
               <button
                 type="button"
@@ -854,6 +842,7 @@
                   <span class="text-xs font-extrabold text-slate-900">
                     {{ formatPrimaryTime(row) }}
                   </span>
+                  <span v-if="row.inProgress" class="ml-1.5 inline-flex items-center rounded-full bg-emerald-100 px-1.5 py-0.5 align-middle text-[9px] font-black uppercase tracking-wide text-emerald-800">In progress</span>
                   <span class="text-[10px] text-slate-400 ml-1.5">
                     ({{ formatSecondaryTime(row) }})
                   </span>
@@ -907,7 +896,7 @@
             <!-- Action Buttons -->
             <div class="mt-3.5 flex gap-2">
               <a
-                v-if="row.meetLink"
+                v-if="teacher.showsMeet(row)"
                 :href="row.meetLink"
                 target="_blank"
                 rel="noopener"
@@ -915,12 +904,6 @@
               >
                 <GoogleMeetIcon size="sm" /> Join Meet
               </a>
-              <span
-                v-else
-                class="flex-1 rounded-xl bg-rose-50 py-3 px-3 text-center text-[11px] font-bold text-rose-700 border border-rose-200/60"
-              >
-                No link
-              </span>
 
               <button
                 type="button"

@@ -265,7 +265,7 @@
           <!-- Row 4: Start Lesson Button (Green with camera icon) -->
           <div>
             <a
-              v-if="student.meetLink"
+              v-if="meetOpen"
               :href="student.meetLink"
               target="_blank"
               rel="noopener"
@@ -280,7 +280,7 @@
               disabled
               class="flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-100 py-3.5 px-4 text-center text-xs font-bold text-slate-400 cursor-not-allowed"
             >
-              <span>No meeting link available</span>
+              <span>{{ student.meetLink ? 'Opens when this is your next lesson' : 'No meeting link available' }}</span>
             </button>
           </div>
 
@@ -750,6 +750,17 @@ import { useTeacherStore } from '../../stores/useTeacherStore';
 import { useSchoolStore } from '../../stores/useSchoolStore';
 
 const teacher = useTeacherStore();
+
+// The Start Lesson button follows the same rule as the lesson lists: only
+// for the next lesson or one under way. The panel is opened with different
+// shapes (a reservation row, a chat contact, an assessment), so find the
+// booking it stands for by id, or else by its Meet room.
+const meetOpen = computed(() => {
+  const s = props.student;
+  if (!s?.meetLink) return false;
+  const booking = teacher.reservations.find((r) => r.id === s.id || r.meetLink === s.meetLink);
+  return !!booking && teacher.showsMeet(booking);
+});
 const school = useSchoolStore();
 
 const props = defineProps({

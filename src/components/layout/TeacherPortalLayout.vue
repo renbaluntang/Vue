@@ -702,7 +702,7 @@ const assessmentTodoCount = computed(() => school.assessmentsForTeacher(teacher.
   .filter((a) => a.status === 'draft' || a.status === 'scheduled').length);
 
 /** Titles for pages that are not in the nav list. */
-const offNavTitles = { '/profile': 'Profile Setting', '/schedule': 'Availability grid' };
+const offNavTitles = { '/profile': 'Profile Setting' };
 
 const badgeFor = (item) => {
   if (item.badge === 'writing') return teacher.pendingWritingCount || 0;

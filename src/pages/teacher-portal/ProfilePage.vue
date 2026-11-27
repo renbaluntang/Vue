@@ -87,22 +87,24 @@
         <input v-model="form.introVideo" type="url" placeholder="Paste YouTube intro-video URL here" class="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm outline-none transition focus:border-brighture-gold focus:bg-white" />
       </label>
 
+      <!-- Read-only: the school decides which subjects a teacher is
+           assigned, so this lists them rather than offering toggles. -->
       <div>
-        <span class="mb-1.5 block text-xs font-bold text-slate-600">Subjects you teach</span>
-        <div class="flex flex-wrap gap-2">
-          <button
-            v-for="code in allSubjects"
-            :key="code"
-            type="button"
-            @click="toggleSubject(code)"
-            class="inline-flex items-center rounded-xl px-2 py-1.5 text-xs font-bold transition active:scale-95"
-            :class="form.subjects.includes(code)
-              ? 'bg-brighture-gold text-brighture-ink shadow-sm'
-              : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-50'"
-          >
-            <SubjectCode :subject="code" :show-name="hasSubjectName(code)" size="sm" />
-          </button>
+        <div class="mb-1.5 flex flex-wrap items-baseline justify-between gap-x-3 gap-y-0.5">
+          <span class="text-xs font-bold text-slate-600">Subjects you teach</span>
+          <span class="text-[11px] font-medium text-slate-400">
+            <i class="fa-solid fa-lock mr-1 text-[10px]" aria-hidden="true"></i>Set by the school
+          </span>
         </div>
+        <ul class="m-0 flex list-none flex-wrap gap-x-4 gap-y-2 p-0">
+          <li v-for="code in teacher.profile.subjects" :key="code" class="inline-flex items-center text-xs font-bold text-slate-700">
+            <SubjectCode :subject="code" :show-name="hasSubjectName(code)" size="sm" />
+          </li>
+        </ul>
+        <p class="mt-2.5 text-[11px] text-slate-500">
+          To add or remove a subject, contact the school at
+          <a :href="`mailto:${SUPPORT_EMAIL}`" class="font-bold text-brighture-bronze hover:underline">{{ SUPPORT_EMAIL }}</a>.
+        </p>
       </div>
     </section>
 
@@ -173,7 +175,7 @@ const teacher = useTeacherStore();
 // the one that decides whether the header's Available/Away control appears.
 const timezones = ['Asia/Manila (PHT)', 'Asia/Tokyo (JST)'];
 
-const allSubjects = ['SF', 'LS1', 'LS2', 'DC', 'PP101', 'PP201', 'RW', 'EP', 'SC', 'BC', 'FC'];
+const SUPPORT_EMAIL = 'support@brighture-edu.com';
 
 // Some codes (LS2, BC, FC) have no name in the subject list yet. Those show
 // the box alone rather than the same letters twice.
@@ -187,23 +189,18 @@ const form = reactive({
   selfIntro: teacher.profile.selfIntro,
   introVideo: teacher.profile.introVideo,
   timezone: teacher.profile.timezone,
-  subjects: [...teacher.profile.subjects],
 });
 
 const savedSnapshot = ref(JSON.stringify(form));
 const hasSavedOnce = ref(false);
 const isDirty = computed(() => JSON.stringify(form) !== savedSnapshot.value);
 
-const toggleSubject = (code) => {
-  const index = form.subjects.indexOf(code);
-  if (index === -1) form.subjects.push(code);
-  else form.subjects.splice(index, 1);
-};
-
 const revert = () => { Object.assign(form, JSON.parse(savedSnapshot.value)); };
 
+// Saved to the shared store: it survives a reload, and the intro and major
+// show on the student booking page and teacher pop-up.
 const save = () => {
-  Object.assign(teacher.profile, { ...form, subjects: [...form.subjects] });
+  teacher.saveProfile({ ...form });
   savedSnapshot.value = JSON.stringify(form);
   hasSavedOnce.value = true;
 };
