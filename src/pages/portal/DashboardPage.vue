@@ -4,10 +4,11 @@
     <div
       v-if="showRenewalReminder"
       role="status"
-      class="group relative flex flex-col gap-3.5 sm:gap-4 overflow-hidden rounded-[20px] sm:rounded-[22px] bg-gradient-to-r from-[#3e47c9] via-[#4852d4] to-[#515ee0] px-4 py-3 sm:px-6 sm:py-3.5 text-white shadow-lg shadow-indigo-600/20 sm:flex-row sm:items-center sm:justify-between transition-all duration-300 border border-white/10"
+      class="group relative flex flex-col gap-3.5 sm:gap-4 overflow-hidden rounded-[20px] sm:rounded-[22px] bg-[linear-gradient(110deg,#0F1319_0%,#161C26_55%,#1E1A10_100%)] px-4 py-3 sm:px-6 sm:py-3.5 text-white shadow-lg shadow-slate-900/15 sm:flex-row sm:items-center sm:justify-between transition-all duration-300 border border-white/10"
     >
-      <div class="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-white/10 blur-2xl"></div>
-      <div class="pointer-events-none absolute left-0 top-0 h-full w-full bg-gradient-to-b from-white/[0.08] to-transparent"></div>
+      <!-- The same ink and gold as the next-class card, so the notice reads as part of the page rather than an ad. -->
+      <div class="pointer-events-none absolute -right-16 -top-16 h-44 w-44 rounded-full bg-[#FFCD00]/15 blur-2xl"></div>
+      <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
       <div class="relative z-10 flex min-w-0 flex-1 items-center gap-3 sm:gap-4">
         <div class="relative flex shrink-0 items-center justify-center">
           <img
@@ -16,7 +17,7 @@
             class="h-10 w-auto drop-shadow-[0_4px_10px_rgba(0,0,0,0.25)] transition-transform duration-300 group-hover:scale-105 sm:h-11"
           />
         </div>
-        <p class="min-w-0 text-[13px] font-medium leading-normal tracking-[-0.01em] text-indigo-50/95 sm:text-sm">
+        <p class="min-w-0 text-[13px] font-medium leading-normal tracking-[-0.01em] text-slate-300 sm:text-sm">
           <template v-if="user.subscriptionDaysLeft < 0">
             Your subscription <strong class="font-extrabold text-white">has ended</strong>. Renew it to keep booking classes.
           </template>
@@ -33,7 +34,7 @@
       <div class="relative z-10 flex shrink-0 items-center justify-end gap-2.5 sm:gap-3">
         <RouterLink
           to="/purchase"
-          class="inline-flex items-center justify-center rounded-full bg-white px-5 py-2 text-[13px] font-extrabold text-[#3b44c4] shadow-sm transition-all duration-200 hover:scale-[1.02] hover:bg-slate-50 hover:shadow-md active:scale-[0.98] sm:px-6 sm:text-sm"
+          class="inline-flex items-center justify-center rounded-full bg-[#FFCD00] px-5 py-2 text-[13px] font-extrabold text-slate-950 shadow-sm transition-all duration-200 hover:scale-[1.02] hover:bg-[#FFD933] hover:shadow-md active:scale-[0.98] sm:px-6 sm:text-sm"
         >
           Renew
         </RouterLink>
@@ -60,12 +61,12 @@
       <section aria-labelledby="announcements-title" class="min-w-0 w-full flex-1 overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-sm">
         <header class="flex items-center justify-between gap-3 border-b border-slate-100 px-4 py-2 sm:px-5">
           <div class="flex min-w-0 items-center gap-2.5">
-            <span class="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-brighture-cream text-brighture-bronze ring-1 ring-inset ring-amber-200/70">
-              <i class="fa-solid fa-bullhorn text-xs" aria-hidden="true"></i>
-            </span>
-            <!-- Title and source share one line to keep the header slim. -->
+            <span class="w-2.5 h-5 rounded-full bg-brighture-gold shrink-0" aria-hidden="true"></span>
+            <!-- Title and source share one line to keep the header slim. It
+                 stays a size smaller than the page's section headings because
+                 it heads a card, not a section. -->
             <div class="flex min-w-0 items-baseline gap-2">
-              <h2 id="announcements-title" class="m-0 text-sm font-extrabold tracking-tight text-slate-900">Announcements</h2>
+              <h2 id="announcements-title" class="m-0 text-base font-extrabold tracking-tight text-slate-900">Announcements</h2>
               <p class="m-0 hidden truncate text-xs font-medium text-slate-400 sm:block">from the Brighture blog</p>
             </div>
           </div>
@@ -73,7 +74,7 @@
             :href="ANNOUNCEMENTS_URL"
             target="_blank"
             rel="noopener"
-            class="inline-flex h-7 shrink-0 items-center gap-1.5 rounded-full border border-slate-200 px-2.5 text-[11px] font-bold text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900"
+            class="inline-flex shrink-0 items-center gap-1.5 text-xs font-bold text-slate-600 transition hover:text-slate-900"
           >
             View all
             <i class="fa-solid fa-arrow-up-right-from-square text-[9px]" aria-hidden="true"></i>
@@ -145,9 +146,6 @@
           @click="showFreeConversationModal = true"
           class="relative group inline-flex items-center justify-center gap-1.5 sm:gap-2 px-3 sm:px-5 py-2.5 sm:py-3 rounded-lg bg-slate-950 text-white font-bold text-[13px] sm:text-sm leading-tight text-center hover:bg-slate-800 active:scale-[0.98] transition-all"
         >
-          <span class="absolute -top-2 -right-2 bg-red-600 text-white text-[9px] uppercase tracking-wider font-black px-2 py-0.5 rounded-full shadow-md">
-            Instant
-          </span>
           <i class="fa-solid fa-bolt shrink-0 text-[#FFCD00]" aria-hidden="true"></i> <span>Talk Now</span>
         </button>
 
@@ -208,16 +206,17 @@
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
             <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span>
-            <h2 class="min-w-0 text-lg sm:text-2xl font-extrabold text-slate-900 tracking-tight">
+            <h2 class="min-w-0 text-lg sm:text-xl font-extrabold tracking-tight text-slate-900">
               Scheduled Online Classes
             </h2>
-            <span class="shrink-0 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-extrabold">
+            <span v-if="upcomingLessons.length" class="shrink-0 whitespace-nowrap px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[11px] sm:text-xs font-extrabold">
               {{ upcomingLessons.length }} Upcoming
             </span>
           </div>
           <div class="flex items-center gap-3">
-            <RouterLink to="/history" class="text-xs font-bold text-slate-500 hover:text-slate-700">
-              Past Lessons History →
+            <RouterLink to="/history" class="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+              <span>Past lessons</span>
+              <i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i>
             </RouterLink>
           </div>
         </div>
@@ -227,7 +226,7 @@
         <!-- 1. FEATURED NEXT IMMEDIATE CLASS (SPOTLIGHT) -->
         <div
           v-if="user.nextUpcomingClass"
-          class="relative overflow-hidden text-white p-6 sm:p-8 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:p-6 border-b border-slate-900/50 bg-[radial-gradient(115%_135%_at_90%_-12%,rgba(255,205,0,0.17)_0%,rgba(255,205,0,0.07)_26%,rgba(255,205,0,0.02)_44%,transparent_64%),radial-gradient(85%_115%_at_2%_108%,rgba(255,189,0,0.10)_0%,rgba(255,189,0,0.035)_32%,transparent_66%),linear-gradient(140deg,#0F1319_0%,#131925_24%,#161C26_48%,#111722_72%,#0A0D12_100%)]"
+          class="relative overflow-hidden text-white p-6 sm:p-8 squeezed:p-6 border-b border-slate-900/50 bg-[radial-gradient(115%_135%_at_90%_-12%,rgba(255,205,0,0.17)_0%,rgba(255,205,0,0.07)_26%,rgba(255,205,0,0.02)_44%,transparent_64%),radial-gradient(85%_115%_at_2%_108%,rgba(255,189,0,0.10)_0%,rgba(255,189,0,0.035)_32%,transparent_66%),linear-gradient(140deg,#0F1319_0%,#131925_24%,#161C26_48%,#111722_72%,#0A0D12_100%)]"
         >
           <!-- lit top edge, so the card reads as raised rather than cut out -->
           <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
@@ -243,7 +242,7 @@
                 </span>
                 <span class="inline-flex items-center gap-1.5 px-2.5 py-1 font-semibold text-emerald-100">
                   <i class="fa-regular fa-clock text-[11px] text-emerald-300" aria-hidden="true"></i>
-                  Starts in <strong class="font-black text-white">{{ countdownLabel(user.nextUpcomingClass.minutesUntil) }}</strong>
+                  in <strong class="font-black text-white">{{ countdownLabel(user.nextUpcomingClass.minutesUntil) }}</strong>
                 </span>
               </span>
               <!-- Pre-class materials. Within 3 hours of the start an unfinished
@@ -266,15 +265,16 @@
 
             <!-- From xl to about 1380px the referral card sits beside this one
                  and squeezes it, so the photo, title and buttons step down a
-                 size there to keep the buttons on the right. The step-down
-                 only applies while the card is shown (data-referral on the
-                 grid); once it is hidden this card has the full width. -->
-            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:gap-4">
+                 size there to keep the buttons on the right. The `squeezed:`
+                 variant (tailwind.config.js) covers exactly that: that width
+                 range, and only while the referral card is shown
+                 (data-referral on the grid). -->
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 squeezed:gap-4">
               <!-- Teacher alongside the class it belongs to -->
-              <div class="flex min-w-0 items-start gap-4 sm:gap-5 max-w-2xl [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:gap-3">
+              <div class="flex min-w-0 items-start gap-4 sm:gap-5 max-w-2xl squeezed:gap-3">
                 <button
                   type="button"
-                  @click="openTeacherDetails({ name: user.nextUpcomingClass.teacherName, photo: user.nextUpcomingClass.teacherPhoto, specialty: '[SF] Speech Fluency, [LS1], [DC]', rating: '4.98', major: 'B.A. in English Linguistics', expertise: '[SF] Speech Fluency & [EP] Exam Prep' })"
+                  @click="openTeacherDetails(teacherForModal(user.nextUpcomingClass))"
                   class="group w-20 sm:w-24 shrink-0 text-center"
                   title="View teacher profile"
                 >
@@ -282,7 +282,7 @@
                     :src="user.nextUpcomingClass.teacherPhoto"
                     :alt="user.nextUpcomingClass.teacherName"
                     eager
-                    class="w-20 h-20 sm:w-24 sm:h-24 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:h-20 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:w-20 mx-auto rounded-full border-2 border-brighture-amber/70 transition group-hover:border-brighture-gold/50 group-hover:scale-105"
+                    class="w-20 h-20 sm:w-24 sm:h-24 squeezed:h-20 squeezed:w-20 mx-auto rounded-full border-2 border-brighture-amber/70 transition group-hover:border-brighture-gold/50 group-hover:scale-105"
                   />
                 </button>
 
@@ -290,10 +290,10 @@
                      heading (and opens their profile, like the photo), the
                      subject sits under it, then the time. -->
                 <div class="min-w-0 pt-1">
-                  <h3 class="flex min-w-0 text-xl sm:text-2xl [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:text-xl font-extrabold tracking-tight text-white">
+                  <h3 class="flex min-w-0 text-xl sm:text-2xl squeezed:text-xl font-extrabold tracking-tight text-white">
                     <button
                       type="button"
-                      @click="openTeacherDetails({ name: user.nextUpcomingClass.teacherName, photo: user.nextUpcomingClass.teacherPhoto, specialty: '[SF] Speech Fluency, [LS1], [DC]', rating: '4.98', major: 'B.A. in English Linguistics', expertise: '[SF] Speech Fluency & [EP] Exam Prep' })"
+                      @click="openTeacherDetails(teacherForModal(user.nextUpcomingClass))"
                       class="min-w-0 truncate text-left transition hover:text-brighture-gold focus:outline-none focus-visible:underline"
                       title="View teacher profile"
                     >
@@ -323,7 +323,7 @@
                   target="_blank"
                   rel="noopener"
                   @click="onEnterMeet"
-                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:px-4 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:py-3 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:text-sm shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all text-center whitespace-nowrap"
+                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-black text-sm sm:text-base squeezed:px-4 squeezed:py-3 squeezed:text-sm shadow-lg shadow-emerald-500/20 hover:scale-105 active:scale-95 transition-all text-center whitespace-nowrap"
                 >
                   <!-- A soft shadow on the icon and label lifts them off the
                        green, the same treatment as the teacher's join button. -->
@@ -333,7 +333,7 @@
                 <button
                   type="button"
                   @click="openDetails(user.nextUpcomingClass)"
-                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-sm sm:text-base [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:px-4 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:py-3 [@media(min-width:1280px)_and_(max-width:1379px)]:[[data-referral]_&]:text-sm transition border border-white/15 text-center whitespace-nowrap"
+                  class="inline-flex w-full items-center justify-center gap-2 px-4 sm:px-6 py-2.5 sm:py-4 rounded-xl sm:rounded-2xl bg-white/10 hover:bg-white/20 text-white font-black text-sm sm:text-base squeezed:px-4 squeezed:py-3 squeezed:text-sm transition border border-white/15 text-center whitespace-nowrap"
                 >
                   <i class="fa-solid fa-circle-info" aria-hidden="true"></i> Class Details
                 </button>
@@ -342,8 +342,55 @@
           </div>
         </div>
 
-        <!-- 2. SUBSEQUENT SCHEDULED LESSONS -->
-        <div class="sched relative px-4 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-4 bg-white space-y-3">
+        <!-- Nothing booked: the spotlight keeps its place and dark surface, so
+             the page doesn't jump when the first class is booked, and offers
+             the two ways to get into a lesson instead. -->
+        <div
+          v-else
+          class="relative overflow-hidden px-6 py-8 text-white sm:px-8 sm:py-10 bg-[radial-gradient(115%_135%_at_90%_-12%,rgba(255,205,0,0.17)_0%,rgba(255,205,0,0.07)_26%,rgba(255,205,0,0.02)_44%,transparent_64%),linear-gradient(140deg,#0F1319_0%,#161C26_48%,#0A0D12_100%)]"
+        >
+          <div class="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/15 to-transparent"></div>
+          <!-- Demo only, as on the lesson list: lets a presenter add a class
+               back from the empty state. Invisible until hovered or focused. -->
+          <div class="absolute left-0 top-1/2 z-10 -translate-y-1/2 opacity-0 transition-opacity hover:opacity-100 focus-within:opacity-100" aria-label="Demo controls">
+            <button type="button" @click="demoAddClass" class="inline-flex h-6 w-5 items-center justify-center rounded-r-md bg-white/20 text-[10px] text-white hover:bg-white/30" title="Demo: add a class" aria-label="Demo: add a class">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+            </button>
+          </div>
+          <div class="relative z-10 flex flex-col gap-6 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex items-start gap-4">
+              <span class="inline-flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/10 text-brighture-gold ring-1 ring-inset ring-white/15">
+                <i class="fa-regular fa-calendar-plus text-xl" aria-hidden="true"></i>
+              </span>
+              <div class="min-w-0">
+                <h3 class="m-0 text-xl font-extrabold tracking-tight sm:text-2xl">You have no classes booked</h3>
+                <p class="m-0 mt-1.5 max-w-md text-sm font-medium leading-relaxed text-slate-300">
+                  Pick a teacher and a time that suits you, or talk to a teacher who is free right now.
+                </p>
+              </div>
+            </div>
+            <div class="flex w-full shrink-0 flex-col gap-2 sm:flex-row lg:w-auto">
+              <RouterLink
+                to="/booking"
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-[#FFCD00] px-5 py-3 text-sm font-black text-slate-950 shadow-lg shadow-black/20 transition hover:bg-[#FFD933] active:scale-[0.98]"
+              >
+                <i class="fa-solid fa-calendar-days" aria-hidden="true"></i> Book a class
+              </RouterLink>
+              <button
+                type="button"
+                @click="showFreeConversationModal = true"
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl border border-white/15 bg-white/10 px-5 py-3 text-sm font-black text-white transition hover:bg-white/20 active:scale-[0.98]"
+              >
+                <i class="fa-solid fa-bolt text-brighture-gold" aria-hidden="true"></i> Talk Now
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. SUBSEQUENT SCHEDULED LESSONS. Only under a featured class: with
+             nothing booked the empty state above says it all, and "after this
+             one" would point at a class that isn't there. -->
+        <div v-if="user.nextUpcomingClass" class="sched relative px-4 pb-4 pt-3 sm:px-6 sm:pb-5 sm:pt-4 bg-white space-y-3">
           <!-- Demo only: there is no backend, so these let a presenter add or
                remove a class to show the list at different lengths. They stay
                invisible on the card's left edge until hovered or focused. -->
@@ -356,13 +403,8 @@
             </button>
           </div>
 
-          <!-- One compact line: the title, with the count beside it. -->
-          <div class="flex items-baseline gap-2">
-            <h3 class="m-0 text-sm font-extrabold text-slate-900 leading-tight">Upcoming lessons</h3>
-            <span class="text-xs font-medium tabular-nums text-slate-400">
-              {{ scheduledLessons.length ? `${scheduledLessons.length} after this one` : 'Nothing else booked' }}
-            </span>
-          </div>
+          <!-- The count lives once, in the section header's badge. -->
+          <h3 class="m-0 text-sm font-extrabold text-slate-900 leading-tight">Later classes</h3>
 
           <!-- Desktop Table View -->
           <div v-if="scheduledLessons.length" class="sched__table">
@@ -396,7 +438,7 @@
                   <td class="py-3.5 px-2.5 sm:px-3 align-middle">
                     <button
                       type="button"
-                      @click="openTeacherDetails({ name: lesson.teacherName, photo: lesson.teacherPhoto, specialty: lesson.subject, rating: '4.95' })"
+                      @click="openTeacherDetails(teacherForModal(lesson))"
                       class="flex min-w-0 items-center gap-2 text-left group/teacher cursor-pointer"
                       title="View teacher profile"
                     >
@@ -520,41 +562,27 @@
                 v-if="isLessonOpen(lesson)"
                 class="bg-slate-50/80 border-t border-slate-100 px-3.5 sm:px-4 py-3 space-y-3 animate-in fade-in slide-in-from-top-1 duration-150"
               >
-                <!-- Two Fields Expand In Place -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 text-xs">
-                  <!-- Field 1: Curriculum & Instructor -->
-                  <div class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80">
-                    <div class="min-w-0">
-                      <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Class Curriculum</span>
-                      <span class="flex min-w-0 font-bold text-slate-800"><SubjectCode :subject="lesson.subject" size="sm" /></span>
-                      <span class="text-[11px] text-slate-500 font-medium block mt-0.5">{{ lesson.classType || 'One-on-one session' }}</span>
-                    </div>
-                    <button
-                      type="button"
-                      @click.stop="openTeacherDetails({ name: lesson.teacherName, photo: lesson.teacherPhoto, specialty: lesson.subject, rating: '4.95' })"
-                      class="ml-2 text-[11px] font-bold text-brighture-bronze hover:underline shrink-0 cursor-pointer"
-                    >
-                      Teacher Profile →
-                    </button>
-                  </div>
-
-                  <!-- Field 2: Scheduled Time Range & Meet Room -->
-                  <div class="flex items-center justify-between p-2.5 rounded-xl bg-white border border-slate-200/80">
-                    <div class="min-w-0">
-                      <span class="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Scheduled Time</span>
-                      <span class="font-bold text-slate-800 tabular-nums block">{{ lesson.time }}</span>
-                      <span class="text-[11px] text-slate-500 font-medium block mt-0.5">Google Meet Room Ready</span>
-                    </div>
-                    <span v-if="lesson.isNext" class="ml-2 px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-bold shrink-0">
-                      Live Soon
-                    </span>
-                  </div>
+                <!-- The row above already shows the teacher, subject, date and
+                     start, so the drawer adds only what it doesn't: the full time
+                     range and a way to the teacher's profile. -->
+                <div class="flex items-center justify-between gap-3 text-xs">
+                  <span class="inline-flex min-w-0 items-center gap-1.5 font-semibold text-slate-600">
+                    <i class="fa-regular fa-clock text-slate-400" aria-hidden="true"></i>
+                    <span class="truncate tabular-nums">{{ lesson.time }}</span>
+                  </span>
+                  <button
+                    type="button"
+                    @click.stop="openTeacherDetails(teacherForModal(lesson))"
+                    class="shrink-0 text-[11px] font-bold text-brighture-bronze hover:underline cursor-pointer"
+                  >
+                    Teacher profile →
+                  </button>
                 </div>
 
                 <!-- Actions: one row of three. No Meet button here: only the
                      featured class above gets one. Reschedule's column is a
                      little wider so its word fits on a 360px phone. -->
-                <div class="space-y-2 pt-1">
+                <div>
                   <div class="grid grid-cols-[1fr_1.25fr_1fr] gap-1.5">
                     <button
                       type="button"
@@ -592,7 +620,7 @@
             <span class="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-slate-400">
               <i class="fa-regular fa-calendar text-base" aria-hidden="true"></i>
             </span>
-            <p class="m-0 text-sm font-bold text-slate-700">No upcoming classes</p>
+            <p class="m-0 text-sm font-bold text-slate-700">Nothing else booked</p>
             <p class="m-0 text-xs font-medium text-slate-400">Classes you book after this one will show here.</p>
           </div>
         </div>
@@ -837,11 +865,79 @@
       </div>
     </section>
 
+    <!-- What the teacher wrote after the student's most recent completed
+         lesson: the thing most worth coming back to the dashboard for. Only
+         the written feedback shows; the full record (materials, recording,
+         rating) stays on Lesson History, which the links open at this lesson. -->
+    <section v-if="lastFeedback" aria-labelledby="last-feedback-title" class="space-y-4">
+      <div class="flex items-center justify-between gap-3">
+        <h2 id="last-feedback-title" class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
+          <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span> Feedback from your last lesson
+        </h2>
+        <RouterLink to="/history" class="inline-flex shrink-0 items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 transition">
+          <span>All lessons</span>
+          <i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i>
+        </RouterLink>
+      </div>
+
+      <article class="flex flex-col gap-4 rounded-2xl border border-slate-200/90 bg-white p-5 shadow-sm sm:flex-row sm:items-start sm:p-6">
+        <button
+          type="button"
+          @click="openTeacherDetails(teacherForModal(lastFeedback))"
+          class="group flex shrink-0 items-center gap-3 text-left sm:w-44 sm:flex-col sm:items-start"
+          title="View teacher profile"
+        >
+          <AppImage
+            :src="lastFeedback.teacherPhoto"
+            :alt="lastFeedback.teacherName"
+            class="h-12 w-12 rounded-full object-cover ring-2 ring-slate-100 transition group-hover:ring-amber-200 sm:h-14 sm:w-14"
+          />
+          <span class="min-w-0">
+            <span class="block truncate text-sm font-extrabold text-slate-900 transition group-hover:text-brighture-bronze">{{ lastFeedback.teacherName }}</span>
+            <span class="mt-0.5 block text-xs font-medium text-slate-500">{{ lastFeedback.date }}</span>
+          </span>
+        </button>
+
+        <div class="min-w-0 flex-1">
+          <div class="flex min-w-0 text-xs font-bold text-slate-700">
+            <SubjectCode :subject="lastFeedback.subject" size="sm" />
+          </div>
+          <blockquote
+            v-if="lastFeedback.written"
+            class="m-0 mt-2.5 border-l-2 border-brighture-gold pl-3.5 text-sm leading-relaxed text-slate-700 line-clamp-4 whitespace-pre-line"
+          >{{ lastFeedback.feedback }}</blockquote>
+          <p v-else class="m-0 mt-2.5 rounded-xl bg-slate-50 px-3.5 py-3 text-sm font-medium text-slate-500">
+            <i class="fa-regular fa-hourglass-half mr-1.5 text-slate-400" aria-hidden="true"></i>
+            {{ lastFeedback.teacherName }} hasn't written feedback for this lesson yet. Check back soon.
+          </p>
+
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            <RouterLink
+              v-if="lastFeedback.written"
+              :to="{ path: '/history', query: { lesson: lastFeedback.id } }"
+              class="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-slate-700 shadow-2xs transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              Read full feedback
+              <i class="fa-solid fa-arrow-right text-[10px]" aria-hidden="true"></i>
+            </RouterLink>
+            <RouterLink
+              v-if="!lastFeedback.yourRating"
+              :to="{ path: '/history', query: { rate: lastFeedback.id } }"
+              class="inline-flex items-center gap-1.5 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs font-bold text-amber-900 shadow-2xs transition hover:border-amber-300 hover:bg-amber-100"
+            >
+              <i class="fa-regular fa-star" aria-hidden="true"></i>
+              Rate this lesson
+            </RouterLink>
+          </div>
+        </div>
+      </article>
+    </section>
+
     <!-- FEATURED INSTRUCTORS SECTION -->
     <section class="bg-white border border-slate-200/90 rounded-2xl p-5 sm:p-7 space-y-4 shadow-sm">
       <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+          <h2 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
             <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span> Featured Instructors
           </h2>
           <p class="text-xs text-slate-500 mt-0.5">Explore instructor profiles and specialties.</p>
@@ -878,9 +974,12 @@
                     {{ instructor.name }}
                   </h3>
                 </div>
-                <p class="mt-0.5 text-[11px] font-medium text-emerald-700 flex items-center gap-1">
-                  <span class="h-1.5 w-1.5 rounded-full bg-emerald-500"></span>
-                  {{ instructor.nextAvailable }}
+                <p
+                  class="mt-0.5 flex items-center gap-1 text-[11px] font-medium"
+                  :class="instructor.next ? 'text-emerald-700' : 'text-slate-400'"
+                >
+                  <span class="h-1.5 w-1.5 shrink-0 rounded-full" :class="instructor.next ? 'bg-emerald-500' : 'bg-slate-300'" aria-hidden="true"></span>
+                  <span class="truncate">{{ instructor.next ? `Next open: ${instructor.next.label}` : 'No open times in the next 2 weeks' }}</span>
                 </p>
               </div>
             </div>
@@ -888,7 +987,7 @@
             <!-- Subject Badges (First 3 + count if more) -->
             <div class="mt-3 flex flex-wrap gap-1">
               <SubjectCode
-                v-for="code in parseSubjectCodes(instructor.specialty).slice(0, 3)"
+                v-for="code in bookableCodes(instructor).slice(0, 3)"
                 :key="code"
                 :subject="code"
                 :show-name="false"
@@ -896,18 +995,24 @@
                 variant="neutral"
               />
               <span
-                v-if="parseSubjectCodes(instructor.specialty).length > 3"
+                v-if="bookableCodes(instructor).length > 3"
                 class="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-bold text-slate-500 bg-slate-100"
               >
-                +{{ parseSubjectCodes(instructor.specialty).length - 3 }}
+                +{{ bookableCodes(instructor).length - 3 }}
               </span>
             </div>
           </div>
 
-          <div class="mt-3.5 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs font-bold text-slate-600 group-hover:text-slate-950 transition-colors">
-            <span>View Profile & Bio</span>
-            <i class="fa-solid fa-arrow-right text-[10px] text-slate-400 group-hover:translate-x-0.5 group-hover:text-slate-950 transition-all"></i>
-          </div>
+          <!-- The card itself opens the profile, so the footer's one job is
+               booking: it opens this teacher's calendar on the booking page. -->
+          <RouterLink
+            :to="{ path: '/booking', query: { teacher: instructor.imageKey } }"
+            @click.stop
+            class="mt-3.5 inline-flex w-full items-center justify-center gap-1.5 rounded-lg border border-amber-300 bg-[#FFCD00] px-3 py-2 text-xs font-extrabold text-slate-900 transition hover:bg-[#FFD933] active:scale-[0.98]"
+          >
+            <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+            Book {{ instructor.name }}
+          </RouterLink>
         </div>
       </div>
     </section>
@@ -915,7 +1020,7 @@
     <!-- WRITING TASKS SECTION -->
     <section class="space-y-4">
       <div class="flex items-center justify-between">
-        <h2 class="text-lg sm:text-xl font-extrabold text-slate-900 flex items-center gap-2">
+        <h2 class="text-lg sm:text-xl font-extrabold tracking-tight text-slate-900 flex items-center gap-2">
           <span class="w-2.5 h-6 rounded-full bg-brighture-gold shrink-0"></span> In-Progress Writing Corrections
         </h2>
         <RouterLink to="/writing" class="inline-flex items-center gap-1 text-xs font-bold text-slate-600 hover:text-slate-900 transition">
@@ -946,6 +1051,9 @@
               <span class="text-xs text-slate-400 font-semibold">{{ task.date }}</span>
             </div>
             <h3 class="text-sm font-bold text-slate-800 line-clamp-1 mb-1">{{ task.title }}</h3>
+            <p v-if="task.excerpt" class="m-0 mt-1.5 text-xs leading-relaxed text-slate-500 line-clamp-2">
+              <span v-if="task.replied" class="font-bold text-emerald-700">{{ task.teacherName || 'Your teacher' }}: </span>{{ task.excerpt }}
+            </p>
           </div>
           <div class="flex items-center justify-between mt-4 pt-3 border-t border-slate-100">
             <div class="flex items-center gap-2">
@@ -1032,7 +1140,8 @@ import EditClassModal from '../../components/EditClassModal.vue';
 import RescheduleClassModal from '../../components/RescheduleClassModal.vue';
 import TeacherDataModal from '../../components/TeacherDataModal.vue';
 import SubjectCode from '../../components/SubjectCode.vue';
-import { parseSubject, parseSubjectCodes } from '@/pages/student-view-v4/constants';
+import { parseSubject, parseSubjectCodes, INSTRUCTORS, findInstructor } from '@/pages/student-view-v4/constants';
+import { nextOpenSlot } from '@/lib/teacherAvailability';
 import {
   REFERRAL_CODE,
   REFERRAL_TERMS,
@@ -1374,64 +1483,55 @@ const openTeacherDetails = (teacher) => {
 };
 
 const handleBookFromTeacherModal = (teacher) => {
-  router.push('/booking');
+  const key = findInstructor(teacher)?.imageKey;
+  router.push(key ? { path: '/booking', query: { teacher: key } } : '/booking');
 };
 
-const quickInstructors = ref([
-  {
-    id: 1,
-    name: 'Jirvy',
-    photo: imageForKey(184),
-    specialty: '[SF], [LS1], [DC], [PP101], [PP102], [PP201], [PP202], [FC]',
-    rating: '4.98',
-    nextAvailable: 'Today 20:00',
-    major: 'Communication & Education',
-    expertise: '[SF], [LS1], [DC], [PP101], [PP102], [PP201], [PP202], [FC]',
-    selfIntro: "I'm a friendly English teacher who loves helping students learn in a supportive and enjoyable environment. My goal is to help every student build confidence in using English for everyday conversations, one lesson at a time. See you in class!",
-  },
-  {
-    id: 2,
-    name: 'Jane',
-    photo: imageForKey(178),
-    specialty: '[DC] Daily Conversation, [PP101], [PP102]',
-    rating: '4.95',
-    nextAvailable: 'Today 21:00',
-    major: 'B.S. in Communication Studies',
-    expertise: '[PP101] Pronunciation — Vowels & [PP202] American T',
-    selfIntro: 'I focus on clear intonation and natural American pronunciation. Let\'s practice speaking fluidly on everyday topics!',
-  },
-  {
-    id: 3,
-    name: 'Analyn',
-    photo: imageForKey(176),
-    specialty: '[RW] Reading & Writing, [SC], [EP]',
-    rating: '4.92',
-    nextAvailable: 'Tomorrow 10:00',
-    major: 'M.A. in Applied English Linguistics',
-    expertise: '[RW] Reading & Writing & Grammar Logic',
-    selfIntro: 'Writing and articulating thoughts clearly requires structure. I enjoy coaching students on expression, essays, and conversation.',
-  },
-  {
-    id: 4,
-    name: 'Sandra',
-    photo: imageForKey(175),
-    specialty: '[SF] Speech Fluency, [PP201], [SC]',
-    rating: '4.89',
-    nextAvailable: 'Tomorrow 11:30',
-    major: 'B.A. in Secondary Education',
-    expertise: '[SF] Speech Fluency & [PP201] Consonants',
-    selfIntro: 'My classes are relaxing, fun, and highly interactive. You will do 80% of the talking in our lessons!',
-  },
-]);
+// The newest completed lesson. `written` tells real feedback apart from the
+// "not written yet" text the History rows fill in, so the card can say so in
+// its own words instead of quoting a placeholder as if the teacher wrote it.
+const lastFeedback = computed(() => {
+  const lesson = user.pastLessons.find((row) => row.status === 'completed');
+  if (!lesson) return null;
+  return { ...lesson, written: Boolean(school.findLesson(lesson.id)?.feedback) };
+});
+
+// The catalogue teachers with the soonest open slot, worked out from the same
+// availability the booking calendar uses, so the time on each card is one the
+// student can actually book. A teacher with nothing open in the next two
+// weeks drops to the end rather than off the list.
+const quickInstructors = computed(() =>
+  INSTRUCTORS
+    .map((teacher) => ({ ...teacher, photo: imageForKey(teacher.imageKey), next: nextOpenSlot(school, teacher) }))
+    .sort((a, b) => (a.next ? Date.parse(a.next.iso) : Infinity) - (b.next ? Date.parse(b.next.iso) : Infinity))
+    .slice(0, 4)
+);
+
+/** Subjects this student can book with a teacher: never Talk Now's [FC], and [TA] only while it is still theirs to take. */
+const bookableCodes = (teacher) =>
+  parseSubjectCodes(teacher.specialty).filter((code) => code !== '[FC]' && (user.taEligible || code !== '[TA]'));
+
+// A lesson row only knows the teacher's id, name and photo. The pop-up reads
+// majors, expertise and the self-introduction from the catalogue entry, so
+// hand it that entry; a teacher outside the catalogue (a substitute, say)
+// falls back to what the row has.
+const teacherForModal = (row) =>
+  findInstructor(row) ?? { name: row.teacherName, photo: row.teacherPhoto, teacherId: row.teacherId, specialty: row.subject };
 
 // Open writing tickets for the dashboard cards.
 const writingTasks = computed(() =>
   user.writingTickets
     .filter((ticket) => ticket.status !== 'Complete')
     .map((ticket) => {
-      const replied = ticket.messages[ticket.messages.length - 1]?.from === 'teacher';
+      const last = ticket.messages[ticket.messages.length - 1];
+      const replied = last?.from === 'teacher';
+      // Once the teacher has answered, their reply is the news; until then a
+      // line of the student's own passage says which piece this is.
+      const source = replied ? last : ticket.messages[0];
       return {
         ...ticket,
+        replied,
+        excerpt: (source?.body || source?.correction || '').replace(/\s+/g, ' ').trim(),
         status: replied ? 'Teacher Replied' : 'In Progress',
         statusColor: replied ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-700',
       };

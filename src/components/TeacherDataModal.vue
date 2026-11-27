@@ -19,7 +19,9 @@
       <!-- Body Content -->
       <div class="flex-1 overflow-y-auto p-5 sm:p-7 space-y-6">
         <!-- Top Teacher Card -->
-        <div class="flex flex-col sm:flex-row items-center sm:items-start gap-5 pb-6 border-b border-slate-100">
+        <!-- Centred, not top-aligned: the details beside the photo run taller,
+             so the photo sits midway between the header and the divider below. -->
+        <div class="flex flex-col sm:flex-row items-center gap-5 pb-6 border-b border-slate-100">
           <div class="flex w-full max-w-[220px] shrink-0 flex-col items-center sm:w-[180px]">
             <AppImage
               :src="teacher.photo || getTeacherModalImage(teacher)"

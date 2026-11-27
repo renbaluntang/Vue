@@ -429,7 +429,8 @@
 <script setup>
 import AppImage from '../../components/AppImage.vue';
 import SubjectCode from '../../components/SubjectCode.vue';
-import { computed, ref } from 'vue';
+import { computed, ref, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { useUserStore } from '../../stores/useUserStore';
 import { materialKind } from '@/lib/lessonMaterials';
 import { useSchoolStore } from '@/stores/useSchoolStore';
@@ -503,6 +504,19 @@ const openRating = (lesson) => {
   missingStars.value = false;
   shakeKey.value = 0;
 };
+
+// The dashboard's last-lesson card links here with ?lesson=<id> (open its
+// feedback) or ?rate=<id> (open the rating pop-up). The query is cleared once
+// used, so going back or reloading doesn't pop the panel open again.
+const route = useRoute();
+const router = useRouter();
+onMounted(() => {
+  const { lesson: lessonId, rate: rateId } = route.query;
+  const find = (id) => user.pastLessons.find((row) => String(row.id) === String(id));
+  if (lessonId && find(lessonId)) openLesson.value = find(lessonId);
+  else if (rateId && find(rateId)) openRating(find(rateId));
+  if (lessonId || rateId) router.replace({ query: {} });
+});
 
 const pickStars = (key, star) => {
   draft.value[key] = star;

@@ -66,6 +66,7 @@ One Vite app that serves several front-end prototypes for Brighture, an online E
 - **Brand colours:** `brighture.gold #FFCD00` for fills, `brighture.bronze #8A6600` for gold-coloured text (gold is too light for text on white), and `brighture.ink`/`cream`.
 - **Comments explain why**, in full sentences, like the existing code. Match the comment density of the file you're in.
 - **Icons are flat Font Awesome icons, never emoji.** Google Meet buttons use `components/GoogleMeetIcon.vue`.
+- **No teacher star ratings in the student portal.** Never show a teacher's average rating (stars or a score like "4.89") on any student screen: booking cards, teacher profiles, dashboard lists, modals. Students choose teachers by fit, not by score. The student's own rating of a past lesson ("You rated 4/5") is their feedback and stays.
 - **No blinking or pulsing status animations** (no `animate-ping` or `animate-pulse` on indicators). They were removed on purpose.
 - **Pop-ups (modals):**
   - Pin them near the top (`items-start pt-6 sm:pt-12`), so switching tabs never moves the header.

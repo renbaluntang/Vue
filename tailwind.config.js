@@ -120,5 +120,15 @@ export default {
   		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [
+    require("tailwindcss-animate"),
+    // `squeezed:` applies from xl up to 1379px, and only inside an element
+    // marked data-referral. That's where the student dashboard's referral
+    // card sits beside the next-class card and leaves it short of room, so
+    // the class card steps its sizes down there. One name instead of the
+    // same long arbitrary variant repeated on every class that needs it.
+    require("tailwindcss/plugin")(({ addVariant }) => {
+      addVariant("squeezed", "@media (min-width: 1280px) and (max-width: 1379px) { [data-referral] & }");
+    }),
+  ],
 };
