@@ -791,12 +791,20 @@
     <!-- ======================================================== -->
     <!-- PREVIEW MODAL (STUDENT PERSPECTIVE)                      -->
     <!-- ======================================================== -->
+    <!-- Pinned near the top like the portal's other pop-ups, so a long
+         test scrolls down from a fixed header. Escape closes it (see the
+         watcher on previewExamData). -->
     <div
       v-if="previewExamData"
-      class="fixed inset-0 z-50 !m-0 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 overflow-y-auto"
+      class="fixed inset-0 z-50 !m-0 flex items-start justify-center bg-slate-900/60 backdrop-blur-xs p-4 pt-6 sm:pt-12 overflow-y-auto"
       @click.self="previewExamData = null"
     >
-      <div class="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden my-8">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Student preview"
+        class="w-full max-w-3xl rounded-3xl border border-slate-200 bg-white shadow-2xl overflow-hidden mb-8"
+      >
         <!-- Preview Header -->
         <div class="flex items-center justify-between border-b border-slate-100 bg-slate-50/80 px-6 py-4">
           <div class="flex items-center gap-2.5">
@@ -809,8 +817,9 @@
             type="button"
             @click="previewExamData = null"
             class="w-8 h-8 rounded-full bg-slate-200/70 hover:bg-slate-300 text-slate-600 flex items-center justify-center transition"
+            aria-label="Close preview"
           >
-            <i class="fa-solid fa-xmark text-sm"></i>
+            <i class="fa-solid fa-xmark text-sm" aria-hidden="true"></i>
           </button>
         </div>
 
@@ -887,7 +896,7 @@
 </template>
 
 <script setup>
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onBeforeUnmount } from 'vue';
 import AppImage from '../../components/AppImage.vue';
 import { useSchoolStore } from '../../stores/useSchoolStore';
 import { useTeacherStore } from '../../stores/useTeacherStore';
@@ -924,6 +933,17 @@ const activeStatusFilter = ref('All');
 const isCreating = ref(false);
 const currentExam = ref(null);
 const previewExamData = ref(null);
+
+// Escape closes the student preview, like the portal's other pop-ups. The
+// listener only exists while the preview is open.
+const onPreviewKey = (event) => {
+  if (event.key === 'Escape') previewExamData.value = null;
+};
+watch(previewExamData, (open) => {
+  if (open) window.addEventListener('keydown', onPreviewKey);
+  else window.removeEventListener('keydown', onPreviewKey);
+});
+onBeforeUnmount(() => window.removeEventListener('keydown', onPreviewKey));
 
 // Counts
 const publishedCount = computed(() => examsList.value.filter(e => e.status === 'Published').length);

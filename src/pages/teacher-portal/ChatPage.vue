@@ -146,10 +146,12 @@
               </p>
             </div>
 
-            <!-- Unread badge count -->
+            <!-- Unread badge count. Still, not pulsing: a list of flickering
+                 badges is distracting, and the colour already stands out. -->
             <div
               v-if="getUnreadCount(student.id) > 0"
-              class="shrink-0 self-center w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black flex items-center justify-center shadow-xs animate-pulse"
+              class="shrink-0 self-center w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-black flex items-center justify-center shadow-xs"
+              :aria-label="`${getUnreadCount(student.id)} unread`"
             >
               {{ getUnreadCount(student.id) }}
             </div>

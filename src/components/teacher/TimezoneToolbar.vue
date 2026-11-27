@@ -109,7 +109,7 @@
     >
       <div
         v-if="isSettingsOpen"
-        class="fixed inset-0 z-[70] flex items-center justify-center p-4 bg-black/40 backdrop-blur-xs"
+        class="fixed inset-0 z-[70] flex items-start justify-center p-4 pt-6 sm:pt-12 bg-black/40 backdrop-blur-xs"
         @click.self="isSettingsOpen = false"
         role="dialog"
         aria-modal="true"

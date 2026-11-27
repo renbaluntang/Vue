@@ -8,7 +8,7 @@
             class="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold"
             :class="isDirty ? 'border border-amber-300 bg-amber-100 text-amber-900' : 'border border-emerald-300 bg-emerald-100 text-emerald-900'"
           >
-            <span class="h-2 w-2 rounded-full" :class="isDirty ? 'bg-amber-500 animate-pulse' : 'bg-emerald-500'"></span>
+            <span class="h-2 w-2 rounded-full" :class="isDirty ? 'bg-amber-500' : 'bg-emerald-500'" aria-hidden="true"></span>
             {{ isDirty ? 'Unsaved changes' : 'All changes saved' }}
           </span>
         </div>

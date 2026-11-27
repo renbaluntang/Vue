@@ -7,7 +7,7 @@
   >
     <div
       v-if="isOpen"
-      class="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4"
+      class="fixed inset-0 z-[70] flex items-start justify-center bg-black/40 p-4 pt-6 sm:pt-12"
       @click.self="close"
     >
       <div

@@ -6,7 +6,7 @@
     >
       <div
         v-if="teacher.calendarSettingsOpen"
-        class="fixed inset-0 z-[70] flex items-center justify-center bg-black/40 p-4 backdrop-blur-xs"
+        class="fixed inset-0 z-[70] flex items-start justify-center bg-black/40 p-4 pt-6 sm:pt-12 backdrop-blur-xs"
         @click.self="close"
         role="dialog"
         aria-modal="true"

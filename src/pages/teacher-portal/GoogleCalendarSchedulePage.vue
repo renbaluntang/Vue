@@ -746,7 +746,7 @@
                 <Transition enter-active-class="transition duration-150 ease-out" enter-from-class="opacity-0 scale-95" leave-active-class="transition duration-100 ease-in" leave-to-class="opacity-0 scale-95">
                   <div
                     v-if="showCustomRecurrence"
-                    class="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/40"
+                    class="fixed inset-0 z-[60] flex items-start justify-center p-4 pt-6 sm:pt-12 bg-black/40"
                     @click.self="cancelCustomRecurrence"
                   >
                     <div
@@ -1073,7 +1073,7 @@
     >
       <div
         v-if="selectedEvent"
-        class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-xs"
+        class="fixed inset-0 z-50 flex items-start justify-center p-4 pt-6 sm:pt-12 bg-slate-900/40 backdrop-blur-xs"
         @click="selectedEvent = null"
       >
         <div

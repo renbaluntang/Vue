@@ -13,7 +13,7 @@
             v-if="teacher.nextReservation"
             class="inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-2.5 py-0.5 text-xs font-semibold text-blue-700 ring-1 ring-blue-200/60"
           >
-            <span class="h-1.5 w-1.5 rounded-full bg-blue-600 animate-pulse"></span>
+            <span class="h-1.5 w-1.5 rounded-full bg-blue-600" aria-hidden="true"></span>
             Next lesson in {{ teacher.countdownLabel(teacher.nextReservation.minutesUntil) }}
           </span>
         </div>
